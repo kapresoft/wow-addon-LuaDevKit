@@ -10,7 +10,6 @@
 ## SavedVariables: DEVS_DB, DEVS_DEBUG_MODE, DEVS_DEBUG_ENABLED_CATEGORIES
 ## SavedVariablesPerCharacter: DEVS_CHARACTER_DB
 ## Dependencies: LuaDevKit-Core
-## OptionalDeps: Ace3, DebugChatFrame, Blizzard_EventTrace, Blizzard_DebugTools
 
 ## Category-enUS: Development Tools
 ## Category-deDE: Entwicklungstools
@@ -36,4 +35,10 @@
 ## X-Github-Project-Last-Changed-Date: @project-date-iso@
 ## X-Github-Project-Version: @project-version@
 
+#@do-not-package@
+Developer\DeveloperSetup.lua
+#@end-do-not-package@
 Modules\CodeEditor\CodeEditorDialog.xml
+#@do-not-package@
+Developer\Developer.lua
+#@end-do-not-package@
