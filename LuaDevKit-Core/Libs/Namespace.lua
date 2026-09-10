@@ -2,8 +2,9 @@
 local addon, xns = ...
 
 --- @class LDK_Core_Namespace
+--- @field addon Name
 local ns = xns; LDK_CORE_NS = ns
-
+ns.addon = addon
 
 print('Namespace', 'val=', ns)
 

@@ -421,7 +421,25 @@ function o:OnLoad()
   self:RefreshGutter()
 end
 
+--- Raise on every Show, not just on click: toplevel="true" only re-raises on
+--- a mouse-down inside the frame, so without this the dialog could still open
+--- underneath another DIALOG-strata toplevel frame (e.g. Blizzard_EventTrace)
+--- until the user's first click on it.
+function o:OnShow() self:Raise() end
+
 function o:OnClickClose() self:Hide() end
+
+--- Escape while the dialog itself has keyboard focus (e.g. after the
+--- EditBox cleared its own focus on a first Escape) closes the dialog.
+--- @param key string
+function o:OnKeyDown(key)
+  if key == 'ESCAPE' then
+    self:OnClickClose()
+    self:SetPropagateKeyboardInput(false)
+  else
+    self:SetPropagateKeyboardInput(true)
+  end
+end
 
 --- Vertical scroll of the code ScrollFrame moves the gutter's own scroll in
 --- lockstep, via the real ScrollFrame API (not a manual re-anchor) so the
@@ -435,6 +453,12 @@ function o:OnCodeEditBoxTextChanged()
   -- CodeEditBox's own OnLoad wires this script and can fire it during
   -- construction, before this dialog's OnLoad has aliased self.CodeEditBox.
   if not self.CodeEditBox then return end
+
+  -- Skip gutter/wrap work while the dialog is hidden (e.g. a future
+  -- programmatic SetText call) -- nothing is visible to refresh. OnLoad's own
+  -- SetText(SAMPLE_CODE) + RefreshGutter() already run before first Show, so
+  -- this guard doesn't skip the initial sync.
+  if not self:IsShown() then return end
 
   -- WoW re-fires OnTextChanged even when the contents did not actually change,
   -- and RefreshGutter resizes the box, which provokes yet more events -- that

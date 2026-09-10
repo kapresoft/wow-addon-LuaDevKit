@@ -3,6 +3,10 @@ CodeEditBoxMixin: the no-wrap EditBox used by CodeEditorDialog's code area.
 Delegates each event back up to the owning dialog, resolved once in OnLoad.
 -------------------------------------------------------------------------------]]
 
+--- @type LDK_CodeEditor_Namespace
+local ns = select(2, ...)
+local libName = 'CodeEditBoxMixin'
+
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]
@@ -23,8 +27,19 @@ function o:OnLoad()
   self.owner = self:GetParent():GetParent()
 end
 
-function o:OnEscapePressed() self.owner:OnClickClose() end
-function o:OnTextChanged() self.owner:OnCodeEditBoxTextChanged() end
+-- First Escape: just unfocus the EditBox. Once it's unfocused, a second
+-- Escape reaches the dialog's own OnKeyDown (enableKeyboard="true") and
+-- closes it -- EditBox focus is what was eating the keystroke before.
+function o:OnEscapePressed()
+  --tr(ns.addon, libName, 'OnEscapePressed...')
+  self:ClearFocus()
+end
+
+function o:OnTextChanged()
+  --tr(ns.addon, libName, 'OnTextChanged...')
+  self.owner:OnCodeEditBoxTextChanged()
+end
+
 
 -- No OnSizeChanged handler: RefreshGutter is the only thing that resizes this
 -- EditBox, so reacting to that here just fed itself. See CodeEditorDialog.xml.
@@ -34,5 +49,6 @@ function o:OnTextChanged() self.owner:OnCodeEditBoxTextChanged() end
 -- caret, the scroll moves the caret's coordinates, which re-flags it). Worth
 -- revisiting for scroll-to-caret now that the resize churn is gone.
 function o:OnCursorChanged(x, y, w, h)
+  --tr(ns.addon, libName, 'OnCursorChanged...')
   self.owner:OnCodeEditBoxCursorChanged(x, y, w, h)
 end

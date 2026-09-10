@@ -10,7 +10,8 @@
     <Frame name="LDK_CodeEditorDialogTemplate" virtual="true"
            mixin="LDK_CodeEditorDialogMixin"
            hidden="true" movable="true" resizable="true" enableMouse="true"
-           frameStrata="DIALOG" clampedToScreen="true">
+           enableKeyboard="true" frameStrata="DIALOG" toplevel="true"
+           clampedToScreen="true">
 
         <Size x="600" y="400"/>
         <Anchors>
@@ -19,6 +20,8 @@
 
         <Scripts>
             <OnLoad method="OnLoad"/>
+            <OnShow method="OnShow"/>
+            <OnKeyDown method="OnKeyDown"/>
         </Scripts>
 
         <Frames>
