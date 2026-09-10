@@ -27,70 +27,15 @@ local BACKDROP_TOAST_12_12_NO_EDGE = {
   insets = BACKDROP_TOAST_12_12.insets,
 }
 
--- Sizes supported by Fonts.xml: one font object per family per size (no
--- runtime CreateFont/SetFont -- picking a size is the same SetFontObject
--- swap as picking a family).
-local FONT_SIZES = { 10, 12, 14 }
-
--- Font choices for the dropdown: stable key + label -> one global font object
--- per supported size. "key" is the identifier used in options.fontFamily
--- (Configure/callbacks), kept independent of "label" (display text) so
--- relabeling doesn't break persisted config. First entry matches the box's
--- font on first open.
-local FONT_CHOICES = {
-  {
-    key = 'UbuntuMono',
-    label = 'Ubuntu Mono',
-    bySize = {
-      [10] = LDK_CodeEditorFont_UbuntuMono_10,
-      [12] = LDK_CodeEditorFont_UbuntuMono_12,
-      [14] = LDK_CodeEditorFont_UbuntuMono_14,
-    },
-  },
-  {
-    key = 'JetBrainsMono',
-    label = 'JetBrains Mono',
-    bySize = {
-      [10] = LDK_CodeEditorFont_JetBrainsMono_10,
-      [12] = LDK_CodeEditorFont_JetBrainsMono_12,
-      [14] = LDK_CodeEditorFont_JetBrainsMono_14,
-    },
-  },
-  {
-    key = 'SourceCodePro',
-    label = 'Source Code Pro',
-    bySize = {
-      [10] = LDK_CodeEditorFont_SourceCodePro_10,
-      [12] = LDK_CodeEditorFont_SourceCodePro_12,
-      [14] = LDK_CodeEditorFont_SourceCodePro_14,
-    },
-  },
-}
-
---- @param key string
---- @return table|nil
-local function FindFontChoice(key)
-  for _, choice in ipairs(FONT_CHOICES) do
-    if choice.key == key then return choice end
-  end
-  return nil
-end
-
---- Nearest supported size (Fonts.xml only declares 10/12/14 per family).
---- @param fontSize number
---- @return number
-local function NearestFontSize(fontSize)
-  local nearest = FONT_SIZES[1]
-  for _, size in ipairs(FONT_SIZES) do
-    if math.abs(size - fontSize) < math.abs(nearest - fontSize) then nearest = size end
-  end
-  return nearest
-end
+-- Font choices/sizes (family list, CJK-locale gating, size snapping) live in
+-- FontUtil.lua (LuaDevKit-Core), reached via cns.O.FontUtil -- this dialog
+-- only consumes them.
+local FontUtil = cns.O.FontUtil
 
 -- Configure() defaults, and the shape of the snapshot passed to the
 -- OnConfigChanged callback.
 local DEFAULTS = {
-  fontFamily = FONT_CHOICES[1].key,
+  fontFamily = FontUtil:GetFontChoices()[1].key,
   fontSize = 14,
   wrapText = false,
 }
@@ -172,8 +117,8 @@ Types
 --- @field Text FontString Hidden; same font/wrap as CodeEditBox, used to count wrapped rows
 
 --- @class LDK_CodeEditorOptions
---- @field fontFamily string Key into FONT_CHOICES, e.g. 'UbuntuMono'
---- @field fontSize number One of FONT_SIZES (10/12/14); other values snap to nearest
+--- @field fontFamily string Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
+--- @field fontSize number One of FontUtil:GetFontSizes() (10/12/14); other values snap to nearest
 --- @field wrapText boolean
 
 --- @class LDK_CodeEditorDialogMixin : Frame
@@ -182,8 +127,8 @@ Types
 --- @field FontDropdown Frame The font-choice UIDropDownMenu, anchored inside TopBar
 --- @field FontSizeDropdown Frame The font-size UIDropDownMenu, anchored inside TopBar
 --- @field codeFont Font Currently applied font object
---- @field fontFamily string Key of the currently applied font (see FONT_CHOICES)
---- @field fontSize number Current fontSize option, applied to rendering (snapped to FONT_SIZES)
+--- @field fontFamily string Key of the currently applied font (see FontUtil:GetFontChoices())
+--- @field fontSize number Current fontSize option, applied to rendering (snapped to FontUtil:GetFontSizes())
 --- @field BottomBar LDK_CodeEditorBottomBar
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean Current wrap-mode state
@@ -265,7 +210,7 @@ end
 local function InitFontDropdown(dropdown, self)
   UIDropDownMenu_SetWidth(dropdown, 140)
   UIDropDownMenu_Initialize(dropdown, function(_, level)
-    for _, choice in ipairs(FONT_CHOICES) do
+    for _, choice in ipairs(FontUtil:GetFontChoices()) do
       local info = UIDropDownMenu_CreateInfo()
       info.text = choice.label
       info.checked = (self.fontFamily == choice.key)
@@ -281,7 +226,7 @@ end
 local function InitFontSizeDropdown(dropdown, self)
   UIDropDownMenu_SetWidth(dropdown, 70)
   UIDropDownMenu_Initialize(dropdown, function(_, level)
-    for _, size in ipairs(FONT_SIZES) do
+    for _, size in ipairs(FontUtil:GetFontSizes()) do
       local info = UIDropDownMenu_CreateInfo()
       info.text = tostring(size)
       info.checked = (self.fontSize == size)
@@ -491,14 +436,14 @@ end
 --- @param checked boolean
 function o:OnWrapToggled(checked) self:SetWrapText(checked, true) end
 
---- Applies a font (by FONT_CHOICES key, at the current fontSize) to the code
---- box, the gutter numbers, and the hidden wrap measuring string together --
---- inherits="..." in XML only binds once at load, so switching fonts at
---- runtime needs SetFontObject on all three.
---- @param fontFamily string Key into FONT_CHOICES
+--- Applies a font (by FontUtil font-choice key, at the current fontSize) to
+--- the code box, the gutter numbers, and the hidden wrap measuring string
+--- together -- inherits="..." in XML only binds once at load, so switching
+--- fonts at runtime needs SetFontObject on all three.
+--- @param fontFamily string Key into FontUtil:GetFontChoices()
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetCodeFont(fontFamily, notify)
-  local choice = FindFontChoice(fontFamily)
+  local choice = FontUtil:FindFontChoice(fontFamily)
   if not choice then return end
   self.fontFamily = choice.key
   self:ApplyCodeFont(notify)
@@ -506,10 +451,10 @@ end
 
 --- Re-resolves and applies the font object for the current fontFamily +
 --- fontSize pair. Shared by SetCodeFont and SetFontSize -- both change one
---- half of the same (family, size) lookup into FONT_CHOICES[].bySize.
+--- half of the same (family, size) lookup into FontUtil:GetFontChoices()[].bySize.
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:ApplyCodeFont(notify)
-  local choice = FindFontChoice(self.fontFamily)
+  local choice = FontUtil:FindFontChoice(self.fontFamily)
   if not choice then return end
   local font = choice.bySize[self.fontSize] or choice.bySize[DEFAULTS.fontSize]
   self.codeFont = font
@@ -525,12 +470,12 @@ function o:ApplyCodeFont(notify)
   if notify then self:FireConfigChanged() end
 end
 
---- Sets the font size (snapped to the nearest of FONT_SIZES) and re-applies
+--- Sets the font size (snapped to the nearest supported size) and re-applies
 --- the current font family at that size.
 --- @param fontSize number
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetFontSize(fontSize, notify)
-  self.fontSize = NearestFontSize(fontSize)
+  self.fontSize = FontUtil:NearestFontSize(fontSize)
   self:ApplyCodeFont(notify)
 end
 
@@ -577,12 +522,12 @@ end
 --- Applies initial/programmatic settings, merged over current values (so a
 --- partial table only touches the fields it names). Does not fire
 --- OnConfigChanged -- the caller already knows what it just configured.
---- fontSize snaps to the nearest of FONT_SIZES (10/12/14).
+--- fontSize snaps to the nearest supported size (10/12/14).
 --- @param options LDK_CodeEditorOptions|table|nil Partial table; omitted fields keep their current value
 function o:Configure(options)
   options = options or {}
   self.fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
-  self.fontSize = NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
+  self.fontSize = FontUtil:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
   local wrapText = options.wrapText
   if wrapText == nil then wrapText = self.wrapText end
   if wrapText == nil then wrapText = DEFAULTS.wrapText end

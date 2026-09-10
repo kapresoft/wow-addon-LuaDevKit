@@ -45,4 +45,46 @@
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
 
+    <!-- CJK monospace (Noto Sans Mono CJK), covering WoW's official CJK
+         client locales: zhCN, zhTW, koKR. (No jaJP entry; WoW has no
+         Japanese client locale.) -->
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_zhCN_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKsc-Regular.otf"
+          height="10" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_zhCN_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKsc-Regular.otf"
+          height="12" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_zhCN_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKsc-Regular.otf"
+          height="14" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_zhTW_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKtc-Regular.otf"
+          height="10" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_zhTW_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKtc-Regular.otf"
+          height="12" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_zhTW_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKtc-Regular.otf"
+          height="14" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_koKR_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKkr-Regular.otf"
+          height="10" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_koKR_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKkr-Regular.otf"
+          height="12" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoCJK_koKR_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMonoCJKkr-Regular.otf"
+          height="14" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+
 </Ui>
