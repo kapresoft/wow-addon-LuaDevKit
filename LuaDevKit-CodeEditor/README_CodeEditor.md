@@ -127,10 +127,20 @@ all in `RefreshGutter()` and its scroll/size hooks:
    code area's real `ScrollFrame` API, the same mechanism WoW uses for any
    scroll frame, so clipping behaves identically for both.
 
-`RefreshGutter()` re-runs on every text change, size change, wrap toggle, and
-font change (`OnCodeEditBoxTextChanged`, `OnCodeEditBoxSizeChanged`,
+`RefreshGutter()` re-runs on every text change, viewport resize, wrap toggle, and
+font change (`OnCodeEditBoxTextChanged`, `OnCodeViewportSizeChanged`,
 `SetWrapText`, `SetCodeFont`), so the three invariants above are re-established
 any time something could have invalidated them.
+
+Note the asymmetry in what triggers it. `RefreshGutter()` *writes* `CodeEditBox`'s
+size, so reacting to that same box's `OnSizeChanged` would only ever be reacting
+to our own writes -- a feedback edge with no external trigger behind it, which
+looped every frame and (by constantly recalculating the caret) kept the text
+cursor from ever rendering. That handler is deliberately not wired; only the
+**ScrollFrame's** resize is, since `RefreshGutter()` never resizes the ScrollFrame.
+For the same reason `OnCodeEditBoxTextChanged` bails when the text is unchanged,
+and every setter inside `RefreshGutter()` is gated on `SizeDiffers` -- WoW
+re-fires these events even when nothing actually changed.
 
 **Wrap mode** adds a fourth piece: since one logical line can span multiple
 *visual* rows once wrapped, `WrappedLineNumbersText()` uses the hidden

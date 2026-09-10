@@ -25,5 +25,14 @@ end
 
 function o:OnEscapePressed() self.owner:OnClickClose() end
 function o:OnTextChanged() self.owner:OnCodeEditBoxTextChanged() end
-function o:OnCursorChanged(...) self.owner:OnCodeEditBoxCursorChanged(...) end
-function o:OnSizeChanged() self.owner:OnCodeEditBoxSizeChanged() end
+
+-- No OnSizeChanged handler: RefreshGutter is the only thing that resizes this
+-- EditBox, so reacting to that here just fed itself. See CodeEditorDialog.xml.
+--
+-- Blizzard's ScrollingEdit_OnCursorChanged/ScrollingEdit_OnUpdate pair was also
+-- tried here and self-sustained its own loop (OnUpdate scrolls to chase the
+-- caret, the scroll moves the caret's coordinates, which re-flags it). Worth
+-- revisiting for scroll-to-caret now that the resize churn is gone.
+function o:OnCursorChanged(x, y, w, h)
+  self.owner:OnCodeEditBoxCursorChanged(x, y, w, h)
+end

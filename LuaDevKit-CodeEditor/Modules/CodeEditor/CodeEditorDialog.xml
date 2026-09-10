@@ -266,13 +266,28 @@
                     <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CodeBackdrop" relativePoint="BOTTOMRIGHT" x="-5" y="5"/>
                 </Anchors>
                 <Scripts>
+                    <!-- Focus fallback, mirroring Blizzard's InputScrollFrame_OnMouseDown
+                         on UIPanelInputScrollFrameTemplate. The ScrollFrame sits below
+                         CodeEditBox (its ScrollChild, so a higher frame level), which
+                         means clicks landing on the text still reach the EditBox and
+                         position the caret natively; only clicks that miss it land
+                         here and get focus forwarded. -->
+                    <OnMouseDown>
+                        self.CodeEditBox:SetFocus()
+                    </OnMouseDown>
                     <OnLoad>
+                        -- Chain, don't clobber: UIPanelScrollFrameCodeTemplate wires
+                        -- OnVerticalScroll to ScrollFrame_OnVerticalScroll, which syncs
+                        -- the scrollbar's value and its up/down button states. Replacing
+                        -- it outright left the scrollbar desynced from the real scroll
+                        -- offset (WowLua's own handler does this same sync by hand).
                         self:SetScript("OnVerticalScroll", function(sf, offset)
+                            ScrollFrame_OnVerticalScroll(sf, offset)
                             self:GetParent():OnCodeEditBoxScroll(offset)
                         end)
                         -- viewport resize (SizerSE drag) moves wrap points in wrap mode
                         self:SetScript("OnSizeChanged", function(sf)
-                            self:GetParent():OnCodeEditBoxSizeChanged()
+                            self:GetParent():OnCodeViewportSizeChanged()
                         end)
                     </OnLoad>
                 </Scripts>
@@ -280,7 +295,8 @@
                     <!-- EditBox has its own font (SetFontObject/GetFont), set from Lua
                          OnLoad  no nested FontString element needed. -->
                     <EditBox parentKey="CodeEditBox" mixin="LDK_CodeEditBoxMixin"
-                             multiLine="true" autoFocus="false" letters="0">
+
+                             multiLine="true" letters="0">
                         <Size x="4000" y="1"/>
                         <Anchors>
                             <Anchor point="TOPLEFT"/>
@@ -291,11 +307,37 @@
                             <OnEscapePressed method="OnEscapePressed"/>
                             <OnTextChanged method="OnTextChanged"/>
                             <OnCursorChanged method="OnCursorChanged"/>
-                            <OnSizeChanged method="OnSizeChanged"/>
+                            <!-- Deliberately NO OnSizeChanged here. RefreshGutter is
+                                 the only thing that ever resizes this EditBox, so an
+                                 OnSizeChanged handler would only ever react to our own
+                                 writes and call RefreshGutter again; a pure feedback
+                                 edge that looped every frame and kept the caret from
+                                 rendering. Real refresh triggers are covered by
+                                 OnTextChanged, the ScrollFrame's OnSizeChanged
+                                 (OnCodeViewportSizeChanged), SetWrapText and
+                                 ApplyCodeFont. -->
                         </Scripts>
                     </EditBox>
                 </ScrollChild>
             </ScrollFrame>
+
+            <!-- Focus grabber, mirroring WowLua's $parentEditFocusGrabber: catches
+                 clicks that miss CodeEditBox's own hit-rect and forwards focus.
+                 CodeEditBox is a ScrollChild (frame level ScrollFrame+1) so it
+                 outranks this sibling and still takes clicks that land on text,
+                 keeping native click-to-position and drag-select intact. -->
+            <Button parentKey="EditFocusGrabber">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.CodeBackdrop" relativePoint="TOPLEFT"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CodeBackdrop" relativePoint="BOTTOMRIGHT"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        print('xx focused..')
+                        self:GetParent().ScrollFrame.CodeEditBox:SetFocus()
+                    </OnClick>
+                </Scripts>
+            </Button>
         </Frames>
     </Frame>
 

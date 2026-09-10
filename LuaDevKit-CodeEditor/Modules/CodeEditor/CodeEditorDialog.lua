@@ -192,6 +192,17 @@ local o = LDK_CodeEditorDialogMixin
 --[[-----------------------------------------------------------------------------
 Support Functions
 -------------------------------------------------------------------------------]]
+--- Sub-pixel differences are noise; only treat a real change as a change. WoW
+--- re-fires OnSizeChanged/OnTextChanged even when nothing actually changed, so
+--- every resize and every refresh is gated on this to keep those events from
+--- feeding each other every frame.
+--- @param current number|nil
+--- @param wanted number
+--- @return boolean
+local function SizeDiffers(current, wanted)
+  return math.abs((current or 0) - wanted) > 0.5
+end
+
 --- @param self LDK_CodeEditorDialog
 --- @return number
 local function CountLines(self)
@@ -310,11 +321,18 @@ function o:OnLoad()
   -- can address it as self.CodeEditBox.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
 
-  -- Lua syntax colorization + indentation, vendored from WowLua's FAIAP.lua.
-  -- Must run before SetText(SAMPLE_CODE) below so that first paint already
-  -- goes through FAIAP's own SetText override (raw text in, encoded+colored
-  -- text stored; GetText() calls elsewhere in this file transparently see
-  -- decoded/clean text either way).
+  -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
+  -- SetText(SAMPLE_CODE) below so the first paint already goes through FAIAP's
+  -- SetText override; its GetText override returns decoded (uncolored) text, so
+  -- CountLines/RefreshGutter/wrap measuring all keep seeing clean source.
+  --
+  -- Known risk, not yet observed in practice: colorCodeEditbox() calls
+  -- indentEditbox() when the line count changes, and indentEditbox()'s write
+  -- guard compares color-STRIPPED text against its COLORED result, so it always
+  -- rewrites. If those two halves start invalidating each other's caches, this
+  -- will show up as continuous SetText/SetCursorPosition churn -- drop the
+  -- indentEditbox() call in colorCodeEditbox() if so, since only the colorize
+  -- half is wanted here.
   if LDK_FAIAP then
     LDK_FAIAP.enable(self.CodeEditBox, LDK_FAIAP.defaultColorTable)
   end
@@ -323,7 +341,10 @@ function o:OnLoad()
   self.Header:SetBackdrop(HEADER_BACKDROP)
   --self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
   -- #3A373B, to stand out from TopBar/body.
-  self.Header:SetBackdropColor(0.2275, 0.2157, 0.2314, .95)
+
+  local headerColor = CreateColorFromRGBHexString('151B2B')
+  --self.Header:SetBackdropColor(0.2275, 0.2157, 0.2314, .95)
+  self.Header:SetBackdropColor(headerColor:GetRGBA())
   --self.TopBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
   --self.BottomBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
   --self.GutterBackdrop:SetBackdrop(BACKDROP_TOAST_12_12)
@@ -415,6 +436,15 @@ function o:OnCodeEditBoxTextChanged()
   -- CodeEditBox's own OnLoad wires this script and can fire it during
   -- construction, before this dialog's OnLoad has aliased self.CodeEditBox.
   if not self.CodeEditBox then return end
+
+  -- WoW re-fires OnTextChanged even when the contents did not actually change,
+  -- and RefreshGutter resizes the box, which provokes yet more events -- that
+  -- cycle ran every frame and kept the caret from ever rendering. Only do the
+  -- work when the text really differs.
+  local text = self.CodeEditBox:GetText()
+  if text == self.lastGutterText then return end
+  self.lastGutterText = text
+
   self:RefreshGutter()
 end
 
@@ -423,7 +453,13 @@ function o:OnCodeEditBoxCursorChanged(x, y, w, h)
   -- position is handled natively by the EditBox/ScrollFrame pairing.
 end
 
-function o:OnCodeEditBoxSizeChanged()
+--- The ScrollFrame (viewport) resized -- e.g. a SizerSE drag. This is the only
+--- size event worth reacting to: RefreshGutter never resizes the ScrollFrame, so
+--- it cannot feed itself here, and in wrap mode the viewport's new width is
+--- exactly what has to be re-wrapped against. (The EditBox's own OnSizeChanged
+--- is intentionally not wired -- RefreshGutter is the only thing that resizes
+--- it, so that handler only ever reacted to our own writes and looped.)
+function o:OnCodeViewportSizeChanged()
   if not self.CodeEditBox then return end
   self:RefreshGutter()
 end
@@ -535,20 +571,42 @@ end
 --- Rebuilds the gutter's "1..N" text and sizes both columns to the content.
 function o:RefreshGutter()
   if not self.CodeEditBox then return end -- not constructed yet (see OnCodeEditBoxTextChanged)
+
+  -- Reentrancy guard, for the synchronous path: SetText fires OnTextChanged
+  -- inline, which lands back here. (Resizes are handled separately below --
+  -- OnSizeChanged is dispatched asynchronously, so this flag is already back
+  -- to false by the time it arrives and cannot catch that case.)
+  if self.refreshingGutter then return end
+  self.refreshingGutter = true
+
   local gutter = self.Gutter
   local child = gutter.ScrollChild
   local numbers = child.Numbers
 
+  -- Every setter below is guarded by SizeDiffers. Re-applying an unchanged size
+  -- still makes WoW re-fire OnSizeChanged and recompute the caret (firing
+  -- OnCursorChanged), so an unguarded SetHeight here re-entered this function
+  -- every frame forever -- the size never changed, but the events never stopped,
+  -- and the constant caret recalculation kept the cursor from ever rendering.
+
   -- Width must be set explicitly (scroll children ignore right-side anchors)
   -- so the right-justified numbers land at the Gutter's clip edge, not past it.
-  child:SetWidth(gutter:GetWidth())
+  local gutterWidth = gutter:GetWidth()
+  if SizeDiffers(child:GetWidth(), gutterWidth) then
+    child:SetWidth(gutterWidth)
+  end
 
   if self.wrapText then
     -- Keep the EditBox and the measuring string wrapping at the same width;
     -- wrap points move with the viewport, so this must track resizes too.
     local textWidth = CodeTextWidth(self)
-    self.CodeEditBox:SetWidth(self.ScrollFrame:GetWidth())
-    self.WrapMeasure.Text:SetWidth(textWidth)
+    local viewportWidth = self.ScrollFrame:GetWidth()
+    if SizeDiffers(self.CodeEditBox:GetWidth(), viewportWidth) then
+      self.CodeEditBox:SetWidth(viewportWidth)
+    end
+    if SizeDiffers(self.WrapMeasure.Text:GetWidth(), textWidth) then
+      self.WrapMeasure.Text:SetWidth(textWidth)
+    end
     numbers:SetText(WrappedLineNumbersText(self))
   else
     numbers:SetText(LineNumbersText(CountLines(self)))
@@ -559,8 +617,14 @@ function o:RefreshGutter()
   -- Sizing both to it also gives the two ScrollFrames an identical scroll
   -- range, keeping SetVerticalScroll in sync down to the last line.
   local contentHeight = math.max(numbers:GetStringHeight(), self.ScrollFrame:GetHeight())
-  child:SetHeight(contentHeight)
-  self.CodeEditBox:SetHeight(contentHeight)
+  if SizeDiffers(child:GetHeight(), contentHeight) then
+    child:SetHeight(contentHeight)
+  end
+  if SizeDiffers(self.CodeEditBox:GetHeight(), contentHeight) then
+    self.CodeEditBox:SetHeight(contentHeight)
+  end
+
+  self.refreshingGutter = false
 end
 
 --- @return string
