@@ -21,48 +21,67 @@
             <OnLoad method="OnLoad"/>
         </Scripts>
 
-        <Layers>
-            <Layer>
-                <Texture name="$parentTitleFrameHeader" parentKey="TitleFrameHeader"
-                         file="Interface\DialogFrame\UI-DialogBox-Header">
-                    <Size x="320" y="64"/>
-                    <Anchors>
-                        <Anchor point="TOP" relativePoint="TOP" x="0" y="12"/>
-                    </Anchors>
-                    <Scripts>
-                        <OnMouseDown>
-                            if button == "LeftButton" then
-                            self:GetParent():StartMoving()
-                            end
-                        </OnMouseDown>
-                        <OnMouseUp>
-                            self:GetParent():StopMovingOrSizing()
-                        </OnMouseUp>
-                    </Scripts>
-                </Texture>
-                <FontString name="$parentDialogTitle" parentKey="HeaderTitle"
-                            inherits="GameFontNormalSmall">
-                    <Size>
-                        <AbsDimension x="185" y="12"/>
-                    </Size>
-                    <Anchors>
-                        <Anchor point="TOP" relativePoint="TOP" x="0" y="-2"/>
-                    </Anchors>
-                </FontString>
-            </Layer>
-        </Layers>
-
         <Frames>
-            <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
+            <!-- Header row: full-width bar owning the title and the close button.
+                 Drag-to-move lives here (it was on the old header Texture).
+                 CloseFrame is declared before Title so Title's right edge can
+                 anchor to it: fixed-width close + fluid title means the title
+                 absorbs all remaining width. -->
+            <Frame parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
+                <Size y="32"/>
                 <Anchors>
-                    <Anchor point="TOPRIGHT" x="-5" y="-7"/>
+                    <Anchor point="TOPLEFT" relativeTo="$parent" x="0" y="0"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$parent" x="0" y="0"/>
                 </Anchors>
+                <Frames>
+                    <!-- No enableMouse: drags over its empty margin fall through
+                         to Header; the Button still takes its own clicks. -->
+                    <Frame parentKey="CloseFrame">
+                        <Size x="32"/>
+                        <Anchors>
+                            <Anchor point="TOPRIGHT"/>
+                            <Anchor point="BOTTOMRIGHT"/>
+                        </Anchors>
+                        <Frames>
+                            <!-- OnClick is wired in Lua OnLoad, not here: the
+                                 inherited UIPanelCloseButton_OnClick hides
+                                 GetParent(), which at this depth is CloseFrame. -->
+                            <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
+                                <Anchors>
+                                    <Anchor point="CENTER"/>
+                                </Anchors>
+                            </Button>
+                        </Frames>
+                    </Frame>
+                    <Frame parentKey="Title">
+                        <Anchors>
+                            <Anchor point="TOPLEFT"/>
+                            <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CloseFrame" relativePoint="BOTTOMLEFT"/>
+                        </Anchors>
+                        <Layers>
+                            <Layer level="ARTWORK">
+                                <FontString parentKey="Text" inherits="GameFontNormalSmall"
+                                            justifyH="CENTER">
+                                    <Anchors>
+                                        <Anchor point="LEFT" x="4" y="0"/>
+                                        <Anchor point="RIGHT" x="40" y="0"/>
+                                    </Anchors>
+                                </FontString>
+                            </Layer>
+                        </Layers>
+                    </Frame>
+                </Frames>
                 <Scripts>
-                    <OnClick>
-                        self:GetParent():OnClickClose()
-                    </OnClick>
+                    <OnMouseDown>
+                        if button == "LeftButton" then
+                        self:GetParent():StartMoving()
+                        end
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():StopMovingOrSizing()
+                    </OnMouseUp>
                 </Scripts>
-            </Button>
+            </Frame>
 
             <!-- Bottom-right resize grip, styled like AceGUI's Frame widget sizer_se -->
             <Frame parentKey="SizerSE" enableMouse="true">
@@ -101,8 +120,8 @@
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Size y="50"/>
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeTo="$parent" x="0" y="-30"/>
-                    <Anchor point="TOPRIGHT" relativeTo="$parent" x="0" y="-30"/>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT"/>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT"/>
                 </Anchors>
                 <Frames>
                     <!-- Absolute names (not $parent-relative): TopBar itself has no

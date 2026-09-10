@@ -144,6 +144,16 @@ Types
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
 
+--- @class LDK_CodeEditorHeaderTitle : Frame
+--- @field Text FontString The dialog title, centered
+
+--- @class LDK_CodeEditorHeaderCloseFrame : Frame
+--- @field CloseButton Button
+
+--- @class LDK_CodeEditorHeader : Frame
+--- @field Title LDK_CodeEditorHeaderTitle Fluid: absorbs all width left by CloseFrame
+--- @field CloseFrame LDK_CodeEditorHeaderCloseFrame Fixed 32px, pinned right
+
 --- @class LDK_CodeEditorWrapMeasure : Frame
 --- @field Text FontString Hidden; same font/wrap as CodeEditBox, used to count wrapped rows
 
@@ -153,6 +163,7 @@ Types
 --- @field wrapText boolean
 
 --- @class LDK_CodeEditorDialogMixin : Frame
+--- @field Header LDK_CodeEditorHeader Full-width title bar; carries drag-to-move
 --- @field TopBar Frame Reserved space for future toolbar/controls
 --- @field FontDropdown Frame The font-choice UIDropDownMenu, anchored inside TopBar
 --- @field FontSizeDropdown Frame The font-size UIDropDownMenu, anchored inside TopBar
@@ -266,6 +277,7 @@ function o:OnLoad()
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
 
   self:SetBackdrop(BACKDROP_TOAST_12_12)
+  self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
   self.TopBar:SetBackdrop(BACKDROP_TOAST_12_12_NO_EDGE)
   self.BottomBar:SetBackdrop(BACKDROP_TOAST_12_12_NO_EDGE)
   self.GutterBackdrop:SetBackdrop(BACKDROP_TOAST_12_12)
@@ -285,6 +297,14 @@ function o:OnLoad()
   else
     self:SetMinResize(400, 250)
   end
+
+  -- Header children: parentKey resolves onto the immediate XML parent (Title /
+  -- CloseFrame), not this dialog frame -- alias them, same as CodeEditBox above.
+  self.HeaderTitle = self.Header.Title.Text
+  self.CloseButton = self.Header.CloseFrame.CloseButton
+  -- Wired here rather than in XML: UIPanelCloseButton inherits an OnClick that
+  -- hides GetParent(), which is now CloseFrame, not the dialog.
+  self.CloseButton:SetScript('OnClick', function() self:OnClickClose() end)
 
   self.HeaderTitle:SetText('Code Editor (Prototype)')
 

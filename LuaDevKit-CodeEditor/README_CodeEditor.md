@@ -22,7 +22,7 @@ Row order, top to bottom:
 ```mermaid
 block-beta
 columns 1
-  Header["TitleFrameHeader / HeaderTitle\n(dialog header art + title text)"]
+  Header["Header — full-width bar (drag-to-move)\nTitle (fluid) · CloseFrame (32px, pinned right)"]
   TopBar["TopBar — row 1\n(reserved toolbar) · FontSizeDropdown · FontDropdown"]
   block:body
     Gutter["GutterBackdrop → Gutter\n(line #s)"]
@@ -37,7 +37,7 @@ columns 1
 
 ```
 +-----------------------------------------------------------+
-|                 TitleFrameHeader / HeaderTitle             |  <- dialog header art + title text
+|            Code Editor (Prototype)                    [X]  |  <- Header: Title (fluid) + CloseFrame (32px)
 +-----------------------------------------------------------+
 | TopBar                       [FontSizeDropdown][FontDropdown]| <- row 1: reserved toolbar
 +-----------------------------------------------------------+
@@ -54,14 +54,26 @@ columns 1
 
 </details>
 
+`Header` splits its width by anchoring rather than arithmetic: `CloseFrame` is a
+fixed 32px pinned to the right, and `Title`'s `BOTTOMRIGHT` anchors to
+`CloseFrame`'s `BOTTOMLEFT`, so the title absorbs whatever width is left at any
+dialog size. `TopBar` anchors to `Header`'s bottom, making the header's height
+the only place the header size is expressed. Only `Header` sets `enableMouse`
+(for drag-to-move) -- `Title`/`CloseFrame` leave it off so a drag started
+anywhere but the close button still reaches `Header`.
+
 ## Frame hierarchy
 
 ```mermaid
 graph TD
     Dialog["LDK_CodeEditorDialog"]
 
-    Dialog --> Header["TitleFrameHeader (Texture)\n+ HeaderTitle (FontString)"]
-    Dialog --> CloseButton["CloseButton"]
+    Dialog --> Header["Header (full-width bar)\ndrag-to-move + backdrop"]
+    Header --> Title["Title (fluid width)"]
+    Title --> TitleText["Text (FontString)\ncentered"]
+    Header --> CloseFrame["CloseFrame (32px, pinned right)"]
+    CloseFrame --> CloseButton["CloseButton"]
+
     Dialog --> SizerSE["SizerSE\n(resize grip)"]
 
     Dialog --> TopBar["TopBar (row 1)"]
