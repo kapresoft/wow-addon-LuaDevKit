@@ -5,3 +5,4 @@ local addon, xns = ...
 local ns = xns
 
 
+print('Namespace', 'val=', ns)

@@ -6,41 +6,41 @@
          resized at runtime, so switching fontSize is a plain SetFontObject
          swap, same mechanism as switching family, with no CreateFont or
          font-file-path bookkeeping in Lua. 14 is the default/base size. -->
-    <Font name="LDK_CodeEditorFont_JetBrainsMono_10" font="interface/addons/luadevkit/ldk-core/assets/fonts/jetbrainsmono-variablefont_wght.ttf"
+    <Font name="LDK_CodeEditorFont_JetBrainsMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-VariableFont_wght.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_JetBrainsMono_12" font="interface/addons/luadevkit/ldk-core/assets/fonts/jetbrainsmono-variablefont_wght.ttf"
+    <Font name="LDK_CodeEditorFont_JetBrainsMono_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-VariableFont_wght.ttf"
           height="12" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_JetBrainsMono_14" font="interface/addons/luadevkit/ldk-core/assets/fonts/jetbrainsmono-variablefont_wght.ttf"
+    <Font name="LDK_CodeEditorFont_JetBrainsMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-VariableFont_wght.ttf"
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
 
-    <Font name="LDK_CodeEditorFont_SourceCodePro_10" font="interface/addons/luadevkit/ldk-core/assets/fonts/sourcecodepro-medium.ttf"
+    <Font name="LDK_CodeEditorFont_SourceCodePro_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Medium.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_SourceCodePro_12" font="interface/addons/luadevkit/ldk-core/assets/fonts/sourcecodepro-medium.ttf"
+    <Font name="LDK_CodeEditorFont_SourceCodePro_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Medium.ttf"
           height="12" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_SourceCodePro_14" font="interface/addons/luadevkit/ldk-core/assets/fonts/sourcecodepro-medium.ttf"
+    <Font name="LDK_CodeEditorFont_SourceCodePro_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Medium.ttf"
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
 
-    <Font name="LDK_CodeEditorFont_UbuntuMono_10" font="interface/addons/luadevkit/ldk-core/assets/fonts/ubuntumono-regular.ttf"
+    <Font name="LDK_CodeEditorFont_UbuntuMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/UbuntuMono-Regular.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_UbuntuMono_12" font="interface/addons/luadevkit/ldk-core/assets/fonts/ubuntumono-regular.ttf"
+    <Font name="LDK_CodeEditorFont_UbuntuMono_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/UbuntuMono-Regular.ttf"
           height="12" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_UbuntuMono_14" font="interface/addons/luadevkit/ldk-core/assets/fonts/ubuntumono-regular.ttf"
+    <Font name="LDK_CodeEditorFont_UbuntuMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/UbuntuMono-Regular.ttf"
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>

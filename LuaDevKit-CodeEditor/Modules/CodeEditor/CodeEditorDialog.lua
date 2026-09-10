@@ -6,7 +6,8 @@ See GitHub issue #90.
 --- @type LDK_Core_Namespace
 local ns = select(2, ...)
 local libName = 'CodeEditorDialog'
-local p, t = ns:log(libName)
+--local p, t = ns:log(libName)
+print(libName, 'ns=', ns)
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars

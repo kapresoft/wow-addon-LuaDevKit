@@ -1,6 +1,6 @@
 ## Interface: 11509, 20506, 30403, 40402, 50504, 120100
 ## Version: @project-version@
-## Title: Dev|cff4DBEFFSuite|r
+## Title: |cff1784d1LuaDevKit-|rCore
 # IconTexture: interface/addons/devsuite/libs/assets/devsuite-icontexture
 
 ## Author: Antonio W. Lagnada (kapresoft@gmail.com)
@@ -36,5 +36,14 @@
 ## X-Github-Project-Version: @project-version@
 
 ThirdParty\ThirdParty.xml
+
+#@do-not-package@
+Libs\Developer\DeveloperSetup.lua
+#@end-do-not-package@
+
 Libs\Fonts.xml
 Libs\Namespace.lua
+
+#@do-not-package@
+Libs\Developer\Developer.lua
+#@end-do-not-package@

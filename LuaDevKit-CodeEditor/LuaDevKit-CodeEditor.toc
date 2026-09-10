@@ -1,6 +1,6 @@
 ## Interface: 11509, 20506, 30403, 40402, 50504, 120100
 ## Version: @project-version@
-## Title: Dev|cff4DBEFFSuite|r
+## Title: |cff1784d1LuaDevKit-|rCodeEditor
 # IconTexture: interface/addons/devsuite/libs/assets/devsuite-icontexture
 
 ## Author: Antonio W. Lagnada (kapresoft@gmail.com)
@@ -9,6 +9,7 @@
 ## DefaultState: enabled
 ## SavedVariables: DEVS_DB, DEVS_DEBUG_MODE, DEVS_DEBUG_ENABLED_CATEGORIES
 ## SavedVariablesPerCharacter: DEVS_CHARACTER_DB
+## Dependencies: LuaDevKit-Core
 ## OptionalDeps: Ace3, DebugChatFrame, Blizzard_EventTrace, Blizzard_DebugTools
 
 ## Category-enUS: Development Tools
