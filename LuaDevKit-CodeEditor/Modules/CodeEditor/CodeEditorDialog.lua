@@ -310,6 +310,15 @@ function o:OnLoad()
   -- can address it as self.CodeEditBox.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
 
+  -- Lua syntax colorization + indentation, vendored from WowLua's FAIAP.lua.
+  -- Must run before SetText(SAMPLE_CODE) below so that first paint already
+  -- goes through FAIAP's own SetText override (raw text in, encoded+colored
+  -- text stored; GetText() calls elsewhere in this file transparently see
+  -- decoded/clean text either way).
+  if LDK_FAIAP then
+    LDK_FAIAP.enable(self.CodeEditBox, LDK_FAIAP.defaultColorTable)
+  end
+
   self:SetBackdrop(MAIN_BACKDROP)
   self.Header:SetBackdrop(HEADER_BACKDROP)
   --self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
