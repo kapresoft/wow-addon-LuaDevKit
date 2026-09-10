@@ -12,7 +12,7 @@ the DevSuite namespace/module registry -- see [issue #90](https://github.com/kap
 | `CodeEditBoxMixin.lua` | Mixin for the `CodeEditBox` EditBox |
 | `Fonts.xml` | Font definitions -- Ubuntu Mono, JetBrains Mono, Source Code Pro, each at sizes 10/12/14 |
 
-Bundled monospace font files live in the shared `../LDK-Core/Assets/Fonts/` directory, not under this library.
+Bundled monospace font files live in the shared `../LuaDevKit-Core/Assets/Fonts/` directory, not under this library.
 
 ## Visual layout
 

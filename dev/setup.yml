@@ -43,10 +43,10 @@ ignore:
   - doc
   - LICENSE
   - CHANGELOG.md
-  - LDK-Core/Assets
-  - LDK-Core/Libs
-  - LDK-Core/ThirdParty/ThirdParty.xml
-  - LDK-CodeEditor/Modules
+  - LuaDevKit-Core/Assets
+  - LuaDevKit-Core/Libs
+  - LuaDevKit-Core/ThirdParty/ThirdParty.xml
+  - LuaDevKit-CodeEditor/Modules
   - ThirdParty-Libs/LibStub/*.txt
   - ThirdParty-Libs/LibStub/tests
   - ThirdParty-Libs/LibPrettyPrint/*.sh
@@ -73,4 +73,4 @@ ignore:
 
 # Base path is .release/
 move-folders:
-  _setup/ThirdParty-Libs: ../LDK-Core/ThirdParty/Libs
+  _setup/ThirdParty-Libs: ../LuaDevKit-Core/ThirdParty/Libs

@@ -46,8 +46,8 @@ luac.out
 /.vscode/
 /.claude/
 
-LDK-CodeEditor/ThirdParty/Libs
-LDK-Core/ThirdParty/Libs
+LuaDevKit-CodeEditor/ThirdParty/Libs
+LuaDevKit-Core/ThirdParty/Libs
 
 # ignore
 /.release/
