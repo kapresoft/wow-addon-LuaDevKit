@@ -1,0 +1,79 @@
+# This is used for development to pull external libraries.
+# @see also: ./dev/pull-extlib.sh
+# --------------------------
+# cmd: ./dev/release.sh -duz -r ./.release -m _setup.yml
+# Note: This will build in ./.release/_setup directory
+package-as: _setup
+# --------------------------
+# Reuses dev/changelog-release.md. release-build.yml overwrites it at
+# release time for the packager to read, but never commits that change back,
+# so the tracked copy here always stays blank.
+manual-changelog:
+  filename: dev/changelog-release.md
+  markup-type: markdown
+
+# Use GitHub because svn repos are slower
+# basepath is ${package-as}
+# Ace3:
+#  - This is faster: https://github.com/WoWUIDev/Ace3
+#  - But this is the official: https://repos.wowace.com/wow/ace3/trunk
+# LibIconPicker: We just need the interface files
+externals:
+  ThirdParty-Libs/Ace3:
+    url: https://github.com/WoWUIDev/Ace3
+    tag: latest
+  ThirdParty-Libs/LibPrettyPrint:
+    url: https://github.com/kapresoft/wow-addon-LibPrettyPrint
+    tag: latest
+  ThirdParty-Libs/LibTraceKit:
+    url: https://github.com/kapresoft/wow-addon-LibTraceKit
+    tag: latest
+  ThirdParty-Libs/Kapresoft-LibUtil:
+    url: https://github.com/kapresoft/wow-lib-util
+    tag: latest
+
+ignore:
+  - "*.sh"
+  - "*.md"
+  - "*.yaml"
+  - "*.yml"
+  - "*.toc"
+  - "*.toml"
+  - dev
+  - doc
+  - LICENSE
+  - CHANGELOG.md
+  - DevSuite/Libs
+  - DevSuite/Bindings.xml
+  - DevSuite/DevSuite.lua
+  - DevSuite/DevSuite.xml
+  - DevSuite/ThirdParty/Ace3.xml
+  - DevSuite/ThirdParty/ThirdParty.xml
+  - ThirdParty-Libs/Ace3/Ace3.lua
+  - ThirdParty-Libs/Ace3/Bindings.xml
+  - ThirdParty-Libs/Ace3/*.txt
+  - ThirdParty-Libs/LibPrettyPrint/*.sh
+  - ThirdParty-Libs/LibPrettyPrint/LibPrettyPrint.xml
+  - ThirdParty-Libs/LibPrettyPrint/Assets
+  - ThirdParty-Libs/LibPrettyPrint/dev
+  - ThirdParty-Libs/LibPrettyPrint/doc
+  - ThirdParty-Libs/LibPrettyPrint/ThirdParty
+  - ThirdParty-Libs/LibPrettyPrint/LICENSE
+  - ThirdParty-Libs/LibPrettyPrint/Libs/Developer
+  - ThirdParty-Libs/LibTraceKit/dev
+  - ThirdParty-Libs/LibTraceKit/doc
+  - ThirdParty-Libs/LibTraceKit/Libs/Assets
+  - ThirdParty-Libs/LibTraceKit/Libs/Developer.lua
+  - ThirdParty-Libs/LibTraceKit/ThirdParty
+  - ThirdParty-Libs/Kapresoft-LibUtil/dev
+  - ThirdParty-Libs/Kapresoft-LibUtil/LICENSE
+  - ThirdParty-Libs/Kapresoft-LibUtil/Lib-1-0
+  - ThirdParty-Libs/Kapresoft-LibUtil/Lib-2-0/Assets
+  - ThirdParty-Libs/Kapresoft-LibUtil/Lib-2-0/ThirdParty
+  - ThirdParty-Libs/Kapresoft-LibUtil/Lib-2-0/LibUtil.lua
+  - ThirdParty-Libs/Kapresoft-LibUtil/Lib-2-0/LibUtil.xml
+
+
+# Base path is .release/
+move-folders:
+  _setup/ThirdParty-Libs: ../LDK-Core/ThirdParty/Libs
