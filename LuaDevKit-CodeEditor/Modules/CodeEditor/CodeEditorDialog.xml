@@ -118,7 +118,7 @@
 
             <!-- Reserved space for future toolbar/controls (e.g. Accept/Run buttons) -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
-                <Size y="50"/>
+                <Size y="30"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT"/>
                     <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT"/>
@@ -253,7 +253,7 @@
 
             <Frame parentKey="CodeBackdrop" inherits="BackdropTemplate">
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="4" y="0"/>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="0" y="0"/>
                     <Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomBar" relativePoint="TOPRIGHT" x="-28" y="0"/>
                 </Anchors>
             </Frame>

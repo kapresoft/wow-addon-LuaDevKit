@@ -267,6 +267,40 @@ local function InitFontSizeDropdown(dropdown, self)
   end)
 end
 
+local HEADER_BACKDROP = {
+  --bgFile = "Interface\\FrameGeneral\\UI-Background-Rock",
+ 	--bgFile = "Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground",
+	-- Flat white 8x8 (the same texture LibSharedMedia registers as its "Solid"
+	-- background/statusbar) so SetBackdropColor's tint isn't multiplied against
+	-- art detail -- white * color = that exact color.
+	bgFile = "Interface\\Buttons\\WHITE8X8",
+	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
+	tile = true,
+	tileEdge = true,
+	tileSize = 64,
+	edgeSize = 12,
+	insets = { left = 3, right = 3, top = 3, bottom = 3 },
+}
+
+local MAIN_BACKDROP = {
+	bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
+	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
+	tile = true,
+	tileEdge = true,
+	tileSize = 32,
+	edgeSize = 12,
+	insets = { left = 3, right = 3, top = 4, bottom = 3 },
+}
+
+local TOP_AND_BOTTOM_BACKDROP = {
+  bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
+  tile = false,
+  tileSize = 0,
+  edgeSize = 0,
+  insets = { left = 8, right = 8, top = 12, bottom = 8 },
+}
+
+
 --[[-----------------------------------------------------------------------------
 Methods
 -------------------------------------------------------------------------------]]
@@ -276,11 +310,14 @@ function o:OnLoad()
   -- can address it as self.CodeEditBox.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
 
-  self:SetBackdrop(BACKDROP_TOAST_12_12)
-  self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
-  self.TopBar:SetBackdrop(BACKDROP_TOAST_12_12_NO_EDGE)
-  self.BottomBar:SetBackdrop(BACKDROP_TOAST_12_12_NO_EDGE)
-  self.GutterBackdrop:SetBackdrop(BACKDROP_TOAST_12_12)
+  self:SetBackdrop(MAIN_BACKDROP)
+  self.Header:SetBackdrop(HEADER_BACKDROP)
+  --self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
+  -- #3A373B, to stand out from TopBar/body.
+  self.Header:SetBackdropColor(0.2275, 0.2157, 0.2314, .95)
+  --self.TopBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
+  --self.BottomBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
+  --self.GutterBackdrop:SetBackdrop(BACKDROP_TOAST_12_12)
   self.CodeBackdrop:SetBackdrop(BACKDROP_TOAST_12_12)
 
   -- Diagonal resize-grip lines, matching AceGUI-3.0's sizer_se exactly
