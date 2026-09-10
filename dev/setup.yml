@@ -19,8 +19,8 @@ manual-changelog:
 #  - But this is the official: https://repos.wowace.com/wow/ace3/trunk
 # LibIconPicker: We just need the interface files
 externals:
-  ThirdParty-Libs/Ace3:
-    url: https://github.com/WoWUIDev/Ace3
+  ThirdParty-Libs/LibStub:
+    url: https://github.com/lua-wow/LibStub
     tag: latest
   ThirdParty-Libs/LibPrettyPrint:
     url: https://github.com/kapresoft/wow-addon-LibPrettyPrint
@@ -43,15 +43,12 @@ ignore:
   - doc
   - LICENSE
   - CHANGELOG.md
-  - DevSuite/Libs
-  - DevSuite/Bindings.xml
-  - DevSuite/DevSuite.lua
-  - DevSuite/DevSuite.xml
-  - DevSuite/ThirdParty/Ace3.xml
-  - DevSuite/ThirdParty/ThirdParty.xml
-  - ThirdParty-Libs/Ace3/Ace3.lua
-  - ThirdParty-Libs/Ace3/Bindings.xml
-  - ThirdParty-Libs/Ace3/*.txt
+  - LDK-Core/Assets
+  - LDK-Core/Libs
+  - LDK-Core/ThirdParty/ThirdParty.xml
+  - LDK-CodeEditor/Modules
+  - ThirdParty-Libs/LibStub/*.txt
+  - ThirdParty-Libs/LibStub/tests
   - ThirdParty-Libs/LibPrettyPrint/*.sh
   - ThirdParty-Libs/LibPrettyPrint/LibPrettyPrint.xml
   - ThirdParty-Libs/LibPrettyPrint/Assets
