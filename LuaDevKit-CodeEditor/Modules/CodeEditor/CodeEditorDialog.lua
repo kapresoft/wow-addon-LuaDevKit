@@ -3,11 +3,12 @@ CodeEditorDialog: standalone (non-Ace3) line-numbered code editor prototype.
 Self-contained: not wired into the DevSuite namespace/module registry.
 See GitHub issue #90.
 -------------------------------------------------------------------------------]]
---- @type LDK_Core_Namespace
+--- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
+local cns = ns:cns()
+
 local libName = 'CodeEditorDialog'
 --local p, t = ns:log(libName)
-print(libName, 'ns=', ns)
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -95,7 +96,12 @@ local DEFAULTS = {
 }
 
 -- Sample text long enough to force scrolling, for testing gutter/scroll sync.
-local SAMPLE_CODE = [[
+local SAMPLE_CODE = [==[
+
+local args = ...
+
+--- This is a fibonacci function
+--- @return number @An emmylua comment
 local function fibonacci(n)
   if n <= 1 then
     return n
@@ -103,10 +109,18 @@ local function fibonacci(n)
   return fibonacci(n - 1) + fibonacci(n - 2)
 end
 
+--[[ Sample long comment ]]
+--- @param count number
 local function printFibonacciSequence(count)
   for i = 1, count do
     print(i, fibonacci(i))
   end
+end
+
+-- Sample Logical Operators
+local x,y = 1,2
+if x and y or x == 1 and y == 2 then
+  print('Yolo!')
 end
 
 local Frame = CreateFrame('Frame')
@@ -130,7 +144,7 @@ local function sum(tbl)
 end
 
 print('Sum of squares:', sum(t))
---end]]
+]==]
 
 --[[-----------------------------------------------------------------------------
 Types
@@ -320,22 +334,7 @@ function o:OnLoad()
   -- parent), not this dialog frame -- alias it here so the rest of this file
   -- can address it as self.CodeEditBox.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
-
-  -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
-  -- SetText(SAMPLE_CODE) below so the first paint already goes through FAIAP's
-  -- SetText override; its GetText override returns decoded (uncolored) text, so
-  -- CountLines/RefreshGutter/wrap measuring all keep seeing clean source.
-  --
-  -- Known risk, not yet observed in practice: colorCodeEditbox() calls
-  -- indentEditbox() when the line count changes, and indentEditbox()'s write
-  -- guard compares color-STRIPPED text against its COLORED result, so it always
-  -- rewrites. If those two halves start invalidating each other's caches, this
-  -- will show up as continuous SetText/SetCursorPosition churn -- drop the
-  -- indentEditbox() call in colorCodeEditbox() if so, since only the colorize
-  -- half is wanted here.
-  if LDK_FAIAP then
-    LDK_FAIAP.enable(self.CodeEditBox, LDK_FAIAP.defaultColorTable)
-  end
+  cns:EnableLuaFormatter(self.CodeEditBox)
 
   self:SetBackdrop(MAIN_BACKDROP)
   self.Header:SetBackdrop(HEADER_BACKDROP)

@@ -39,9 +39,10 @@
 -- Read through this code for further usage help.
 -- (The documentation IS the code)
 
-LDK_FAIAP = {}
+local MAJOR, MINOR = 'LuaDevKit-FAIAP-1-0', 1
 
-local lib = LDK_FAIAP
+--- @class LuaDevKit-FAIAP-1-0
+local lib = LibStub:NewLibrary(MAJOR, MINOR); if not lib then return end
 
 local stringlen = string.len
 local stringformat = string.format

@@ -36,11 +36,12 @@
 ## X-Github-Project-Version: @project-version@
 
 ThirdParty\ThirdParty.xml
+Libs\External\FAIAP.lua
+Libs\Namespace.lua
 #@do-not-package@
 Libs\Developer\DeveloperSetup.lua
 #@end-do-not-package@
 Libs\Fonts.xml
-Libs\Namespace.lua
 #@do-not-package@
 Libs\Developer\Developer.lua
 #@end-do-not-package@
