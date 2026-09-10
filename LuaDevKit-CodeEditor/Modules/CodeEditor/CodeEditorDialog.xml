@@ -31,7 +31,7 @@
                  anchor to it: fixed-width close + fluid title means the title
                  absorbs all remaining width. -->
             <Frame parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
-                <Size y="32"/>
+                <Size y="28"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="$parent" x="0" y="0"/>
                     <Anchor point="TOPRIGHT" relativeTo="$parent" x="0" y="0"/>
@@ -121,7 +121,7 @@
 
             <!-- Reserved space for future toolbar/controls (e.g. Accept/Run buttons) -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
-                <Size y="30"/>
+                <Size y="24"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT"/>
                     <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT"/>
