@@ -10,16 +10,19 @@ function o:OnReady(evt, ...)
   self:ShowCodeEditor()
 end
 
+--- @type LDK_CodeEditorDialog
+local codeEditor
+
 function o:ShowCodeEditor()
-  --- @type LDK_CodeEditorDialog
-  local dlg = LDK_CodeEditorDialog
-  if not dlg then return end
-  dlg:Configure( { fontFamily = 'SourceCodePro',
+  if codeEditor then return codeEditor:Show() end
+  codeEditor = LDK_CodeEditorDialog
+  if not codeEditor then return end
+  codeEditor:Configure( { fontFamily = 'SourceCodePro',
       fontSize = 10, wrapText = true } --[[@as LDK_CodeEditorOptions ]] )
-  dlg:SetOnConfigChanged(function (self, options)
+  codeEditor:SetOnConfigChanged(function (self, options)
     tr(addon, libName, 'options=', fmt(options))
   end)
-  dlg:Show()
+  codeEditor:Show()
 end
 
 o:RegisterMessage('LDK_CodeEditor_Developer::READY', 'OnReady')
