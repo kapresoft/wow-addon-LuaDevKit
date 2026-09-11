@@ -22,6 +22,9 @@ externals:
   ThirdParty-Libs/Ace3:
     url: https://github.com/WoWUIDev/Ace3
     tag: latest
+  ThirdParty-Libs/LibSharedMedia-3.0:
+    url: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk
+    tag: latest
   ThirdParty-Libs/LibPrettyPrint:
     url: https://github.com/kapresoft/wow-addon-LibPrettyPrint
     tag: latest
@@ -53,6 +56,8 @@ ignore:
   - ThirdParty-Libs/Ace3/Bindings.xml
   - ThirdParty-Libs/Ace3/changelog.txt
   - ThirdParty-Libs/Ace3/LICENSE.txt
+  - ThirdParty-Libs/LibSharedMedia-3.0/CallbackHandler-1.0
+  - ThirdParty-Libs/LibSharedMedia-3.0/LibStub
   - ThirdParty-Libs/LibPrettyPrint/*.sh
   - ThirdParty-Libs/LibPrettyPrint/LibPrettyPrint.xml
   - ThirdParty-Libs/LibPrettyPrint/Assets

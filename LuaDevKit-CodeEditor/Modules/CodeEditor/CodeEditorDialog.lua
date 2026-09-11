@@ -526,7 +526,15 @@ end
 --- @param options LDK_CodeEditorOptions|table|nil Partial table; omitted fields keep their current value
 function o:Configure(options)
   options = options or {}
-  self.fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
+  -- Falls back to DEFAULTS.fontFamily if the requested key doesn't resolve to
+  -- a real font choice -- e.g. persisted config referencing a family that was
+  -- since removed. Without this, ApplyCodeFont's own nil-guard would silently
+  -- no-op and leave whatever font was previously applied.
+  local fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
+  if not FontUtil:FindFontChoice(fontFamily) then
+    fontFamily = DEFAULTS.fontFamily
+  end
+  self.fontFamily = fontFamily
   self.fontSize = FontUtil:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
   local wrapText = options.wrapText
   if wrapText == nil then wrapText = self.wrapText end

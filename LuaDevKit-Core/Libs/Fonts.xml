@@ -6,28 +6,28 @@
          resized at runtime, so switching fontSize is a plain SetFontObject
          swap, same mechanism as switching family, with no CreateFont or
          font-file-path bookkeeping in Lua. 14 is the default/base size. -->
-    <Font name="LDK_CodeEditorFont_JetBrainsMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-VariableFont_wght.ttf"
+    <Font name="LDK_CodeEditorFont_JetBrainsMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-Regular.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_JetBrainsMono_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-VariableFont_wght.ttf"
+    <Font name="LDK_CodeEditorFont_JetBrainsMono_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-Regular.ttf"
           height="12" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_JetBrainsMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-VariableFont_wght.ttf"
+    <Font name="LDK_CodeEditorFont_JetBrainsMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/JetBrainsMono-Regular.ttf"
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
 
-    <Font name="LDK_CodeEditorFont_SourceCodePro_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Medium.ttf"
+    <Font name="LDK_CodeEditorFont_SourceCodeProRegular_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Regular.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_SourceCodePro_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Medium.ttf"
+    <Font name="LDK_CodeEditorFont_SourceCodeProRegular_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Regular.ttf"
           height="12" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_SourceCodePro_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Medium.ttf"
+    <Font name="LDK_CodeEditorFont_SourceCodeProRegular_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Regular.ttf"
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
@@ -41,6 +41,32 @@
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
     <Font name="LDK_CodeEditorFont_UbuntuMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/UbuntuMono-Regular.ttf"
+          height="14" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+
+    <Font name="LDK_CodeEditorFont_NotoSansMonoExtraCondensed_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono_ExtraCondensed-Regular.ttf"
+          height="10" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoExtraCondensed_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono_ExtraCondensed-Regular.ttf"
+          height="12" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMonoExtraCondensed_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono_ExtraCondensed-Regular.ttf"
+          height="14" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+
+    <Font name="LDK_CodeEditorFont_NotoSansMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono-Regular.ttf"
+          height="10" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMono_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono-Regular.ttf"
+          height="12" virtual="true">
+        <Color color="WHITE_FONT_COLOR"/>
+    </Font>
+    <Font name="LDK_CodeEditorFont_NotoSansMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono-Regular.ttf"
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
@@ -86,5 +112,7 @@
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
+
+    <Include file="Fonts\FontUtil.lua"/>
 
 </Ui>

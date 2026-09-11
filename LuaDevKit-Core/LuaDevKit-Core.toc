@@ -41,7 +41,6 @@ Libs\Namespace.lua
 Libs\Developer\DeveloperSetup.lua
 #@end-do-not-package@
 Libs\Fonts.xml
-Libs\FontUtil.lua
 #@do-not-package@
 Libs\Developer\Developer.lua
 #@end-do-not-package@

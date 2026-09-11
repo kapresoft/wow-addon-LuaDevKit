@@ -4,6 +4,7 @@
     <!-- LibStub, then CallbackHandler needs to be at the top -->
     <Script file="Libs\Ace3\LibStub\LibStub.lua"/>
     <Script file="Libs\Ace3\CallbackHandler-1.0\CallbackHandler-1.0.lua"/>
+    <Script file="Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua"/>
 
     <Script file="Libs\LibPrettyPrint\Libs\Namespace.lua"/>
     <Script file="Libs\LibPrettyPrint\Libs\pprint.lua"/>
