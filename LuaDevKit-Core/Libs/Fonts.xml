@@ -19,19 +19,6 @@
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
 
-    <Font name="LDK_CodeEditorFont_SourceCodeProRegular_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Regular.ttf"
-          height="10" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_SourceCodeProRegular_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Regular.ttf"
-          height="12" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_SourceCodeProRegular_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/SourceCodePro-Regular.ttf"
-          height="14" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-
     <Font name="LDK_CodeEditorFont_UbuntuMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/UbuntuMono-Regular.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
@@ -45,28 +32,15 @@
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
 
-    <Font name="LDK_CodeEditorFont_NotoSansMonoExtraCondensed_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono_ExtraCondensed-Regular.ttf"
+    <Font name="LDK_CodeEditorFont_PTMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/PTMono-Regular.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoExtraCondensed_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono_ExtraCondensed-Regular.ttf"
+    <Font name="LDK_CodeEditorFont_PTMono_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/PTMono-Regular.ttf"
           height="12" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoExtraCondensed_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono_ExtraCondensed-Regular.ttf"
-          height="14" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-
-    <Font name="LDK_CodeEditorFont_NotoSansMono_10" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono-Regular.ttf"
-          height="10" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMono_12" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono-Regular.ttf"
-          height="12" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/NotoSansMono-Regular.ttf"
+    <Font name="LDK_CodeEditorFont_PTMono_14" font="Interface/AddOns/LuaDevKit-Core/Assets/Fonts/PTMono-Regular.ttf"
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>

@@ -70,33 +70,13 @@ function FontUtil:GetFontChoices()
       },
     },
     {
-      key = 'SourceCodeProRegular',
-      label = 'Source Code Pro',
+      key = 'PTMono',
+      label = 'PT Mono',
       supportsCJK = false,
       bySize = {
-        [10] = LDK_CodeEditorFont_SourceCodeProRegular_10,
-        [12] = LDK_CodeEditorFont_SourceCodeProRegular_12,
-        [14] = LDK_CodeEditorFont_SourceCodeProRegular_14,
-      },
-    },
-    {
-      key = 'NotoSansMonoExtraCondensed',
-      label = 'Noto Sans Mono Extra Condensed',
-      supportsCJK = false,
-      bySize = {
-        [10] = LDK_CodeEditorFont_NotoSansMonoExtraCondensed_10,
-        [12] = LDK_CodeEditorFont_NotoSansMonoExtraCondensed_12,
-        [14] = LDK_CodeEditorFont_NotoSansMonoExtraCondensed_14,
-      },
-    },
-    {
-      key = 'NotoSansMono',
-      label = 'Noto Sans Mono',
-      supportsCJK = false,
-      bySize = {
-        [10] = LDK_CodeEditorFont_NotoSansMono_10,
-        [12] = LDK_CodeEditorFont_NotoSansMono_12,
-        [14] = LDK_CodeEditorFont_NotoSansMono_14,
+        [10] = LDK_CodeEditorFont_PTMono_10,
+        [12] = LDK_CodeEditorFont_PTMono_12,
+        [14] = LDK_CodeEditorFont_PTMono_14,
       },
     },
   }
