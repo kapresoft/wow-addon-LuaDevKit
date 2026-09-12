@@ -25,6 +25,9 @@ externals:
   ThirdParty-Libs/LibSharedMedia-3.0:
     url: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk
     tag: latest
+  ThirdParty-Libs/SharedMediaFontsMono:
+    url: https://github.com/kapresoft/wow-addon-SharedMediaFontsMono
+    tag: latest
   ThirdParty-Libs/LibPrettyPrint:
     url: https://github.com/kapresoft/wow-addon-LibPrettyPrint
     tag: latest
@@ -37,6 +40,7 @@ externals:
 
 ignore:
   - "*.sh"
+  - "*.xsd"
   - "*.md"
   - "*.yaml"
   - "*.yml"
@@ -56,8 +60,23 @@ ignore:
   - ThirdParty-Libs/Ace3/Bindings.xml
   - ThirdParty-Libs/Ace3/changelog.txt
   - ThirdParty-Libs/Ace3/LICENSE.txt
+  - ThirdParty-Libs/Ace3/AceAddon-3.0
+  - ThirdParty-Libs/Ace3/AceBucket-3.0
+  - ThirdParty-Libs/Ace3/AceComm-3.0
+  - ThirdParty-Libs/Ace3/AceConfig-3.0
+  - ThirdParty-Libs/Ace3/AceConsole-3.0
+  - ThirdParty-Libs/Ace3/AceDB-3.0
+  - ThirdParty-Libs/Ace3/AceDBOptions-3.0
+  - ThirdParty-Libs/Ace3/AceEvent-3.0
+  - ThirdParty-Libs/Ace3/AceGUI-3.0
+  - ThirdParty-Libs/Ace3/AceHook-3.0
+  - ThirdParty-Libs/Ace3/AceSerializer-3.0
+  - ThirdParty-Libs/Ace3/AceTab-3.0
+  - ThirdParty-Libs/Ace3/AceTimer-3.0
+  - ThirdParty-Libs/LibSharedMedia-3.0/*.xml
   - ThirdParty-Libs/LibSharedMedia-3.0/CallbackHandler-1.0
   - ThirdParty-Libs/LibSharedMedia-3.0/LibStub
+  # SharedMediaFontsMono is for Annotations only
   - ThirdParty-Libs/LibPrettyPrint/*.sh
   - ThirdParty-Libs/LibPrettyPrint/LibPrettyPrint.xml
   - ThirdParty-Libs/LibPrettyPrint/Assets
@@ -82,4 +101,6 @@ ignore:
 
 # Base path is .release/
 move-folders:
+  _setup/ThirdParty-Libs/SharedMediaFontsMono/Libs/Annotations: ../LuaDevKit-Core/ThirdParty/Annotations/SharedMediaFontsMono
+  _setup/ThirdParty-Libs/LibPrettyPrint/Libs/Annotations: ../LuaDevKit-Core/ThirdParty/Annotations/LibPrettyPrint
   _setup/ThirdParty-Libs: ../LuaDevKit-Core/ThirdParty/Libs

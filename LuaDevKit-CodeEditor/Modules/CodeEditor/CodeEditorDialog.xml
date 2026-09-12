@@ -3,7 +3,12 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
 
-    <Font name="LDK_CodeEditorFont" inherits="LDK_CodeEditorFont_UbuntuMono_14"/>
+    <!-- Placeholder base: the two FontStrings below inherit this only so they
+         have a valid font at XML-load time. FontUtil builds the real, catalog-
+         driven font objects at runtime (see Libs/Fonts/FontUtil.lua), and
+         ApplyCodeFont() overrides both FontStrings via SetFontObject as soon
+         as the dialog configures, so this definition's own look never shows. -->
+    <Font name="LDK_CodeEditorFont" inherits="SharedMediaFontsMono_DefaultFont"/>
     <Script file="CodeEditBoxMixin.lua"/>
     <Script file="CodeEditorDialog.lua"/>
 

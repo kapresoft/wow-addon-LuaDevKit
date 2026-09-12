@@ -48,6 +48,7 @@ luac.out
 
 LuaDevKit-CodeEditor/ThirdParty/Libs
 LuaDevKit-Core/ThirdParty/Libs
+LuaDevKit-Core/ThirdParty/Annotations
 
 # ignore
 /.release/

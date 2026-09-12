@@ -8,6 +8,7 @@
 
 ## DefaultState: enabled
 ## SavedVariables: LUADEVKIT_DB
+## Dependencies: SharedMediaFontsMono
 ## OptionalDeps: Ace3, DevSuite
 
 ## Category-enUS: Development Tools
@@ -34,13 +35,17 @@
 ## X-Github-Project-Last-Changed-Date: @project-date-iso@
 ## X-Github-Project-Version: @project-version@
 
-ThirdParty\ThirdParty.xml
+ThirdParty\Libs\Ace3\LibStub\LibStub.lua
+ThirdParty\Libs\Ace3\CallbackHandler-1.0\CallbackHandler-1.0.lua
+ThirdParty\Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
+ThirdParty\Libs\Ace3\AceLocale-3.0\AceLocale-3.0.lua
+
 Libs\External\FAIAP.lua
 Libs\Namespace.lua
 #@do-not-package@
 Libs\Developer\DeveloperSetup.lua
 #@end-do-not-package@
-Libs\Fonts.xml
+Libs\Fonts\FontUtil.lua
 #@do-not-package@
 Libs\Developer\Developer.lua
 #@end-do-not-package@

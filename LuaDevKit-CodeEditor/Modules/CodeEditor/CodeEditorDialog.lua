@@ -32,9 +32,24 @@ local BACKDROP_TOAST_12_12_NO_EDGE = {
 -- only consumes them.
 local FontUtil = cns.O.FontUtil
 
+-- GutterBackdrop's width per font size, keyed by FontUtil:GetFontSizes()
+-- values -- wider numbers at larger sizes need a wider column. Falls back to
+-- DEFAULTS.fontSize's width if self.fontSize is ever missing an entry.
+local GUTTER_WIDTH_BY_FONT_SIZE = {
+  [10] = 40,
+  [12] = 60,
+  [14] = 50,
+}
+
 -- Configure() defaults, and the shape of the snapshot passed to the
 -- OnConfigChanged callback.
 local DEFAULTS = {
+  -- A literal key, not FontUtil:GetFontChoices()[1].key: that call builds
+  -- every font object via CreateFont/SetFont, and doing that this early (this
+  -- table is built as soon as this file's top-level code runs, well before
+  -- the client's asset system is ready for custom font files) makes SetFont
+  -- fail with "file not found" even though the same path works fine once the
+  -- dialog is actually opened later in the session.
   fontFamily = FontUtil:GetFontChoices()[1].key,
   fontSize = 14,
   wrapText = false,
@@ -90,6 +105,12 @@ end
 
 print('Sum of squares:', sum(t))
 ]==]
+SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
+SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
+  .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
+  .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
+SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE
+SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE
 
 --[[-----------------------------------------------------------------------------
 Types
@@ -466,6 +487,9 @@ function o:ApplyCodeFont(notify)
   self.WrapMeasure.Text:SetFontObject(font)
   UIDropDownMenu_SetText(self.FontDropdown, choice.label)
   UIDropDownMenu_SetText(self.FontSizeDropdown, tostring(self.fontSize))
+  local gutterWidth = GUTTER_WIDTH_BY_FONT_SIZE[self.fontSize]
+      or GUTTER_WIDTH_BY_FONT_SIZE[DEFAULTS.fontSize]
+  self.GutterBackdrop:SetWidth(gutterWidth)
   self:RefreshGutter()
   if notify then self:FireConfigChanged() end
 end
@@ -599,7 +623,7 @@ function o:RefreshGutter()
   if SizeDiffers(self.CodeEditBox:GetHeight(), contentHeight) then
     self.CodeEditBox:SetHeight(contentHeight)
   end
-
+  tr(libName, 'RefreshGutter', 'font-string=len=', #numbers:GetText())
   self.refreshingGutter = false
 end
 
