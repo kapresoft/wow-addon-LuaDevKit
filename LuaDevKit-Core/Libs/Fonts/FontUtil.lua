@@ -66,9 +66,6 @@ function FontUtil:GetFontChoices()
       fontObject:SetTextColor(WHITE_FONT_COLOR:GetRGB())
       bySize[size] = fontObject
     end
-    C_Timer.After(1, function()
-      DevTools_Dump({['key'] = key})
-    end)
     fontChoices[#fontChoices + 1] = {
       key = key,
       label = font.name,
