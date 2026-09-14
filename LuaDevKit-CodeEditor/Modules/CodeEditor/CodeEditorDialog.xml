@@ -9,6 +9,7 @@
          ApplyCodeFont() overrides both FontStrings via SetFontObject as soon
          as the dialog configures, so this definition's own look never shows. -->
     <Font name="LDK_CodeEditorFont" inherits="SharedMediaFontsMono_DefaultFont"/>
+    <Script file="Backdrops.lua"/>
     <Script file="CodeEditBoxMixin.lua"/>
     <Script file="CodeEditorDialog.lua"/>
 
@@ -239,22 +240,45 @@
                     <Frame parentKey="ScrollChild">
                         <Size x="1" y="1"/>
                         <Anchors>
+                            <!-- TOPRIGHT, not TOPLEFT: the child is far wider than the
+                                 Gutter, so a left anchor pushed its right edge (and the
+                                 right-justified Numbers anchored to it) hundreds of pixels
+                                 past the clip edge, off screen. Anchored on the right, the
+                                 extra width hangs off to the left where the Gutter clips
+                                 it, and the digits land at the visible right edge. -->
                             <Anchor point="TOPLEFT"/>
                         </Anchors>
-                        <Layers>
-                            <Layer level="ARTWORK">
-                                <!-- One FontString holding "1\n2\n...\nN" in the SAME font as
-                                     CodeEditBox, so both columns get identical line pitch from
-                                     the text engine: no per-line positioning math. -->
-                                <FontString parentKey="Numbers" inherits="LDK_CodeEditorFont"
-                                            justifyH="RIGHT" justifyV="TOP">
-                                    <Anchors>
-                                        <Anchor point="TOPLEFT"/>
-                                        <Anchor point="TOPRIGHT" x="-4"/>
-                                    </Anchors>
-                                </FontString>
-                            </Layer>
-                        </Layers>
+                        <Frames>
+                            <!-- Read-only EditBox holding "1\n2\n...\nN" in the SAME font as
+                                 CodeEditBox, so both columns get identical line pitch from
+                                 the text engine: no per-line positioning math. Not a
+                                 FontString: those truncate past ~30,000 characters or
+                                 ~65,536 rendered height, which a long file reaches.
+                                 Mouse and keyboard are off so it never takes focus or shows
+                                 a caret. Right justification, the right text inset, and the
+                                 width are set in Lua OnLoad, since EditBox has no justifyH
+                                 attribute. Anchored on the right only and far wider than the
+                                 gutter: right-justified digits still end at the gutter's edge,
+                                 the excess hangs off the left where the Gutter clips it, and
+                                 no number can ever be too wide to fit. -->
+                            <EditBox parentKey="Numbers" multiLine="true"
+                                     enableMouseClicks="false"
+                                     autoFocus="false" enableMouse="false" enableKeyboard="false">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT"/>
+                                    <Anchor point="BOTTOMRIGHT"/>
+                                </Anchors>
+                                <!-- The EditBox's own text component. Without this, its
+                                     default row cap ended the gutter at "..." around line
+                                     1859 no matter how wide the column was. maxLines is
+                                     what WowLua's line-number box sets for the same
+                                     reason; nonspacewrap keeps a number from being split
+                                     across two rows, which would desync the gutter from
+                                     the code. -->
+                                <FontString inherits="LDK_CodeEditorFont"
+                                            justifyH="RIGHT" justifyV="TOP"/>
+                            </EditBox>
+                        </Frames>
                     </Frame>
                 </ScrollChild>
             </ScrollFrame>
@@ -302,8 +326,7 @@
                     <!-- EditBox has its own font (SetFontObject/GetFont), set from Lua
                          OnLoad  no nested FontString element needed. -->
                     <EditBox parentKey="CodeEditBox" mixin="LDK_CodeEditBoxMixin"
-
-                             multiLine="true" letters="0">
+                             frameBuffer="true" countInvisibleLetters="true" multiLine="true">
                         <Size x="4000" y="1"/>
                         <Anchors>
                             <Anchor point="TOPLEFT"/>
@@ -327,24 +350,6 @@
                     </EditBox>
                 </ScrollChild>
             </ScrollFrame>
-
-            <!-- Focus grabber, mirroring WowLua's $parentEditFocusGrabber: catches
-                 clicks that miss CodeEditBox's own hit-rect and forwards focus.
-                 CodeEditBox is a ScrollChild (frame level ScrollFrame+1) so it
-                 outranks this sibling and still takes clicks that land on text,
-                 keeping native click-to-position and drag-select intact. -->
-            <Button parentKey="EditFocusGrabber">
-                <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.CodeBackdrop" relativePoint="TOPLEFT"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CodeBackdrop" relativePoint="BOTTOMRIGHT"/>
-                </Anchors>
-                <Scripts>
-                    <OnClick>
-                        print('xx focused..')
-                        self:GetParent().ScrollFrame.CodeEditBox:SetFocus()
-                    </OnClick>
-                </Scripts>
-            </Button>
         </Frames>
     </Frame>
 

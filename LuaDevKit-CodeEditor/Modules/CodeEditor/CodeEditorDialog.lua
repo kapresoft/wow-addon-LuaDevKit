@@ -7,52 +7,96 @@ See GitHub issue #90.
 local ns = select(2, ...)
 local cns = ns:cns()
 
-local libName = 'CodeEditorDialog'
+local libName = "CodeEditorDialog"
 --local p, t = ns:log(libName)
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
 -------------------------------------------------------------------------------]]
 local CreateFrame = CreateFrame
+local strlenutf8 = strlenutf8
 
 --[[-----------------------------------------------------------------------------
 Local Vars
 -------------------------------------------------------------------------------]]
--- BACKDROP_TOAST_12_12 with its edge dropped, for bars that should only show
--- a background fill (no border).
-local BACKDROP_TOAST_12_12_NO_EDGE = {
-  bgFile = BACKDROP_TOAST_12_12.bgFile,
-  tile = BACKDROP_TOAST_12_12.tile,
-  tileSize = BACKDROP_TOAST_12_12.tileSize,
-  insets = BACKDROP_TOAST_12_12.insets,
-}
 
 -- Font choices/sizes (family list, CJK-locale gating, size snapping) live in
 -- FontUtil.lua (LuaDevKit-Core), reached via cns.O.FontUtil -- this dialog
 -- only consumes them.
 local FontUtil = cns.O.FontUtil
 
--- GutterBackdrop's width per font size, keyed by FontUtil:GetFontSizes()
--- values -- wider numbers at larger sizes need a wider column. Falls back to
--- DEFAULTS.fontSize's width if self.fontSize is ever missing an entry.
-local GUTTER_WIDTH_BY_FONT_SIZE = {
-  [10] = 40,
-  [12] = 60,
-  [14] = 50,
-}
+-- Fewest digits the gutter is sized for, so a short file's gutter doesn't
+-- widen again the moment it reaches line 10.
+local MIN_GUTTER_DIGITS = 2
+
+-- Longest snippet this editor holds. It is a scratchpad for prototyping code
+-- in-game, not a file editor; text past this is dropped on the way in.
+local MAX_LINES = 3000
+
+-- Horizontal room around the digits inside GutterBackdrop: the Gutter
+-- ScrollFrame is inset 5px on each side (XML), the numbers EditBox has a 4px
+-- right text inset (OnLoad), plus 4px of left margin.
+local GUTTER_PADDING = 5 + 5 + 4 + 4
+
+-- Draws the gutter's border in the same backdrop as the code area, so the
+-- line-number column's bounds are visible while working on its layout.
+local SHOW_GUTTER_OUTLINE = true
+
+-- Width of the gutter's numbers EditBox; only needs to exceed any gutter width.
+local NUMBERS_BOX_WIDTH = 500
+
+-- Extra room beyond the measured digit width, since an EditBox needs more than
+-- its text area's arithmetic suggests before it will render a line.
+local GUTTER_SLACK = 60
 
 -- Configure() defaults, and the shape of the snapshot passed to the
 -- OnConfigChanged callback.
 local DEFAULTS = {
-  -- A literal key, not FontUtil:GetFontChoices()[1].key: that call builds
-  -- every font object via CreateFont/SetFont, and doing that this early (this
-  -- table is built as soon as this file's top-level code runs, well before
-  -- the client's asset system is ready for custom font files) makes SetFont
-  -- fail with "file not found" even though the same path works fine once the
-  -- dialog is actually opened later in the session.
-  fontFamily = FontUtil:GetFontChoices()[1].key,
-  fontSize = 14,
-  wrapText = false,
+	-- A literal key, not FontUtil:GetFontChoices()[1].key: that call builds
+	-- every font object via CreateFont/SetFont, and doing that this early (this
+	-- table is built as soon as this file's top-level code runs, well before
+	-- the client's asset system is ready for custom font files) makes SetFont
+	-- fail with "file not found" even though the same path works fine once the
+	-- dialog is actually opened later in the session.
+	fontFamily = FontUtil:GetFontChoices()[1].key,
+	fontSize = 14,
+	wrapText = false,
+}
+
+--[[-----------------------------------------------------------------------------
+Backdrops
+-------------------------------------------------------------------------------]]
+local HEADER_BACKDROP = {
+	--bgFile = "Interface\\FrameGeneral\\UI-Background-Rock",
+	--bgFile = "Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground",
+	-- Flat white 8x8 (the same texture LibSharedMedia registers as its "Solid"
+	-- background/statusbar) so SetBackdropColor's tint isn't multiplied against
+	-- art detail -- white * color = that exact color.
+	bgFile = "Interface\\Buttons\\WHITE8X8",
+	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
+	tile = true,
+	tileEdge = true,
+	tileSize = 64,
+	edgeSize = 12,
+	insets = { left = 3, right = 3, top = 3, bottom = 3 },
+}
+
+local MAIN_BACKDROP = {
+	bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
+	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
+	tile = true,
+	tileEdge = true,
+	tileSize = 32,
+	edgeSize = 12,
+	insets = { left = 3, right = 3, top = 4, bottom = 3 },
+}
+
+local TOP_AND_BOTTOM_BACKDROP = {
+	bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
+	tile = false,
+	tileSize = 0,
+	edgeSize = 0,
+	insets = { left = 8, right = 8, top = 12, bottom = 8 },
 }
 
 -- Sample text long enough to force scrolling, for testing gutter/scroll sync.
@@ -104,19 +148,38 @@ local function sum(tbl)
 end
 
 print('Sum of squares:', sum(t))
+
 ]==]
-SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
-SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
-  .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
-  .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE .. '\n' .. SAMPLE_CODE
-SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE
-SAMPLE_CODE = SAMPLE_CODE .. '\n' .. SAMPLE_CODE
+SAMPLE_CODE = SAMPLE_CODE .. "\n" .. SAMPLE_CODE .. "\n" .. SAMPLE_CODE
+SAMPLE_CODE = SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+	.. "\n"
+	.. SAMPLE_CODE
+SAMPLE_CODE = SAMPLE_CODE .. "\n" .. SAMPLE_CODE
+SAMPLE_CODE = SAMPLE_CODE .. "\n" .. SAMPLE_CODE
 
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_CodeEditorGutterChild : Frame
---- @field Numbers FontString "1\n2\n...\nN" in the code font, right-justified
+--- @field Numbers EditBox Read-only "1\n2\n...\nN" in the code font, right-justified
 
 --- @class LDK_CodeEditorGutter : ScrollFrame
 --- @field ScrollChild LDK_CodeEditorGutterChild
@@ -154,9 +217,9 @@ Types
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean Current wrap-mode state
 --- @field onConfigChanged fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
---- @field GutterBackdrop Frame Draws the gutter's border; Gutter is inset inside it
+--- @field GutterBackdrop Frame|BackdropTemplate Draws the gutter's border; Gutter is inset inside it
 --- @field Gutter LDK_CodeEditorGutter
---- @field CodeBackdrop Frame Draws the code area's border; ScrollFrame is inset inside it
+--- @field CodeBackdrop Frame|BackdropTemplate Draws the code area's border; ScrollFrame is inset inside it
 --- @field ScrollFrame ScrollFrame
 --- @field CodeEditBox LDK_CodeEditBox
 --- @field CloseButton Button
@@ -180,231 +243,274 @@ Support Functions
 --- @param wanted number
 --- @return boolean
 local function SizeDiffers(current, wanted)
-  return math.abs((current or 0) - wanted) > 0.5
+	return math.abs((current or 0) - wanted) > 0.5
 end
 
 --- @param self LDK_CodeEditorDialog
 --- @return number
 local function CountLines(self)
-  local text = self.CodeEditBox:GetText() or ''
-  local _, count = text:gsub('\n', '\n')
-  return count + 1
+	local text = self.CodeEditBox:GetText() or ""
+	local _, count = text:gsub("\n", "\n")
+	return count + 1
+end
+
+--- First MAX_LINES lines of text, or all of it when already shorter.
+--- @param text string
+--- @return string
+local function TrimToMaxLines(text)
+	local kept, count = {}, 0
+	-- Trailing '\n' keeps a final empty line, matching CountLines().
+	for line in (text .. "\n"):gmatch("(.-)\n") do
+		count = count + 1
+		if count > MAX_LINES then
+			break
+		end
+		kept[count] = line
+	end
+	return table.concat(kept, "\n")
 end
 
 --- @param numLines number
---- @return string "1\n2\n...\nN"
+--- @return string text "1\n2\n...\nN"
+--- @return number rows Rendered row count, for sizing the gutter
 local function LineNumbersText(numLines)
-  local parts = {}
-  for i = 1, numLines do parts[i] = i end
-  return table.concat(parts, '\n')
+	local parts = {}
+	for i = 1, numLines do
+		parts[i] = i
+	end
+	return table.concat(parts, "\n"), numLines
 end
 
 --- Wrap mode: each logical line gets its number followed by (rows - 1) blank
 --- lines, so the gutter's rows mirror the code's wrapped visual rows.
 --- @param self LDK_CodeEditorDialog
---- @return string
+--- @return string text
+--- @return number rows Rendered row count, for sizing the gutter
 local function WrappedLineNumbersText(self)
-  local measure = self.WrapMeasure.Text
-  local parts = {}
-  local n = 0
-  -- Trailing '\n' keeps a final empty line counted, matching CountLines().
-  for line in (self.CodeEditBox:GetText() .. '\n'):gmatch('(.-)\n') do
-    n = n + 1
-    parts[#parts + 1] = n
-    measure:SetText(line)
-    local rows = measure:GetNumLines()
-    for _ = 2, rows do parts[#parts + 1] = '' end
-  end
-  return table.concat(parts, '\n')
+	local measure = self.WrapMeasure.Text
+	local parts = {}
+	local n = 0
+	-- Trailing '\n' keeps a final empty line counted, matching CountLines().
+	for line in (self.CodeEditBox:GetText() .. "\n"):gmatch("(.-)\n") do
+		n = n + 1
+		parts[#parts + 1] = n
+		measure:SetText(line)
+		local rows = measure:GetNumLines()
+		for _ = 2, rows do
+			parts[#parts + 1] = ""
+		end
+	end
+	return table.concat(parts, "\n"), #parts
+end
+
+--- GutterBackdrop width that fits the highest line number in the current font.
+--- Measured on WrapMeasure's FontString (same font as the gutter); every
+--- catalog font is monospace, so a run of zeros is as wide as any number with
+--- that many digits.
+--- @param self LDK_CodeEditorDialog
+--- @param lastLine number Highest line number the gutter shows
+--- @return number
+local function GutterWidth(self, lastLine)
+	local digits = math.max(#tostring(lastLine), MIN_GUTTER_DIGITS)
+	local measure = self.WrapMeasure.Text
+	measure:SetText(string.rep("0", digits))
+	-- Measured width plus GUTTER_SLACK: an EditBox needs more room for a line
+	-- than its width minus text insets suggests (at size 10, a 26px 4-digit
+	-- number still wrapped in a 31px text area), and a line that doesn't fit
+	-- ends that EditBox's rendering at "..." -- taking every line below it with
+	-- it. The slack is deliberately generous; too wide only costs a little
+	-- unused column, too narrow breaks the whole gutter.
+	return math.ceil(measure:GetStringWidth()) + GUTTER_SLACK + GUTTER_PADDING
 end
 
 --- Width the EditBox actually wraps text at: viewport minus its text insets.
 --- @param self LDK_CodeEditorDialog
 --- @return number
 local function CodeTextWidth(self)
-  local left, right = self.CodeEditBox:GetTextInsets()
-  return self.ScrollFrame:GetWidth() - left - right
+	local left, right = self.CodeEditBox:GetTextInsets()
+	return self.ScrollFrame:GetWidth() - left - right
 end
 
 --- @param dropdown Frame
 --- @param self LDK_CodeEditorDialog
 local function InitFontDropdown(dropdown, self)
-  UIDropDownMenu_SetWidth(dropdown, 140)
-  UIDropDownMenu_Initialize(dropdown, function(_, level)
-    for _, choice in ipairs(FontUtil:GetFontChoices()) do
-      local info = UIDropDownMenu_CreateInfo()
-      info.text = choice.label
-      info.checked = (self.fontFamily == choice.key)
-      -- User-driven change (dropdown click) -- notify listeners.
-      info.func = function() self:SetCodeFont(choice.key, true) end
-      UIDropDownMenu_AddButton(info, level)
-    end
-  end)
+	UIDropDownMenu_SetWidth(dropdown, 140)
+	UIDropDownMenu_Initialize(dropdown, function(_, level)
+		for _, choice in ipairs(FontUtil:GetFontChoices()) do
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = choice.label
+			info.checked = (self.fontFamily == choice.key)
+			-- User-driven change (dropdown click) -- notify listeners.
+			info.func = function()
+				self:SetCodeFont(choice.key, true)
+			end
+			UIDropDownMenu_AddButton(info, level)
+		end
+	end)
 end
 
 --- @param dropdown Frame
 --- @param self LDK_CodeEditorDialog
 local function InitFontSizeDropdown(dropdown, self)
-  UIDropDownMenu_SetWidth(dropdown, 70)
-  UIDropDownMenu_Initialize(dropdown, function(_, level)
-    for _, size in ipairs(FontUtil:GetFontSizes()) do
-      local info = UIDropDownMenu_CreateInfo()
-      info.text = tostring(size)
-      info.checked = (self.fontSize == size)
-      -- User-driven change (dropdown click) -- notify listeners.
-      info.func = function() self:SetFontSize(size, true) end
-      UIDropDownMenu_AddButton(info, level)
-    end
-  end)
+	UIDropDownMenu_SetWidth(dropdown, 70)
+	UIDropDownMenu_Initialize(dropdown, function(_, level)
+		for _, size in ipairs(FontUtil:GetFontSizes()) do
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = tostring(size)
+			info.checked = (self.fontSize == size)
+			-- User-driven change (dropdown click) -- notify listeners.
+			info.func = function()
+				self:SetFontSize(size, true)
+			end
+			UIDropDownMenu_AddButton(info, level)
+		end
+	end)
 end
-
-local HEADER_BACKDROP = {
-  --bgFile = "Interface\\FrameGeneral\\UI-Background-Rock",
- 	--bgFile = "Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground",
-	-- Flat white 8x8 (the same texture LibSharedMedia registers as its "Solid"
-	-- background/statusbar) so SetBackdropColor's tint isn't multiplied against
-	-- art detail -- white * color = that exact color.
-	bgFile = "Interface\\Buttons\\WHITE8X8",
-	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
-	tile = true,
-	tileEdge = true,
-	tileSize = 64,
-	edgeSize = 12,
-	insets = { left = 3, right = 3, top = 3, bottom = 3 },
-}
-
-local MAIN_BACKDROP = {
-	bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
-	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
-	tile = true,
-	tileEdge = true,
-	tileSize = 32,
-	edgeSize = 12,
-	insets = { left = 3, right = 3, top = 4, bottom = 3 },
-}
-
-local TOP_AND_BOTTOM_BACKDROP = {
-  bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
-  tile = false,
-  tileSize = 0,
-  edgeSize = 0,
-  insets = { left = 8, right = 8, top = 12, bottom = 8 },
-}
-
 
 --[[-----------------------------------------------------------------------------
 Methods
 -------------------------------------------------------------------------------]]
 function o:OnLoad()
-  -- parentKey="CodeEditBox" resolves onto the ScrollFrame (its immediate XML
-  -- parent), not this dialog frame -- alias it here so the rest of this file
-  -- can address it as self.CodeEditBox.
-  self.CodeEditBox = self.ScrollFrame.CodeEditBox
-  cns:EnableLuaFormatter(self.CodeEditBox)
+	-- parentKey="CodeEditBox" resolves onto the ScrollFrame (its immediate XML
+	-- parent), not this dialog frame -- alias it here so the rest of this file
+	-- can address it as self.CodeEditBox.
+	self.CodeEditBox = self.ScrollFrame.CodeEditBox
+	cns:EnableLuaFormatter(self.CodeEditBox)
 
-  self:SetBackdrop(MAIN_BACKDROP)
-  self.Header:SetBackdrop(HEADER_BACKDROP)
-  --self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
-  -- #3A373B, to stand out from TopBar/body.
+	-- Gutter numbers EditBox: no justifyH attribute exists for EditBox in XML, so
+	-- justify here; the right inset keeps digits off the gutter's clip edge.
+	local numbers = self.Gutter.ScrollChild.Numbers
+	-- enableKeyboard="false" (XML) only blocks the box from acquiring focus on
+	-- its own; it does not refuse input once focused some other way. SetEnabled
+	-- is the actual read-only switch.
+	numbers:SetEnabled(false)
+	numbers:SetJustifyH("RIGHT")
+	-- Right inset absorbs the EditBox's 10px right-shift (XML anchors) on top of
+	-- the 4px margin, so the right-justified digits land back inside the Gutter's
+	-- clip edge instead of just outside it.
+	numbers:SetTextInsets(0, 4, 0, 0)
+	-- An EditBox needs more room for a line than its width minus insets
+	-- suggests, and a line that doesn't fit stops its rendering at "...". So the
+	-- box is made far wider than any gutter, right-anchored (XML), and the
+	-- Gutter clips the unused left side.
+	numbers:SetWidth(NUMBERS_BOX_WIDTH)
 
-  local headerColor = CreateColorFromRGBHexString('151B2B')
-  --self.Header:SetBackdropColor(0.2275, 0.2157, 0.2314, .95)
-  self.Header:SetBackdropColor(headerColor:GetRGBA())
-  --self.TopBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
-  --self.BottomBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
-  --self.GutterBackdrop:SetBackdrop(BACKDROP_TOAST_12_12)
-  self.CodeBackdrop:SetBackdrop(BACKDROP_TOAST_12_12)
+	self:SetBackdrop(MAIN_BACKDROP)
+	self.Header:SetBackdrop(HEADER_BACKDROP)
+	--self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
+	-- #3A373B, to stand out from TopBar/body.
 
-  -- Diagonal resize-grip lines, matching AceGUI-3.0's sizer_se exactly
-  -- (SetTexCoord's 8-value quad form isn't expressible via XML <TexCoords>).
-  local line1 = self.SizerSE.Line1
-  local x1 = 0.1 * 14 / 17
-  line1:SetTexCoord(0.05 - x1, 0.5, 0.05, 0.5 + x1, 0.05, 0.5 - x1, 0.5 + x1, 0.5)
-  local line2 = self.SizerSE.Line2
-  local x2 = 0.1 * 8 / 17
-  line2:SetTexCoord(0.05 - x2, 0.5, 0.05, 0.5 + x2, 0.05, 0.5 - x2, 0.5 + x2, 0.5)
+	local headerColor = CreateColorFromRGBHexString("151B2B")
+	--self.Header:SetBackdropColor(0.2275, 0.2157, 0.2314, .95)
+	self.Header:SetBackdropColor(headerColor:GetRGBA())
+	--self.TopBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
+	--self.BottomBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
+	local backdrop, numberBackdrop = LDK_BORDER_DEFS['darkNight'], LDK_BORDER_DEFS["minimal"]
+	if SHOW_GUTTER_OUTLINE then
+		self.GutterBackdrop:SetBackdrop(numberBackdrop.backdrop)
+    self.GutterBackdrop:SetBackdropColor(unpack(numberBackdrop.bgColor))
+    self.GutterBackdrop:SetBackdropBorderColor(unpack(numberBackdrop.borderColor))
+	end
+	self.CodeBackdrop:SetBackdrop(backdrop.backdrop)
+	self.CodeBackdrop:SetBackdropColor(unpack(backdrop.bgColor))
+	self.CodeBackdrop:SetBackdropBorderColor(unpack(backdrop.borderColor))
 
-  if self.SetResizeBounds then -- WoW 10.0+
-    self:SetResizeBounds(400, 250)
-  else
-    self:SetMinResize(400, 250)
-  end
+	-- Diagonal resize-grip lines, matching AceGUI-3.0's sizer_se exactly
+	-- (SetTexCoord's 8-value quad form isn't expressible via XML <TexCoords>).
+	local line1 = self.SizerSE.Line1
+	local x1 = 0.1 * 14 / 17
+	line1:SetTexCoord(0.05 - x1, 0.5, 0.05, 0.5 + x1, 0.05, 0.5 - x1, 0.5 + x1, 0.5)
+	local line2 = self.SizerSE.Line2
+	local x2 = 0.1 * 8 / 17
+	line2:SetTexCoord(0.05 - x2, 0.5, 0.05, 0.5 + x2, 0.05, 0.5 - x2, 0.5 + x2, 0.5)
 
-  -- Header children: parentKey resolves onto the immediate XML parent (Title /
-  -- CloseFrame), not this dialog frame -- alias them, same as CodeEditBox above.
-  self.HeaderTitle = self.Header.Title.Text
-  self.CloseButton = self.Header.CloseFrame.CloseButton
-  -- Wired here rather than in XML: UIPanelCloseButton inherits an OnClick that
-  -- hides GetParent(), which is now CloseFrame, not the dialog.
-  self.CloseButton:SetScript('OnClick', function() self:OnClickClose() end)
+	if self.SetResizeBounds then -- WoW 10.0+
+		self:SetResizeBounds(400, 250)
+	else
+		self:SetMinResize(400, 250)
+	end
 
-  self.HeaderTitle:SetText('Code Editor (Prototype)')
+	-- Header children: parentKey resolves onto the immediate XML parent (Title /
+	-- CloseFrame), not this dialog frame -- alias them, same as CodeEditBox above.
+	self.HeaderTitle = self.Header.Title.Text
+	self.CloseButton = self.Header.CloseFrame.CloseButton
+	-- Wired here rather than in XML: UIPanelCloseButton inherits an OnClick that
+	-- hides GetParent(), which is now CloseFrame, not the dialog.
+	self.CloseButton:SetScript("OnClick", function()
+		self:OnClickClose()
+	end)
 
-  -- parentKey="FontDropdown"/"FontButton"/"FontSizeDropdown"/"FontSizeButton"
-  -- resolve onto TopBar (their immediate XML parent), not this dialog frame --
-  -- alias them here, same as CodeEditBox above.
-  self.FontDropdown = self.TopBar.FontDropdown
-  self.FontButton = self.TopBar.FontButton
-  self.FontSizeDropdown = self.TopBar.FontSizeDropdown
-  self.FontSizeButton = self.TopBar.FontSizeButton
-  InitFontDropdown(self.FontDropdown, self)
-  InitFontSizeDropdown(self.FontSizeDropdown, self)
-  -- Icon-button triggers for FontDropdown/FontSizeDropdown, mirroring WowLua's
-  -- Button_Config pattern: a plain Button opens an otherwise-invisible
-  -- UIDropDownMenuTemplate frame, instead of the dropdown's own visible
-  -- text+arrow chrome.
-  self.FontButton:SetScript('OnClick', function(button)
-    ToggleDropDownMenu(1, nil, self.FontDropdown, button:GetName(), 0, 0)
-  end)
-  self.FontSizeButton:SetScript('OnClick', function(button)
-    ToggleDropDownMenu(1, nil, self.FontSizeDropdown, button:GetName(), 0, 0)
-  end)
-  self.fontSize = DEFAULTS.fontSize
-  self:SetCodeFont(DEFAULTS.fontFamily)
+	self.HeaderTitle:SetText("Code Editor (Prototype)")
 
-  self.BottomBar.WrapCheckButton.text:SetText('Wrap Text')
+	-- parentKey="FontDropdown"/"FontButton"/"FontSizeDropdown"/"FontSizeButton"
+	-- resolve onto TopBar (their immediate XML parent), not this dialog frame --
+	-- alias them here, same as CodeEditBox above.
+	self.FontDropdown = self.TopBar.FontDropdown
+	self.FontButton = self.TopBar.FontButton
+	self.FontSizeDropdown = self.TopBar.FontSizeDropdown
+	self.FontSizeButton = self.TopBar.FontSizeButton
+	InitFontDropdown(self.FontDropdown, self)
+	InitFontSizeDropdown(self.FontSizeDropdown, self)
+	-- Icon-button triggers for FontDropdown/FontSizeDropdown, mirroring WowLua's
+	-- Button_Config pattern: a plain Button opens an otherwise-invisible
+	-- UIDropDownMenuTemplate frame, instead of the dropdown's own visible
+	-- text+arrow chrome.
+	self.FontButton:SetScript("OnClick", function(button)
+		ToggleDropDownMenu(1, nil, self.FontDropdown, button:GetName(), 0, 0)
+	end)
+	self.FontSizeButton:SetScript("OnClick", function(button)
+		ToggleDropDownMenu(1, nil, self.FontSizeDropdown, button:GetName(), 0, 0)
+	end)
+	self.fontSize = DEFAULTS.fontSize
+	self:SetCodeFont(DEFAULTS.fontFamily)
 
-  -- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
-  -- viewport, so lines never reach a wrap boundary and logical line count
-  -- (\n-based) always equals visual line count. Start at the viewport's
-  -- height (not 1px) so there's a clickable/visible area before any text
-  -- is typed; RefreshGutter grows it from here as needed.
-  self.CodeEditBox:SetHeight(self.ScrollFrame:GetHeight())
-  self.CodeEditBox:SetAutoFocus(false)
-  self:SetWrapText(DEFAULTS.wrapText)
-  -- Horizontal text padding: EditBox insets are the actual API for this --
-  -- the frame's own anchors position the whole (4000px-wide, no-wrap) hit
-  -- region, not the glyphs within it, so nudging those anchors doesn't pad
-  -- the text. Top/bottom stay 0 -- the gutter's line labels are positioned
-  -- independently of CodeEditBox's insets, so a vertical inset here would
-  -- desync line 1's label from the code's actual first line.
-  self.CodeEditBox:SetTextInsets(6, 6, 0, 0)
+	self.BottomBar.WrapCheckButton.text:SetText("Wrap Text")
 
-  -- Prototype-only: pre-fill with sample code long enough to force scrolling,
-  -- so gutter/scroll sync can be tested immediately on open.
-  self:SetText(SAMPLE_CODE)
+	-- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
+	-- viewport, so lines never reach a wrap boundary and logical line count
+	-- (\n-based) always equals visual line count. Start at the viewport's
+	-- height (not 1px) so there's a clickable/visible area before any text
+	-- is typed; RefreshGutter grows it from here as needed.
+	self.CodeEditBox:SetHeight(self.ScrollFrame:GetHeight())
+	self.CodeEditBox:SetAutoFocus(false)
+	self:SetWrapText(DEFAULTS.wrapText)
+	-- Horizontal text padding: EditBox insets are the actual API for this --
+	-- the frame's own anchors position the whole (4000px-wide, no-wrap) hit
+	-- region, not the glyphs within it, so nudging those anchors doesn't pad
+	-- the text. Top/bottom stay 0 -- the gutter's line labels are positioned
+	-- independently of CodeEditBox's insets, so a vertical inset here would
+	-- desync line 1's label from the code's actual first line.
+	self.CodeEditBox:SetTextInsets(6, 6, 0, 0)
 
-  self:RefreshGutter()
+	-- Prototype-only: pre-fill with sample code long enough to force scrolling,
+	-- so gutter/scroll sync can be tested immediately on open.
+	self:SetText(SAMPLE_CODE)
+
+	self:RefreshGutter()
 end
 
 --- Raise on every Show, not just on click: toplevel="true" only re-raises on
 --- a mouse-down inside the frame, so without this the dialog could still open
 --- underneath another DIALOG-strata toplevel frame (e.g. Blizzard_EventTrace)
 --- until the user's first click on it.
-function o:OnShow() self:Raise() end
+function o:OnShow()
+	self:Raise()
+end
 
-function o:OnClickClose() self:Hide() end
+function o:OnClickClose()
+	self:Hide()
+end
 
 --- Escape while the dialog itself has keyboard focus (e.g. after the
 --- EditBox cleared its own focus on a first Escape) closes the dialog.
 --- @param key string
 function o:OnKeyDown(key)
-  if key == 'ESCAPE' then
-    self:OnClickClose()
-    self:SetPropagateKeyboardInput(false)
-  else
-    self:SetPropagateKeyboardInput(true)
-  end
+	if key == "ESCAPE" then
+		self:OnClickClose()
+		self:SetPropagateKeyboardInput(false)
+	else
+		self:SetPropagateKeyboardInput(true)
+	end
 end
 
 --- Vertical scroll of the code ScrollFrame moves the gutter's own scroll in
@@ -412,34 +518,40 @@ end
 --- gutter's content clips to its viewport exactly like the code area's does.
 --- @param offset number
 function o:OnCodeEditBoxScroll(offset)
-  self.Gutter:SetVerticalScroll(offset)
+	self.Gutter:SetVerticalScroll(offset)
 end
 
 function o:OnCodeEditBoxTextChanged()
-  -- CodeEditBox's own OnLoad wires this script and can fire it during
-  -- construction, before this dialog's OnLoad has aliased self.CodeEditBox.
-  if not self.CodeEditBox then return end
+	-- CodeEditBox's own OnLoad wires this script and can fire it during
+	-- construction, before this dialog's OnLoad has aliased self.CodeEditBox.
+	if not self.CodeEditBox then
+		return
+	end
 
-  -- Skip gutter/wrap work while the dialog is hidden (e.g. a future
-  -- programmatic SetText call) -- nothing is visible to refresh. OnLoad's own
-  -- SetText(SAMPLE_CODE) + RefreshGutter() already run before first Show, so
-  -- this guard doesn't skip the initial sync.
-  if not self:IsShown() then return end
+	-- Skip gutter/wrap work while the dialog is hidden (e.g. a future
+	-- programmatic SetText call) -- nothing is visible to refresh. OnLoad's own
+	-- SetText(SAMPLE_CODE) + RefreshGutter() already run before first Show, so
+	-- this guard doesn't skip the initial sync.
+	if not self:IsShown() then
+		return
+	end
 
-  -- WoW re-fires OnTextChanged even when the contents did not actually change,
-  -- and RefreshGutter resizes the box, which provokes yet more events -- that
-  -- cycle ran every frame and kept the caret from ever rendering. Only do the
-  -- work when the text really differs.
-  local text = self.CodeEditBox:GetText()
-  if text == self.lastGutterText then return end
-  self.lastGutterText = text
+	-- WoW re-fires OnTextChanged even when the contents did not actually change,
+	-- and RefreshGutter resizes the box, which provokes yet more events -- that
+	-- cycle ran every frame and kept the caret from ever rendering. Only do the
+	-- work when the text really differs.
+	local text = self.CodeEditBox:GetText()
+	if text == self.lastGutterText then
+		return
+	end
+	self.lastGutterText = text
 
-  self:RefreshGutter()
+	self:RefreshGutter()
 end
 
 function o:OnCodeEditBoxCursorChanged(x, y, w, h)
-  -- Keep the cursor's line visible by scrolling the ScrollFrame; horizontal
-  -- position is handled natively by the EditBox/ScrollFrame pairing.
+	-- Keep the cursor's line visible by scrolling the ScrollFrame; horizontal
+	-- position is handled natively by the EditBox/ScrollFrame pairing.
 end
 
 --- The ScrollFrame (viewport) resized -- e.g. a SizerSE drag. This is the only
@@ -449,13 +561,17 @@ end
 --- is intentionally not wired -- RefreshGutter is the only thing that resizes
 --- it, so that handler only ever reacted to our own writes and looped.)
 function o:OnCodeViewportSizeChanged()
-  if not self.CodeEditBox then return end
-  self:RefreshGutter()
+	if not self.CodeEditBox then
+		return
+	end
+	self:RefreshGutter()
 end
 
 --- User-driven change (checkbox click) -- notify listeners.
 --- @param checked boolean
-function o:OnWrapToggled(checked) self:SetWrapText(checked, true) end
+function o:OnWrapToggled(checked)
+	self:SetWrapText(checked, true)
+end
 
 --- Applies a font (by FontUtil font-choice key, at the current fontSize) to
 --- the code box, the gutter numbers, and the hidden wrap measuring string
@@ -464,10 +580,12 @@ function o:OnWrapToggled(checked) self:SetWrapText(checked, true) end
 --- @param fontFamily string Key into FontUtil:GetFontChoices()
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetCodeFont(fontFamily, notify)
-  local choice = FontUtil:FindFontChoice(fontFamily)
-  if not choice then return end
-  self.fontFamily = choice.key
-  self:ApplyCodeFont(notify)
+	local choice = FontUtil:FindFontChoice(fontFamily)
+	if not choice then
+		return
+	end
+	self.fontFamily = choice.key
+	self:ApplyCodeFont(notify)
 end
 
 --- Re-resolves and applies the font object for the current fontFamily +
@@ -475,23 +593,25 @@ end
 --- half of the same (family, size) lookup into FontUtil:GetFontChoices()[].bySize.
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:ApplyCodeFont(notify)
-  local choice = FontUtil:FindFontChoice(self.fontFamily)
-  if not choice then return end
-  local font = choice.bySize[self.fontSize] or choice.bySize[DEFAULTS.fontSize]
-  self.codeFont = font
-  -- EditBox:GetFontString() does not exist -- EditBox has its own direct
-  -- SetFontObject/SetFont/GetFont API (confirmed against Blizzard's real
-  -- EditBox API docs), no need to reach into a child FontString for this.
-  self.CodeEditBox:SetFontObject(font)
-  self.Gutter.ScrollChild.Numbers:SetFontObject(font)
-  self.WrapMeasure.Text:SetFontObject(font)
-  UIDropDownMenu_SetText(self.FontDropdown, choice.label)
-  UIDropDownMenu_SetText(self.FontSizeDropdown, tostring(self.fontSize))
-  local gutterWidth = GUTTER_WIDTH_BY_FONT_SIZE[self.fontSize]
-      or GUTTER_WIDTH_BY_FONT_SIZE[DEFAULTS.fontSize]
-  self.GutterBackdrop:SetWidth(gutterWidth)
-  self:RefreshGutter()
-  if notify then self:FireConfigChanged() end
+	local choice = FontUtil:FindFontChoice(self.fontFamily)
+	if not choice then
+		return
+	end
+	local font = choice.bySize[self.fontSize] or choice.bySize[DEFAULTS.fontSize]
+	self.codeFont = font
+	-- EditBox:GetFontString() does not exist -- EditBox has its own direct
+	-- SetFontObject/SetFont/GetFont API (confirmed against Blizzard's real
+	-- EditBox API docs), no need to reach into a child FontString for this.
+	self.CodeEditBox:SetFontObject(font)
+	self.Gutter.ScrollChild.Numbers:SetFontObject(font)
+	self.WrapMeasure.Text:SetFontObject(font)
+	UIDropDownMenu_SetText(self.FontDropdown, choice.label)
+	UIDropDownMenu_SetText(self.FontSizeDropdown, tostring(self.fontSize))
+	-- RefreshGutter re-sizes the gutter for the new font's digit width.
+	self:RefreshGutter()
+	if notify then
+		self:FireConfigChanged()
+	end
 end
 
 --- Sets the font size (snapped to the nearest supported size) and re-applies
@@ -499,8 +619,8 @@ end
 --- @param fontSize number
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetFontSize(fontSize, notify)
-  self.fontSize = FontUtil:NearestFontSize(fontSize)
-  self:ApplyCodeFont(notify)
+	self.fontSize = FontUtil:NearestFontSize(fontSize)
+	self:ApplyCodeFont(notify)
 end
 
 --- Toggles wrap mode. In no-wrap mode the EditBox is oversized (4000px) so
@@ -509,26 +629,28 @@ end
 --- @param enabled boolean
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetWrapText(enabled, notify)
-  self.wrapText = enabled and true or false
-  self.BottomBar.WrapCheckButton:SetChecked(self.wrapText)
-  local editBox = self.CodeEditBox
-  if self.wrapText then
-    editBox:SetWidth(self.ScrollFrame:GetWidth())
-    self.ScrollFrame:SetHorizontalScroll(0)
-  else
-    editBox:SetWidth(4000)
-  end
-  self:RefreshGutter()
-  if notify then self:FireConfigChanged() end
+	self.wrapText = enabled and true or false
+	self.BottomBar.WrapCheckButton:SetChecked(self.wrapText)
+	local editBox = self.CodeEditBox
+	if self.wrapText then
+		editBox:SetWidth(self.ScrollFrame:GetWidth())
+		self.ScrollFrame:SetHorizontalScroll(0)
+	else
+		editBox:SetWidth(4000)
+	end
+	self:RefreshGutter()
+	if notify then
+		self:FireConfigChanged()
+	end
 end
 
 --- @return LDK_CodeEditorOptions Current settings, regardless of what (if anything) just changed
 function o:GetOptions()
-  return {
-    fontFamily = self.fontFamily,
-    fontSize = self.fontSize,
-    wrapText = self.wrapText,
-  }
+	return {
+		fontFamily = self.fontFamily,
+		fontSize = self.fontSize,
+		wrapText = self.wrapText,
+	}
 end
 
 --- Registers the callback fired after any user-driven config change (font
@@ -537,10 +659,14 @@ end
 --- want to persist can just do `DB.profile.codeEditor = options` with no
 --- merge logic of their own.
 --- @param callback fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
-function o:SetOnConfigChanged(callback) self.onConfigChanged = callback end
+function o:SetOnConfigChanged(callback)
+	self.onConfigChanged = callback
+end
 
 function o:FireConfigChanged()
-  if self.onConfigChanged then self.onConfigChanged(self, self:GetOptions()) end
+	if self.onConfigChanged then
+		self.onConfigChanged(self, self:GetOptions())
+	end
 end
 
 --- Applies initial/programmatic settings, merged over current values (so a
@@ -549,89 +675,138 @@ end
 --- fontSize snaps to the nearest supported size (10/12/14).
 --- @param options LDK_CodeEditorOptions|table|nil Partial table; omitted fields keep their current value
 function o:Configure(options)
-  options = options or {}
-  -- Falls back to DEFAULTS.fontFamily if the requested key doesn't resolve to
-  -- a real font choice -- e.g. persisted config referencing a family that was
-  -- since removed. Without this, ApplyCodeFont's own nil-guard would silently
-  -- no-op and leave whatever font was previously applied.
-  local fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
-  if not FontUtil:FindFontChoice(fontFamily) then
-    fontFamily = DEFAULTS.fontFamily
-  end
-  self.fontFamily = fontFamily
-  self.fontSize = FontUtil:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
-  local wrapText = options.wrapText
-  if wrapText == nil then wrapText = self.wrapText end
-  if wrapText == nil then wrapText = DEFAULTS.wrapText end
+	options = options or {}
+	-- Falls back to DEFAULTS.fontFamily if the requested key doesn't resolve to
+	-- a real font choice -- e.g. persisted config referencing a family that was
+	-- since removed. Without this, ApplyCodeFont's own nil-guard would silently
+	-- no-op and leave whatever font was previously applied.
+	local fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
+	if not FontUtil:FindFontChoice(fontFamily) then
+		fontFamily = DEFAULTS.fontFamily
+	end
+	self.fontFamily = fontFamily
+	self.fontSize = FontUtil:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
+	local wrapText = options.wrapText
+	if wrapText == nil then
+		wrapText = self.wrapText
+	end
+	if wrapText == nil then
+		wrapText = DEFAULTS.wrapText
+	end
 
-  self:ApplyCodeFont()
-  self:SetWrapText(wrapText)
+	self:ApplyCodeFont()
+	self:SetWrapText(wrapText)
 end
 
 --- Rebuilds the gutter's "1..N" text and sizes both columns to the content.
 function o:RefreshGutter()
-  if not self.CodeEditBox then return end -- not constructed yet (see OnCodeEditBoxTextChanged)
+	if not self.CodeEditBox then
+		return
+	end -- not constructed yet (see OnCodeEditBoxTextChanged)
 
-  -- Reentrancy guard, for the synchronous path: SetText fires OnTextChanged
-  -- inline, which lands back here. (Resizes are handled separately below --
-  -- OnSizeChanged is dispatched asynchronously, so this flag is already back
-  -- to false by the time it arrives and cannot catch that case.)
-  if self.refreshingGutter then return end
-  self.refreshingGutter = true
+	-- Reentrancy guard, for the synchronous path: SetText fires OnTextChanged
+	-- inline, which lands back here. (Resizes are handled separately below --
+	-- OnSizeChanged is dispatched asynchronously, so this flag is already back
+	-- to false by the time it arrives and cannot catch that case.)
+	if self.refreshingGutter then
+		return
+	end
+	self.refreshingGutter = true
 
-  local gutter = self.Gutter
-  local child = gutter.ScrollChild
-  local numbers = child.Numbers
+	local gutter = self.Gutter
+	local child = gutter.ScrollChild
+	local numbers = child.Numbers
 
-  -- Every setter below is guarded by SizeDiffers. Re-applying an unchanged size
-  -- still makes WoW re-fire OnSizeChanged and recompute the caret (firing
-  -- OnCursorChanged), so an unguarded SetHeight here re-entered this function
-  -- every frame forever -- the size never changed, but the events never stopped,
-  -- and the constant caret recalculation kept the cursor from ever rendering.
+	-- Every setter below is guarded by SizeDiffers. Re-applying an unchanged size
+	-- still makes WoW re-fire OnSizeChanged and recompute the caret (firing
+	-- OnCursorChanged), so an unguarded SetHeight here re-entered this function
+	-- every frame forever -- the size never changed, but the events never stopped,
+	-- and the constant caret recalculation kept the cursor from ever rendering.
 
-  -- Width must be set explicitly (scroll children ignore right-side anchors)
-  -- so the right-justified numbers land at the Gutter's clip edge, not past it.
-  local gutterWidth = gutter:GetWidth()
-  if SizeDiffers(child:GetWidth(), gutterWidth) then
-    child:SetWidth(gutterWidth)
-  end
+	-- Size the gutter to the highest line number's digit count first: the code
+	-- viewport is anchored to GutterBackdrop's right edge, so every width read
+	-- below (including wrap mode's measuring width) depends on this one.
+	local lastLine = CountLines(self)
+	local backdropWidth = GutterWidth(self, lastLine)
+	if SizeDiffers(self.GutterBackdrop:GetWidth(), backdropWidth) then
+		self.GutterBackdrop:SetWidth(backdropWidth)
+	end
 
-  if self.wrapText then
-    -- Keep the EditBox and the measuring string wrapping at the same width;
-    -- wrap points move with the viewport, so this must track resizes too.
-    local textWidth = CodeTextWidth(self)
-    local viewportWidth = self.ScrollFrame:GetWidth()
-    if SizeDiffers(self.CodeEditBox:GetWidth(), viewportWidth) then
-      self.CodeEditBox:SetWidth(viewportWidth)
-    end
-    if SizeDiffers(self.WrapMeasure.Text:GetWidth(), textWidth) then
-      self.WrapMeasure.Text:SetWidth(textWidth)
-    end
-    numbers:SetText(WrappedLineNumbersText(self))
-  else
-    numbers:SetText(LineNumbersText(CountLines(self)))
-  end
+	-- Width must be set explicitly (scroll children ignore right-side anchors).
+	-- Sized to the numbers EditBox, not to the Gutter: the child is what the
+	-- EditBox anchors to, so a gutter-width child clipped every number down to
+	-- the gutter and a 4-digit line stopped rendering at "...". Wider than the
+	-- Gutter is fine -- the Gutter clips the overhang, and the numbers are
+	-- right-justified, so the digits still land at its right edge.
+	local gutterWidth = gutter:GetWidth()
+	if SizeDiffers(child:GetWidth(), gutterWidth) then
+		child:SetWidth(gutterWidth)
+	end
 
-  -- Both columns render the same line count in the same font, so the gutter's
-  -- measured text height IS the code's content height -- no guessed pitch.
-  -- Sizing both to it also gives the two ScrollFrames an identical scroll
-  -- range, keeping SetVerticalScroll in sync down to the last line.
-  local contentHeight = math.max(numbers:GetStringHeight(), self.ScrollFrame:GetHeight())
-  if SizeDiffers(child:GetHeight(), contentHeight) then
-    child:SetHeight(contentHeight)
-  end
-  if SizeDiffers(self.CodeEditBox:GetHeight(), contentHeight) then
-    self.CodeEditBox:SetHeight(contentHeight)
-  end
-  tr(libName, 'RefreshGutter', 'font-string=len=', #numbers:GetText())
-  self.refreshingGutter = false
+	if self.wrapText then
+		-- Keep the EditBox and the measuring string wrapping at the same width;
+		-- wrap points move with the viewport, so this must track resizes too.
+		local textWidth = CodeTextWidth(self)
+		local viewportWidth = self.ScrollFrame:GetWidth()
+		if SizeDiffers(self.CodeEditBox:GetWidth(), viewportWidth) then
+			self.CodeEditBox:SetWidth(viewportWidth)
+		end
+		if SizeDiffers(self.WrapMeasure.Text:GetWidth(), textWidth) then
+			self.WrapMeasure.Text:SetWidth(textWidth)
+		end
+	end
+
+	local text, rows
+	if self.wrapText then
+		text, rows = WrappedLineNumbersText(self)
+	else
+		text, rows = LineNumbersText(lastLine)
+	end
+
+	-- Both columns render the same row count in the same font, so rows times the
+	-- font's line height IS the code's content height. Taken from WrapMeasure's
+	-- FontString (same font) because an EditBox has no GetStringHeight. Sizing
+	-- both columns to it gives the two ScrollFrames an identical scroll range,
+	-- keeping SetVerticalScroll in sync down to the last line.
+	local lineHeight = self.WrapMeasure.Text:GetLineHeight()
+	local contentHeight = math.max(rows * lineHeight, self.ScrollFrame:GetHeight())
+	if SizeDiffers(child:GetHeight(), contentHeight) then
+		child:SetHeight(contentHeight)
+	end
+	if SizeDiffers(self.CodeEditBox:GetHeight(), contentHeight) then
+		self.CodeEditBox:SetHeight(contentHeight)
+	end
+
+	-- Text goes in only after both columns are at their final height: the
+	-- numbers EditBox lays its text out against the height it has at SetText
+	-- time, and a layout committed against the old, shorter height stayed
+	-- truncated (trailing "...") even after the child grew underneath it.
+	-- The EditBox truncates at its 'letters' cap, ending the gutter mid-number
+	-- and dropping every line below it -- the cutoff tracks the character count,
+	-- not the column width. Raised to fit this text before every SetText, since
+	-- the count grows with the file: any fixed cap is just a later ceiling.
+	-- strlenutf8, not #text: SetMaxLetters counts characters while # counts
+	-- bytes, so a byte count overshoots wherever the text is multi-byte. Same
+	-- value for ASCII digits, correct everywhere else.
+	numbers:SetMaxLetters(strlenutf8(text))
+	numbers:SetText(text)
+	-- SetText leaves the caret at the end; reset it so the gutter EditBox has no
+	-- reason to scroll its own text toward the caret and out of line with the code.
+	numbers:SetCursorPosition(0)
+
+	self.refreshingGutter = false
 end
 
 --- @return string
-function o:GetText() return self.CodeEditBox:GetText() end
+function o:GetText()
+	return self.CodeEditBox:GetText()
+end
 
+--- Text past MAX_LINES is dropped: this is a scratchpad for prototyping code
+--- in-game, not a file editor, and an unbounded EditBox is what made the
+--- gutter truncate mid-number in the first place.
 --- @param text string
 function o:SetText(text)
-  self.CodeEditBox:SetText(text or '')
-  self:RefreshGutter()
+	self.CodeEditBox:SetText(TrimToMaxLines(text or ""))
+	self:RefreshGutter()
 end
