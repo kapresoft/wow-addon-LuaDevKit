@@ -99,82 +99,6 @@ local TOP_AND_BOTTOM_BACKDROP = {
 	insets = { left = 8, right = 8, top = 12, bottom = 8 },
 }
 
--- Sample text long enough to force scrolling, for testing gutter/scroll sync.
-local SAMPLE_CODE = [==[
-
-local args = ...
-
---- This is a fibonacci function
---- @return number @An emmylua comment
-local function fibonacci(n)
-  if n <= 1 then
-    return n
-  end
-  return fibonacci(n - 1) + fibonacci(n - 2)
-end
-
---[[ Sample long comment ]]
---- @param count number
-local function printFibonacciSequence(count)
-  for i = 1, count do
-    print(i, fibonacci(i))
-  end
-end
-
--- Sample Logical Operators
-local x,y = 1,2
-if x and y or x == 1 and y == 2 then
-  print('Yolo!')
-end
-
-local Frame = CreateFrame('Frame')
-Frame:RegisterEvent('PLAYER_ENTERING_WORLD')
-Frame:SetScript('OnEvent', function(self, event, ...)
-  if event ~= 'PLAYER_ENTERING_WORLD' then return end
-  printFibonacciSequence(10)
-end)
-
-local t = {}
-for i = 1, 20 do
-  t[i] = i * i
-end
-
-local function sum(tbl)
-  local total = 0
-  for _, v in ipairs(tbl) do
-    total = total + v
-  end
-  return total
-end
-
-print('Sum of squares:', sum(t))
-
-]==]
-SAMPLE_CODE = SAMPLE_CODE .. "\n" .. SAMPLE_CODE .. "\n" .. SAMPLE_CODE
-SAMPLE_CODE = SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-	.. "\n"
-	.. SAMPLE_CODE
-SAMPLE_CODE = SAMPLE_CODE .. "\n" .. SAMPLE_CODE
-SAMPLE_CODE = SAMPLE_CODE .. "\n" .. SAMPLE_CODE
-
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]
@@ -484,7 +408,7 @@ function o:OnLoad()
 
 	-- Prototype-only: pre-fill with sample code long enough to force scrolling,
 	-- so gutter/scroll sync can be tested immediately on open.
-	self:SetText(SAMPLE_CODE)
+	if ns.EXAMPLE_CODE then self:SetText(ns.EXAMPLE_CODE) end
 
 	self:RefreshGutter()
 end
@@ -495,6 +419,16 @@ end
 --- until the user's first click on it.
 function o:OnShow()
 	self:Raise()
+	-- Testing whether SetFocus() only takes effect once the dialog is actually
+	-- visible: OnLoad's SetText ran while this frame was still hidden
+	-- (hidden="true" in the template), and SetFocus()/SetCursorPosition(0)
+	-- called there did not produce a visible caret. Guarded to first Show only,
+	-- so reopening the dialog later doesn't reset wherever the user left off.
+	if not self.initialFocusApplied then
+		self.initialFocusApplied = true
+		self.CodeEditBox:SetFocus()
+		self.CodeEditBox:SetCursorPosition(0)
+	end
 end
 
 function o:OnClickClose()
@@ -530,8 +464,8 @@ function o:OnCodeEditBoxTextChanged()
 
 	-- Skip gutter/wrap work while the dialog is hidden (e.g. a future
 	-- programmatic SetText call) -- nothing is visible to refresh. OnLoad's own
-	-- SetText(SAMPLE_CODE) + RefreshGutter() already run before first Show, so
-	-- this guard doesn't skip the initial sync.
+	-- RefreshGutter() call runs unconditionally before first Show regardless of
+	-- what text (if any) was set, so this guard doesn't skip the initial sync.
 	if not self:IsShown() then
 		return
 	end
@@ -549,9 +483,41 @@ function o:OnCodeEditBoxTextChanged()
 	self:RefreshGutter()
 end
 
+--- Keeps the caret's line visible by scrolling ScrollFrame just enough to
+--- bring it back into view (snap-to-edge, not centered) -- e.g. pressing Up at
+--- the top row previously left the caret scrolled off-screen with no visual
+--- feedback. Horizontal position is handled natively by the EditBox/ScrollFrame
+--- pairing, so only vertical is done here.
+--- y/h come from the EditBox's own OnCursorChanged(x, y, w, h): y is the
+--- caret's top offset from the EditBox's top edge, reported negative-down
+--- (confirmed against Blizzard's own ScrollingEdit_OnCursorChanged, which
+--- negates it the same way), so -y is the caret's actual downward offset.
+--- Gated by SizeDiffers like every other write in this file: an unguarded
+--- SetVerticalScroll here previously self-triggered forever, because the old
+--- resize churn re-fired this same event mid-scroll -- see CodeEditBoxMixin.lua.
+--- That churn is gone now (RefreshGutter's SizeDiffers guards), which is what
+--- makes this safe to add.
+--- @param x number
+--- @param y number
+--- @param w number
+--- @param h number
 function o:OnCodeEditBoxCursorChanged(x, y, w, h)
-	-- Keep the cursor's line visible by scrolling the ScrollFrame; horizontal
-	-- position is handled natively by the EditBox/ScrollFrame pairing.
+	local scrollFrame = self.ScrollFrame
+	local viewHeight = scrollFrame:GetHeight()
+	local scroll = scrollFrame:GetVerticalScroll()
+	local cursorTop = -y
+	local cursorBottom = cursorTop + h
+
+	local target
+	if cursorTop < scroll then
+		target = cursorTop
+	elseif cursorBottom > scroll + viewHeight then
+		target = cursorBottom - viewHeight
+	end
+
+	if target and SizeDiffers(scroll, target) then
+		scrollFrame:SetVerticalScroll(target)
+	end
 end
 
 --- The ScrollFrame (viewport) resized -- e.g. a SizerSE drag. This is the only
@@ -809,4 +775,5 @@ end
 function o:SetText(text)
 	self.CodeEditBox:SetText(TrimToMaxLines(text or ""))
 	self:RefreshGutter()
+	self.CodeEditBox:SetCursorPosition(0)
 end

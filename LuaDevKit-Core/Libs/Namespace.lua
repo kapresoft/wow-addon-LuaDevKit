@@ -15,9 +15,10 @@ local O = {}; ns.O = O
 ns.O.FAIAP = LibStub('LuaDevKit-FAIAP-1-0', true)
 
 -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
--- SetText(SAMPLE_CODE) below so the first paint already goes through FAIAP's
--- SetText override; its GetText override returns decoded (uncolored) text, so
--- CountLines/RefreshGutter/wrap measuring all keep seeing clean source.
+-- CodeEditorDialog's first SetText call so that first paint already goes
+-- through FAIAP's SetText override; its GetText override returns decoded
+-- (uncolored) text, so CountLines/RefreshGutter/wrap measuring all keep
+-- seeing clean source.
 --
 -- Known risk, not yet observed in practice: colorCodeEditbox() calls
 -- indentEditbox() when the line count changes, and indentEditbox()'s write

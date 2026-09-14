@@ -9,6 +9,7 @@
          ApplyCodeFont() overrides both FontStrings via SetFontObject as soon
          as the dialog configures, so this definition's own look never shows. -->
     <Font name="LDK_CodeEditorFont" inherits="SharedMediaFontsMono_DefaultFont"/>
+    <Script file="ExampleCode.lua"/>
     <Script file="Backdrops.lua"/>
     <Script file="CodeEditBoxMixin.lua"/>
     <Script file="CodeEditorDialog.lua"/>

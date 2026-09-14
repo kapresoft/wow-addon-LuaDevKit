@@ -4,6 +4,7 @@ local addon, xns = ...
 
 --- @class LDK_CodeEditor_Namespace
 --- @field addon Name
+--- @field EXAMPLE_CODE string
 local ns = xns
 ns.addon = addon
 
