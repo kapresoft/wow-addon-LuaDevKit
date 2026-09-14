@@ -135,7 +135,7 @@ Types
 
 --- @class LDK_CodeEditorOptions
 --- @field fontFamily string Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
---- @field fontSize number One of FontUtil:GetFontSizes() (10/12/14/16/18/20); other values snap to nearest
+--- @field fontSize number One of FontUtil:GetFontSizes() (10/12/14/16/18/20/24/28); other values snap to nearest
 --- @field wrapText boolean
 
 --- @class LDK_CodeEditorDialogMixin : Frame
@@ -462,13 +462,16 @@ function o:OnLoad()
 
 	self.HeaderTitle:SetText("Code Editor (Prototype)")
 
-	-- parentKey="FontDropdown"/"FontButton"/"FontSizeDropdown"/"FontSizeButton"
-	-- resolve onto TopBar (their immediate XML parent), not this dialog frame --
-	-- alias them here, same as CodeEditBox above.
+	-- parentKey="FontDropdown"/"FontButton"/"FontSizeDropdown"/"FontSizeButton"/
+	-- "FontSizeUpButton"/"FontSizeDownButton" resolve onto TopBar (their
+	-- immediate XML parent), not this dialog frame -- alias them here, same as
+	-- CodeEditBox above.
 	self.FontDropdown = self.TopBar.FontDropdown
 	self.FontButton = self.TopBar.FontButton
 	self.FontSizeDropdown = self.TopBar.FontSizeDropdown
 	self.FontSizeButton = self.TopBar.FontSizeButton
+	self.FontSizeUpButton = self.TopBar.FontSizeUpButton
+	self.FontSizeDownButton = self.TopBar.FontSizeDownButton
 	InitFontDropdown(self.FontDropdown, self)
 	InitFontSizeDropdown(self.FontSizeDropdown, self)
 	-- Icon-button triggers for FontDropdown/FontSizeDropdown, mirroring WowLua's
@@ -480,6 +483,12 @@ function o:OnLoad()
 	end)
 	self.FontSizeButton:SetScript("OnClick", function(button)
 		ToggleDropDownMenu(1, nil, self.FontSizeDropdown, button:GetName(), 0, 0)
+	end)
+	self.FontSizeUpButton:SetScript("OnClick", function()
+		self:StepFontSize(1)
+	end)
+	self.FontSizeDownButton:SetScript("OnClick", function()
+		self:StepFontSize(-1)
 	end)
 	self.fontSize = DEFAULTS.fontSize
 	self:SetCodeFont(DEFAULTS.fontFamily)
@@ -772,6 +781,11 @@ function o:ApplyCodeFont(notify)
 	self.WrapMeasure.Text:SetFontObject(font)
 	UIDropDownMenu_SetText(self.FontDropdown, choice.label)
 	UIDropDownMenu_SetText(self.FontSizeDropdown, tostring(self.fontSize))
+	-- Disable the step buttons at the ends of FontUtil:GetFontSizes() -- both
+	-- templates ship a DisabledTexture for exactly this state.
+	local sizes = FontUtil:GetFontSizes()
+	self.FontSizeDownButton:SetEnabled(self.fontSize ~= sizes[1])
+	self.FontSizeUpButton:SetEnabled(self.fontSize ~= sizes[#sizes])
 	-- RefreshGutter re-sizes the gutter for the new font's digit width.
 	self:RefreshGutter()
 	if notify then
@@ -786,6 +800,21 @@ end
 function o:SetFontSize(fontSize, notify)
 	self.fontSize = FontUtil:NearestFontSize(fontSize)
 	self:ApplyCodeFont(notify)
+end
+
+--- Moves to the next/previous entry in FontUtil:GetFontSizes(), clamped at
+--- the ends. No-ops at a boundary (the step buttons are disabled there too,
+--- but this guards against any other caller). User-driven, so notifies.
+--- @param delta number 1 to step up, -1 to step down
+function o:StepFontSize(delta)
+	local sizes = FontUtil:GetFontSizes()
+	local index = 1
+	for i, size in ipairs(sizes) do
+		if size == self.fontSize then index = i break end
+	end
+	local newIndex = Clamp(index + delta, 1, #sizes)
+	if newIndex == index then return end
+	self:SetFontSize(sizes[newIndex], true)
 end
 
 --- Toggles wrap mode. In no-wrap mode the EditBox is oversized (4000px) so
@@ -837,7 +866,7 @@ end
 --- Applies initial/programmatic settings, merged over current values (so a
 --- partial table only touches the fields it names). Does not fire
 --- OnConfigChanged -- the caller already knows what it just configured.
---- fontSize snaps to the nearest supported size (10/12/14/16/18/20).
+--- fontSize snaps to the nearest supported size (10/12/14/16/18/20/24/28).
 --- @param options LDK_CodeEditorOptions|table|nil Partial table; omitted fields keep their current value
 function o:Configure(options)
 	options = options or {}

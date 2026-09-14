@@ -129,10 +129,10 @@
 
             <!-- Reserved space for future toolbar/controls (e.g. Accept/Run buttons) -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
-                <Size y="24"/>
+                <Size y="28"/>
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT"/>
-                    <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT"/>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="2"/>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT" x="0" y="2"/>
                 </Anchors>
                 <Frames>
                     <!-- Absolute names (not $parent-relative): TopBar itself has no
@@ -170,6 +170,29 @@
                         </Anchors>
                         <NormalTexture file="Interface\Icons\INV_Misc_Gear_08"/>
                         <HighlightTexture file="Interface\Icons\INV_Misc_Gear_08" alphaMode="ADD"/>
+                    </Button>
+                    <!-- Step font size up/down, left of the size dropdown trigger.
+                         Chat-frame scroll icons (same art Blizzard uses on
+                         LootFrame's page buttons), not a scrollbar template. -->
+                    <Button name="LDK_CodeEditorFontSizeUpButton" parentKey="FontSizeUpButton">
+                        <Size x="28" y="28"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.FontSizeButton" relativePoint="LEFT" x="-2" y="0"/>
+                        </Anchors>
+                        <NormalTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollUp-Up"/>
+                        <PushedTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollUp-Down"/>
+                        <DisabledTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollUp-Disabled"/>
+                        <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+                    </Button>
+                    <Button name="LDK_CodeEditorFontSizeDownButton" parentKey="FontSizeDownButton">
+                        <Size x="28" y="28"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.FontSizeUpButton" relativePoint="LEFT" x="6" y="0"/>
+                        </Anchors>
+                        <NormalTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Up"/>
+                        <PushedTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Down"/>
+                        <DisabledTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Disabled"/>
+                        <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
                     </Button>
                 </Frames>
             </Frame>
