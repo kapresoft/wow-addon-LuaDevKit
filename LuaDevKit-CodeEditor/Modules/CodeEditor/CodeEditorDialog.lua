@@ -135,7 +135,7 @@ Types
 
 --- @class LDK_CodeEditorOptions
 --- @field fontFamily string Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
---- @field fontSize number One of FontUtil:GetFontSizes() (10/12/14); other values snap to nearest
+--- @field fontSize number One of FontUtil:GetFontSizes() (10/12/14/16/18/20); other values snap to nearest
 --- @field wrapText boolean
 
 --- @class LDK_CodeEditorDialogMixin : Frame
@@ -837,7 +837,7 @@ end
 --- Applies initial/programmatic settings, merged over current values (so a
 --- partial table only touches the fields it names). Does not fire
 --- OnConfigChanged -- the caller already knows what it just configured.
---- fontSize snaps to the nearest supported size (10/12/14).
+--- fontSize snaps to the nearest supported size (10/12/14/16/18/20).
 --- @param options LDK_CodeEditorOptions|table|nil Partial table; omitted fields keep their current value
 function o:Configure(options)
 	options = options or {}

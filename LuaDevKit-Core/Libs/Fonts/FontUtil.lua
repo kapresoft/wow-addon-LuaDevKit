@@ -15,7 +15,7 @@ local ns = xns
 --- @field key string Identifier derived from the catalog name, e.g. 'UbuntuMono'. Persisted in config, so renaming a catalog font invalidates a saved selection.
 --- @field label string Display text for a font dropdown.
 --- @field supportsLocale boolean Whether this face font supports the current CJK locale
---- @field bySize table<number, Font> Font object per supported size (10/12/14).
+--- @field bySize table<number, Font> Font object per supported size (10/12/14/16/18/20).
 
 --- @class LDK_FontUtil
 ns.O.FontUtil = {}
@@ -26,7 +26,7 @@ Local Vars
 -------------------------------------------------------------------------------]]
 -- Sizes offered per family: one font object built per family per size, so
 -- picking a size is the same SetFontObject swap as picking a family.
-local FONT_SIZES = { 10, 12, 14 }
+local FONT_SIZES = { 10, 12, 14, 16, 18, 20 }
 
 -- Created font objects are named LDK_CodeEditorFont_<CatalogName>_<size>,
 -- with CatalogName being the catalog name stripped of spaces and parentheses.
@@ -91,7 +91,7 @@ function FontUtil:GetFontSizes()
   return FONT_SIZES
 end
 
---- Nearest supported size (only 10/12/14 are built per family).
+--- Nearest supported size (only 10/12/14/16/18/20 are built per family).
 --- @param fontSize number
 --- @return number
 function FontUtil:NearestFontSize(fontSize)
