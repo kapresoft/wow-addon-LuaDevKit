@@ -40,6 +40,27 @@ function o:OnTextChanged()
   self.owner:OnCodeEditBoxTextChanged()
 end
 
+-- Always swallowed, not just PAGEUP/PAGEDOWN: this box has keyboard focus
+-- while editing, and propagating any key (e.g. UP/DOWN) lets it ALSO reach
+-- the game's own keybindings underneath the dialog -- was moving the player
+-- character while typing. PAGEUP/PAGEDOWN get their own page-jump handling
+-- first; every other key is left to the EditBox's own native text-editing
+-- behavior, which doesn't depend on propagation being enabled.
+--- @param key string
+function o:OnKeyDown(key)
+  if key == 'PAGEUP' or key == 'PAGEDOWN' then
+    self.owner:OnCodeEditBoxPageKey(key)
+  elseif (key == 'HOME' or key == 'END') and IsMetaKeyDown() then
+    -- Plain Home/End (no modifier) and Ctrl+Home/End are both left to the
+    -- EditBox's own native behavior -- Ctrl+Home/End already jumps to the
+    -- document start/end without any code here. Only Cmd+Home/End (Mac;
+    -- IsMetaKeyDown is the real Command key, distinct from Option/Alt) needs
+    -- an explicit override, since nothing native handles that combination.
+    self.owner:OnCodeEditBoxDocumentJumpKey(key)
+  end
+  self:SetPropagateKeyboardInput(false)
+end
+
 
 -- No OnSizeChanged handler: RefreshGutter is the only thing that resizes this
 -- EditBox, so reacting to that here just fed itself. See CodeEditorDialog.xml.

@@ -37,8 +37,8 @@ function ns:EnableLuaFormatter(editBox)
     [f.tokens.TOKEN_KEYWORD]       = "|cffCF8E6D",  -- tan keywords
     [f.tokens.TOKEN_STRING]        = "|cffEFEFEF",  -- white strings
     [f.tokens.TOKEN_NUMBER]        = "|cff2AACB8",  -- teal numbers
-    [f.tokens.TOKEN_COMMENT_SHORT] = "|cff7A7E85",  -- gray comments
-    [f.tokens.TOKEN_COMMENT_LONG]  = "|cff7A7E85",  -- gray comments
+    [f.tokens.TOKEN_COMMENT_SHORT] = "|cff9B9EA5",  -- gray comments
+    [f.tokens.TOKEN_COMMENT_LONG]  = "|cff9B9EA5",  -- gray comments
     [f.tokens.TOKEN_IDENTIFIER]    = "|cff56B2FF",  -- light blue identifiers
     ["and"]                        = "|cffFFB9B0",  -- salmon
     ["or"]                         = "|cffFFB9B0",  -- salmon

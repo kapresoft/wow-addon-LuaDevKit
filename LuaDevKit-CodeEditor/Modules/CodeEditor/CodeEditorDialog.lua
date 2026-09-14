@@ -25,6 +25,11 @@ Local Vars
 -- only consumes them.
 local FontUtil = cns.O.FontUtil
 
+-- May be nil (LibStub's silent-fail arg in Namespace.lua): EnableLuaFormatter
+-- already no-ops colorization entirely when FAIAP isn't present, so
+-- CodeEditBox:GetText() is untouched, native raw text in that case too.
+local FAIAP = cns.O.FAIAP
+
 -- Fewest digits the gutter is sized for, so a short file's gutter doesn't
 -- widen again the moment it reaches line 10.
 local MIN_GUTTER_DIGITS = 2
@@ -176,6 +181,57 @@ local function CountLines(self)
 	local text = self.CodeEditBox:GetText() or ""
 	local _, count = text:gsub("\n", "\n")
 	return count + 1
+end
+
+-- Lines a plain Page Up/Page Down keypress moves the caret; Cmd+Page Up/Down
+-- moves PAGE_JUMP_LINES_CMD instead.
+local PAGE_JUMP_LINES = 20
+local PAGE_JUMP_LINES_CMD = 30
+
+--- Moves the caret `lines` lines up/down from its current position, landing
+--- at the end of the target line. EditBox only exposes a flat character
+--- offset (GetCursorPosition/SetCursorPosition), with no line-based cursor
+--- API, so this walks '\n' boundaries one at a time from the current offset
+--- -- at most `lines` lookups per press, not a full-document scan or line
+--- table.
+--- FAIAP.coloredGetText, not editBox:GetText(): once colorization is enabled,
+--- GetText is overridden to return decoded (color-code-stripped) text, but
+--- GetCursorPosition/SetCursorPosition operate on the raw text underneath
+--- (full of |cRRGGBBAA...|r codes) -- walking '\n' positions in the shorter
+--- decoded text and feeding them to SetCursorPosition as raw offsets would
+--- land short of the real target line, the same mismatch Cmd+End hit.
+--- coloredGetText calls the original, un-overridden GetText FAIAP captured
+--- before replacing it, so this gets the real raw text either way.
+--- @param self LDK_CodeEditorDialog
+--- @param direction 1|-1
+--- @param lines number
+local function PageMoveCursor(self, direction, lines)
+	local editBox = self.CodeEditBox
+	local text = FAIAP.coloredGetText(editBox)
+	local pos = editBox:GetCursorPosition()
+
+	for _ = 1, lines do
+		if direction > 0 then
+			local nl = text:find("\n", pos + 1, true)
+			if not nl then
+				pos = #text
+				break
+			end
+			pos = nl
+		else
+			local nl
+			for p in text:sub(1, pos - 1):gmatch("()\n") do
+				nl = p
+			end
+			if not nl then
+				pos = 0
+				break
+			end
+			pos = nl - 1
+		end
+	end
+
+	editBox:SetCursorPosition(pos)
 end
 
 --- First MAX_LINES lines of text, or all of it when already shorter.
@@ -520,6 +576,38 @@ function o:OnCodeEditBoxCursorChanged(x, y, w, h)
 	end
 end
 
+--- PAGEUP/PAGEDOWN: moves the caret PAGE_JUMP_LINES lines up/down, or
+--- PAGE_JUMP_LINES_CMD with Cmd held. SetCursorPosition fires
+--- OnCodeEditBoxCursorChanged, which already scrolls the view to keep the
+--- caret visible -- no scroll logic needed here.
+--- @param key "PAGEUP"|"PAGEDOWN"
+function o:OnCodeEditBoxPageKey(key)
+	local lines = IsMetaKeyDown() and PAGE_JUMP_LINES_CMD or PAGE_JUMP_LINES
+	PageMoveCursor(self, key == "PAGEUP" and -1 or 1, lines)
+end
+
+--- Cmd+Home / Cmd+End: jumps the caret to the very start/end of the document.
+--- SetCursorPosition fires OnCodeEditBoxCursorChanged, which already scrolls
+--- the view to keep the caret visible -- no scroll logic needed here.
+--- @param key "HOME"|"END"
+function o:OnCodeEditBoxDocumentJumpKey(key)
+	local editBox = self.CodeEditBox
+	if key == "HOME" then
+		editBox:SetCursorPosition(0)
+		return
+	end
+	-- FAIAP.coloredGetText, not editBox:GetText(): once colorization is
+	-- enabled, GetText is overridden to always return decoded (color-code-
+	-- stripped) text -- shorter than what SetCursorPosition/GetCursorPosition
+	-- actually operate against (the raw text, full of |cRRGGBBAA...|r codes).
+	-- Using the decoded length as a raw cursor offset landed well short of
+	-- the true end. coloredGetText calls the original, un-overridden GetText
+	-- FAIAP captured before replacing it, so this gets the real raw text
+	-- regardless of whether colorization is active.
+	local rawText = FAIAP.coloredGetText(editBox)
+	editBox:SetCursorPosition(#rawText)
+end
+
 --- The ScrollFrame (viewport) resized -- e.g. a SizerSE drag. This is the only
 --- size event worth reacting to: RefreshGutter never resizes the ScrollFrame, so
 --- it cannot feed itself here, and in wrap mode the viewport's new width is
@@ -775,5 +863,4 @@ end
 function o:SetText(text)
 	self.CodeEditBox:SetText(TrimToMaxLines(text or ""))
 	self:RefreshGutter()
-	self.CodeEditBox:SetCursorPosition(0)
 end

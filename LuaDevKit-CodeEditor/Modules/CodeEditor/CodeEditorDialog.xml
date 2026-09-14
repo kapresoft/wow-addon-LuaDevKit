@@ -338,6 +338,7 @@
                             <OnEscapePressed method="OnEscapePressed"/>
                             <OnTextChanged method="OnTextChanged"/>
                             <OnCursorChanged method="OnCursorChanged"/>
+                            <OnKeyDown method="OnKeyDown"/>
                             <!-- Deliberately NO OnSizeChanged here. RefreshGutter is
                                  the only thing that ever resizes this EditBox, so an
                                  OnSizeChanged handler would only ever react to our own
