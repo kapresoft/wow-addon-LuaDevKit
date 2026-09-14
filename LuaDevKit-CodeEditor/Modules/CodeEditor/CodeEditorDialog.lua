@@ -183,10 +183,14 @@ local function CountLines(self)
 	return count + 1
 end
 
--- Lines a plain Page Up/Page Down keypress moves the caret; Cmd+Page Up/Down
--- moves PAGE_JUMP_LINES_CMD instead.
-local PAGE_JUMP_LINES = 20
-local PAGE_JUMP_LINES_CMD = 30
+--- Lines that fit in one viewport, for Page Up/Down: floor(viewport height /
+--- line height), so a page-jump moves exactly as far as what's currently
+--- visible. Cmd+Page Up/Down jumps twice that.
+--- @param self LDK_CodeEditorDialog
+--- @return number
+local function ViewportLines(self)
+	return math.max(1, math.floor(self.ScrollFrame:GetHeight() / self.WrapMeasure.Text:GetLineHeight()))
+end
 
 --- Moves the caret `lines` lines up/down from its current position, landing
 --- at the end of the target line. EditBox only exposes a flat character
@@ -209,6 +213,7 @@ local function PageMoveCursor(self, direction, lines)
 	local editBox = self.CodeEditBox
 	local text = FAIAP.coloredGetText(editBox)
 	local pos = editBox:GetCursorPosition()
+	local crossed = 0
 
 	for _ = 1, lines do
 		if direction > 0 then
@@ -219,6 +224,10 @@ local function PageMoveCursor(self, direction, lines)
 			end
 			pos = nl
 		else
+			-- Same landing convention as the forward branch (on the '\n'
+			-- itself, not one character before it): landing short drifted
+			-- the search window by one character each iteration, compounding
+			-- into visibly wrong lines over several Page Up presses.
 			local nl
 			for p in text:sub(1, pos - 1):gmatch("()\n") do
 				nl = p
@@ -227,11 +236,28 @@ local function PageMoveCursor(self, direction, lines)
 				pos = 0
 				break
 			end
-			pos = nl - 1
+			pos = nl
 		end
+		crossed = crossed + 1
 	end
 
 	editBox:SetCursorPosition(pos)
+
+	-- Scroll by the same number of lines the cursor moved, so the cursor's
+	-- row position within the viewport (e.g. 5 lines down from the top)
+	-- stays the same after the jump -- not "snap to nearer edge" (the
+	-- generic scroll-to-caret) and not "always land at the top." `crossed`
+	-- (not `lines`) since a jump near the document's start/end moves fewer
+	-- lines than requested.
+	local scrollFrame = self.ScrollFrame
+	local lineHeight = self.WrapMeasure.Text:GetLineHeight()
+	local target = scrollFrame:GetVerticalScroll() + direction * crossed * lineHeight
+	local maxScroll = scrollFrame:GetVerticalScrollRange()
+	target = math.max(0, math.min(target, maxScroll))
+	if SizeDiffers(scrollFrame:GetVerticalScroll(), target) then
+		scrollFrame:SetVerticalScroll(target)
+		self.Gutter:SetVerticalScroll(target)
+	end
 end
 
 --- First MAX_LINES lines of text, or all of it when already shorter.
@@ -592,13 +618,16 @@ function o:OnCodeEditBoxCursorChanged(x, y, w, h)
 	end
 end
 
---- PAGEUP/PAGEDOWN: moves the caret PAGE_JUMP_LINES lines up/down, or
---- PAGE_JUMP_LINES_CMD with Cmd held. SetCursorPosition fires
---- OnCodeEditBoxCursorChanged, which already scrolls the view to keep the
---- caret visible -- no scroll logic needed here.
+--- PAGEUP/PAGEDOWN: moves the caret one viewport's worth of lines up/down
+--- (two with Cmd held). PageMoveCursor scrolls the view by the same line
+--- count, so the caret keeps its row position within the viewport instead of
+--- just being nudged back into view.
 --- @param key "PAGEUP"|"PAGEDOWN"
 function o:OnCodeEditBoxPageKey(key)
-	local lines = IsMetaKeyDown() and PAGE_JUMP_LINES_CMD or PAGE_JUMP_LINES
+	local lines = ViewportLines(self)
+	if IsMetaKeyDown() then
+		lines = lines * 2
+	end
 	PageMoveCursor(self, key == "PAGEUP" and -1 or 1, lines)
 end
 
