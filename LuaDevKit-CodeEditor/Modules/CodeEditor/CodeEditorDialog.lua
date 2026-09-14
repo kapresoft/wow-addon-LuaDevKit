@@ -574,6 +574,22 @@ function o:OnCodeEditBoxCursorChanged(x, y, w, h)
 	if target and SizeDiffers(scroll, target) then
 		scrollFrame:SetVerticalScroll(target)
 	end
+
+	-- Shift+click selection: the anchor is the fixed starting point of the
+	-- selection, so it must only move on a plain (non-shift) cursor change --
+	-- overwriting it on every change (including shift+clicks) lost the true
+	-- start once a second shift+click landed on the opposite side of it.
+	local editBox = self.CodeEditBox
+	local current = editBox:GetCursorPosition()
+	if IsShiftKeyDown() and self.cursorAnchor then
+		if current > self.cursorAnchor then
+			editBox:HighlightText(self.cursorAnchor, current)
+		else
+			editBox:HighlightText(current, self.cursorAnchor)
+		end
+	else
+		self.cursorAnchor = current
+	end
 end
 
 --- PAGEUP/PAGEDOWN: moves the caret PAGE_JUMP_LINES lines up/down, or
