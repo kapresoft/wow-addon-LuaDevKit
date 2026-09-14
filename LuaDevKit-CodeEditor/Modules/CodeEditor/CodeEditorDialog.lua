@@ -54,6 +54,10 @@ local NUMBERS_BOX_WIDTH = 500
 -- its text area's arithmetic suggests before it will render a line.
 local GUTTER_SLACK = 60
 
+-- Breathing room left when the dialog is clamped to the screen, on whichever
+-- axis had to shrink: total, so the usable extent is the screen's minus this.
+local SCREEN_MARGIN = 100
+
 -- Configure() defaults, and the shape of the snapshot passed to the
 -- OnConfigChanged callback.
 local DEFAULTS = {
@@ -436,6 +440,16 @@ function o:OnLoad()
 		self:SetMinResize(400, 250)
 	end
 
+	-- clampedToScreen only constrains position, so a dialog left wider than the
+	-- screen (sized at a high UI scale, then scaled down) can't be nudged back
+	-- into view by moving alone -- it has to shrink.
+	self.ScaleWatcher = CreateFrame("Frame")
+	self.ScaleWatcher:RegisterEvent("UI_SCALE_CHANGED")
+	self.ScaleWatcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
+	self.ScaleWatcher:SetScript("OnEvent", function()
+		self:ClampToScreen(true)
+	end)
+
 	-- Header children: parentKey resolves onto the immediate XML parent (Title /
 	-- CloseFrame), not this dialog frame -- alias them, same as CodeEditBox above.
 	self.HeaderTitle = self.Header.Title.Text
@@ -501,6 +515,9 @@ end
 --- until the user's first click on it.
 function o:OnShow()
 	self:Raise()
+	-- Scale can change while the dialog is hidden, and the watcher's clamp only
+	-- fixes the frame's numbers, not what the user sees -- re-clamp on the way in.
+	self:ClampToScreen(true)
 	-- Testing whether SetFocus() only takes effect once the dialog is actually
 	-- visible: OnLoad's SetText ran while this frame was still hidden
 	-- (hidden="true" in the template), and SetFocus()/SetCursorPosition(0)
@@ -510,6 +527,55 @@ function o:OnShow()
 		self.initialFocusApplied = true
 		self.CodeEditBox:SetFocus()
 		self.CodeEditBox:SetCursorPosition(0)
+	end
+end
+
+--- Shrinks the dialog to fit the usable screen area and pulls it back inside
+--- the edges. Both are needed after a UI scale drop: the frame keeps its size
+--- in UI units, so a smaller UIParent leaves it overhanging or larger than the
+--- screen entirely.
+--- @param withMargin boolean|nil Leave SCREEN_MARGIN of room on an axis that has to shrink; omit for a bare screen-edge clamp
+function o:ClampToScreen(withMargin)
+	local screenWidth, screenHeight = UIParent:GetWidth(), UIParent:GetHeight()
+	local maxWidth, maxHeight = screenWidth, screenHeight
+	local width, height = self:GetWidth(), self:GetHeight()
+	-- An axis that no longer fits loses SCREEN_MARGIN and is then centred in
+	-- what's left, so the dialog sits with half the margin clear on each side
+	-- rather than flush against an edge. Only on this path: a resize grip drag
+	-- clamps to the bare screen, since that size is the one the user just chose.
+	local insetX, insetY = 0, 0
+	if withMargin then
+		if width > maxWidth then
+			maxWidth = maxWidth - SCREEN_MARGIN
+			insetX = SCREEN_MARGIN / 2
+		end
+		if height > maxHeight then
+			maxHeight = maxHeight - SCREEN_MARGIN
+			insetY = SCREEN_MARGIN / 2
+		end
+	end
+	-- Floors are the resize minimums: a screen smaller than those is not worth
+	-- distorting the layout for.
+	local fitWidth = math.max(400, math.min(width, maxWidth))
+	local fitHeight = math.max(250, math.min(height, maxHeight))
+	if fitWidth ~= width or fitHeight ~= height then
+		self:SetSize(fitWidth, fitHeight)
+	end
+
+	-- Re-anchor from the measured rect rather than nudging the existing anchor:
+	-- the dialog is moved by StartMoving, so its point is whatever the drag left.
+	local left, bottom = self:GetLeft(), self:GetBottom()
+	if not left or not bottom then
+		return
+	end
+	-- Bounds run against the full screen with the half-margin held back on each
+	-- side, so an axis that shrank keeps its gap top and bottom (or left and
+	-- right) instead of being pinned to the edge.
+	local clampedLeft = math.max(insetX, math.min(left, screenWidth - fitWidth - insetX))
+	local clampedBottom = math.max(insetY, math.min(bottom, screenHeight - fitHeight - insetY))
+	if clampedLeft ~= left or clampedBottom ~= bottom then
+		self:ClearAllPoints()
+		self:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", clampedLeft, clampedBottom)
 	end
 end
 

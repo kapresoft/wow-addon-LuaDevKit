@@ -122,6 +122,7 @@
                     </OnMouseDown>
                     <OnMouseUp>
                         self:GetParent():StopMovingOrSizing()
+                        self:GetParent():ClampToScreen()
                     </OnMouseUp>
                 </Scripts>
             </Frame>
@@ -356,6 +357,7 @@
     </Frame>
 
     <Frame name="LDK_CodeEditorDialog" hidden="true" movable="true" enableMouse="true"
+           parent="UIParent"
            inherits="BackdropTemplate, LDK_CodeEditorDialogTemplate">
     </Frame>
 </Ui>
