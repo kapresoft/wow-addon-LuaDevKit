@@ -33,8 +33,8 @@ LDK_BORDER_DEFS = {
       edgeSize = 1,
       insets = { left = 1, right = 1, top = 1, bottom = 1 }
     },
-    bgColor = { 0.1, 0.1, 0.1, 0.9 },
-    borderColor = { 0.6, 0.6, 0.6, 1 },
+    bgColor = { 0.1, 0.1, 0.1, 0.1 },
+    borderColor = { 0.6, 0.6, 0.6, 0.1 },
     padding = 0,
     basePadding = 6,
     borderPadBottom = 0.3,

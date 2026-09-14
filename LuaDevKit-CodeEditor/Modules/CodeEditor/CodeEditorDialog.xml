@@ -310,8 +310,19 @@
 
             <Frame parentKey="CodeBackdrop" inherits="BackdropTemplate">
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="0" y="0"/>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="2" y="0"/>
                     <Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomBar" relativePoint="TOPRIGHT" x="-28" y="0"/>
+                </Anchors>
+            </Frame>
+
+            <!-- Gap between CodeBackdrop's right edge and the scrollbar: ScrollFrame
+                 anchors to this instead of CodeBackdrop directly, so widening its
+                 Size x here opens a real visible gap. -->
+            <Frame parentKey="ScrollBarGap">
+                <Size x="3"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.CodeBackdrop" relativePoint="TOPRIGHT" x="0" y="0"/>
+                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.CodeBackdrop" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
                 </Anchors>
             </Frame>
 
@@ -319,7 +330,7 @@
             <ScrollFrame parentKey="ScrollFrame" inherits="UIPanelScrollFrameTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.CodeBackdrop" relativePoint="TOPLEFT" x="5" y="-5"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CodeBackdrop" relativePoint="BOTTOMRIGHT" x="-5" y="5"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.ScrollBarGap" relativePoint="BOTTOMRIGHT" x="-5" y="5"/>
                 </Anchors>
                 <Scripts>
                     <!-- Focus fallback, mirroring Blizzard's InputScrollFrame_OnMouseDown

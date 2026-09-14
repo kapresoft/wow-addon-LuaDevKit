@@ -52,7 +52,7 @@ local NUMBERS_BOX_WIDTH = 500
 
 -- Extra room beyond the measured digit width, since an EditBox needs more than
 -- its text area's arithmetic suggests before it will render a line.
-local GUTTER_SLACK = 60
+local GUTTER_SLACK = 0
 
 -- Breathing room left when the dialog is clamped to the screen, on whichever
 -- axis had to shrink: total, so the usable extent is the screen's minus this.
@@ -387,6 +387,16 @@ function o:OnLoad()
 	self.CodeEditBox = self.ScrollFrame.CodeEditBox
 	cns:EnableLuaFormatter(self.CodeEditBox)
 
+	-- UIPanelScrollFrameTemplate's ScrollBar anchors at y=-16/16 (SecureScrollTemplates.xml),
+	-- leaving a gap above/below the up/down arrow buttons at this frame's height.
+	-- Re-anchoring in XML would need the whole ScrollBar (and its ScrollUpButton/
+	-- ScrollDownButton/ThumbTexture children) redeclared with matching $parent names to
+	-- merge instead of duplicating, so adjust the existing scrollbar here instead.
+	local scrollBar = self.ScrollFrame.ScrollBar
+	scrollBar:ClearAllPoints()
+	scrollBar:SetPoint("TOPLEFT", self.ScrollFrame, "TOPRIGHT", 6, -11)
+	scrollBar:SetPoint("BOTTOMLEFT", self.ScrollFrame, "BOTTOMRIGHT", 6, 10)
+
 	-- Gutter numbers EditBox: no justifyH attribute exists for EditBox in XML, so
 	-- justify here; the right inset keeps digits off the gutter's clip edge.
 	local numbers = self.Gutter.ScrollChild.Numbers
@@ -415,7 +425,7 @@ function o:OnLoad()
 	self.Header:SetBackdropColor(headerColor:GetRGBA())
 	--self.TopBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
 	--self.BottomBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
-	local backdrop, numberBackdrop = LDK_BORDER_DEFS['darkNight'], LDK_BORDER_DEFS["minimal"]
+	local backdrop, numberBackdrop = LDK_BORDER_DEFS['minimal'], LDK_BORDER_DEFS['minimal']
 	if SHOW_GUTTER_OUTLINE then
 		self.GutterBackdrop:SetBackdrop(numberBackdrop.backdrop)
     self.GutterBackdrop:SetBackdropColor(unpack(numberBackdrop.bgColor))
