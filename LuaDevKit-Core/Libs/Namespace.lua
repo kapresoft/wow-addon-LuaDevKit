@@ -10,9 +10,14 @@ print('Namespace', 'val=', ns)
 
 --- @class LDK_Core_Objects
 --- @field FAIAP? LuaDevKit-FAIAP-1-0
+--- @field LSM LibSharedMedia-3.0
 local O = {}; ns.O = O
 
-ns.O.FAIAP = LibStub('LuaDevKit-FAIAP-1-0', true)
+--- @param self LDK_Core_Objects
+local function RegisterObjects(self)
+  self.FAIAP = LibStub('LuaDevKit-FAIAP-1-0', true)
+  self.LSM = LibStub('LibSharedMedia-3.0')
+end; RegisterObjects(O)
 
 -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
 -- CodeEditorDialog's first SetText call so that first paint already goes
@@ -46,4 +51,14 @@ function ns:EnableLuaFormatter(editBox)
     [0] = "|r",                                     -- required: the stop code
   }
   f.enable(editBox, COLOR_DEFS)
+end
+
+--- @return string[]
+function ns:GetBorders()
+  return self.O.LSM:List(self.O.LSM.MediaType.BORDER)
+end
+
+--- @return LDK_FontChoice[]
+function ns:GetFonts()
+  return self.O.FontUtil:GetFontChoices()
 end

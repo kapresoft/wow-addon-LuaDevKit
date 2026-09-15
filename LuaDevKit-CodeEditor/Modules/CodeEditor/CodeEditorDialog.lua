@@ -25,6 +25,9 @@ Local Vars
 -- only consumes them.
 local FontUtil = cns.O.FontUtil
 
+--- @type LibSharedMedia-3.0
+local LSM = cns.O.LSM
+
 -- May be nil (LibStub's silent-fail arg in Namespace.lua): EnableLuaFormatter
 -- already no-ops colorization entirely when FAIAP isn't present, so
 -- CodeEditBox:GetText() is untouched, native raw text in that case too.
@@ -61,13 +64,13 @@ local SCREEN_MARGIN = 100
 -- Configure() defaults, and the shape of the snapshot passed to the
 -- OnConfigChanged callback.
 local DEFAULTS = {
-	-- A literal key, not FontUtil:GetFontChoices()[1].key: that call builds
-	-- every font object via CreateFont/SetFont, and doing that this early (this
-	-- table is built as soon as this file's top-level code runs, well before
-	-- the client's asset system is ready for custom font files) makes SetFont
+	-- A literal key, not cns:GetFonts()[1].key: that call builds every font
+	-- object via CreateFont/SetFont, and doing that this early (this table is
+	-- built as soon as this file's top-level code runs, well before the
+	-- client's asset system is ready for custom font files) makes SetFont
 	-- fail with "file not found" even though the same path works fine once the
 	-- dialog is actually opened later in the session.
-	fontFamily = FontUtil:GetFontChoices()[1].key,
+	fontFamily = cns:GetFonts()[1].key,
 	fontSize = 14,
 	wrapText = false,
 }
@@ -341,42 +344,6 @@ local function CodeTextWidth(self)
 	return self.ScrollFrame:GetWidth() - left - right
 end
 
---- @param dropdown Frame
---- @param self LDK_CodeEditorDialog
-local function InitFontDropdown(dropdown, self)
-	UIDropDownMenu_SetWidth(dropdown, 140)
-	UIDropDownMenu_Initialize(dropdown, function(_, level)
-		for _, choice in ipairs(FontUtil:GetFontChoices()) do
-			local info = UIDropDownMenu_CreateInfo()
-			info.text = choice.label
-			info.checked = (self.fontFamily == choice.key)
-			-- User-driven change (dropdown click) -- notify listeners.
-			info.func = function()
-				self:SetCodeFont(choice.key, true)
-			end
-			UIDropDownMenu_AddButton(info, level)
-		end
-	end)
-end
-
---- @param dropdown Frame
---- @param self LDK_CodeEditorDialog
-local function InitFontSizeDropdown(dropdown, self)
-	UIDropDownMenu_SetWidth(dropdown, 70)
-	UIDropDownMenu_Initialize(dropdown, function(_, level)
-		for _, size in ipairs(FontUtil:GetFontSizes()) do
-			local info = UIDropDownMenu_CreateInfo()
-			info.text = tostring(size)
-			info.checked = (self.fontSize == size)
-			-- User-driven change (dropdown click) -- notify listeners.
-			info.func = function()
-				self:SetFontSize(size, true)
-			end
-			UIDropDownMenu_AddButton(info, level)
-		end
-	end)
-end
-
 --[[-----------------------------------------------------------------------------
 Methods
 -------------------------------------------------------------------------------]]
@@ -435,14 +402,17 @@ function o:OnLoad()
 	self.CodeBackdrop:SetBackdropColor(unpack(backdrop.bgColor))
 	self.CodeBackdrop:SetBackdropBorderColor(unpack(backdrop.borderColor))
 
-	-- Diagonal resize-grip lines, matching AceGUI-3.0's sizer_se exactly
-	-- (SetTexCoord's 8-value quad form isn't expressible via XML <TexCoords>).
+  -- Diagonal resize-grip lines
 	local line1 = self.SizerSE.Line1
 	local x1 = 0.1 * 14 / 17
-	line1:SetTexCoord(0.05 - x1, 0.5, 0.05, 0.5 + x1, 0.05, 0.5 - x1, 0.5 + x1, 0.5)
+	local line1Origin = 0.05
+	local line1Center = 0.1
+	line1:SetTexCoord(line1Origin - x1, line1Center, line1Origin, line1Center + x1, line1Origin, line1Center - x1, line1Center + x1, line1Center)
 	local line2 = self.SizerSE.Line2
-	local x2 = 0.1 * 8 / 17
-	line2:SetTexCoord(0.05 - x2, 0.5, 0.05, 0.5 + x2, 0.05, 0.5 - x2, 0.5 + x2, 0.5)
+	local x2 = 0.1 * 5 / 17
+	local line2Origin = 0.032
+	local line2Center = 0.40
+	line2:SetTexCoord(line2Origin - x2, line2Center, line2Origin, line2Center + x2, line2Origin, line2Center - x2, line2Center + x2, line2Center)
 
 	if self.SetResizeBounds then -- WoW 10.0+
 		self:SetResizeBounds(400, 250)
@@ -472,27 +442,63 @@ function o:OnLoad()
 
 	self.HeaderTitle:SetText("Code Editor (Prototype)")
 
-	-- parentKey="FontDropdown"/"FontButton"/"FontSizeDropdown"/"FontSizeButton"/
+	-- parentKey="OptionsButton"/"BorderButton"/"FontButton"/"FontSizeButton"/
 	-- "FontSizeUpButton"/"FontSizeDownButton" resolve onto TopBar (their
 	-- immediate XML parent), not this dialog frame -- alias them here, same as
 	-- CodeEditBox above.
-	self.FontDropdown = self.TopBar.FontDropdown
+	self.OptionsButton = self.TopBar.OptionsButton
+	self.BorderButton = self.TopBar.BorderButton
 	self.FontButton = self.TopBar.FontButton
-	self.FontSizeDropdown = self.TopBar.FontSizeDropdown
 	self.FontSizeButton = self.TopBar.FontSizeButton
 	self.FontSizeUpButton = self.TopBar.FontSizeUpButton
 	self.FontSizeDownButton = self.TopBar.FontSizeDownButton
-	InitFontDropdown(self.FontDropdown, self)
-	InitFontSizeDropdown(self.FontSizeDropdown, self)
-	-- Icon-button triggers for FontDropdown/FontSizeDropdown, mirroring WowLua's
-	-- Button_Config pattern: a plain Button opens an otherwise-invisible
-	-- UIDropDownMenuTemplate frame, instead of the dropdown's own visible
-	-- text+arrow chrome.
-	self.FontButton:SetScript("OnClick", function(button)
-		ToggleDropDownMenu(1, nil, self.FontDropdown, button:GetName(), 0, 0)
+	-- Static placeholder items, no action wired yet.
+	self.OptionsButton:SetupMenu(function(_, rootDescription)
+		rootDescription:CreateButton("Options", function() end)
+		rootDescription:CreateButton("Results Inspector", function() end)
 	end)
-	self.FontSizeButton:SetScript("OnClick", function(button)
-		ToggleDropDownMenu(1, nil, self.FontSizeDropdown, button:GetName(), 0, 0)
+	-- Icon-only: hide WowStyle1DropdownTemplate's own text-button chrome so
+	-- just this frame's own NormalTexture (set in XML) shows, matching
+	-- FontSizeButton's look.
+	self.BorderButton.Background:Hide()
+	self.BorderButton.Arrow:Hide()
+	self.BorderButton.Text:Hide()
+	self.BorderButton:SetupMenu(function(_, rootDescription)
+		for _, name in ipairs(cns:GetBorders()) do
+			rootDescription:CreateRadio(name, function()
+				return self.borderStyle == name
+			end, function()
+				self.borderStyle = name
+				-- todo: needs impl
+				--self:SetBorderStyle(name)
+			end)
+		end
+	end)
+	self.FontButton.Background:Hide()
+	self.FontButton.Arrow:Hide()
+	self.FontButton.Text:Hide()
+	self.FontButton:SetupMenu(function(_, rootDescription)
+		for _, choice in ipairs(cns:GetFonts()) do
+			-- CreateButton never checks IsSelected() -- only CreateRadio draws
+			-- a checkmark for the current selection.
+			rootDescription:CreateRadio(choice.label, function()
+				return self.fontFamily == choice.key
+			end, function()
+				self:SetCodeFont(choice.key, true)
+			end)
+		end
+	end)
+	self.FontSizeButton.Background:Hide()
+	self.FontSizeButton.Arrow:Hide()
+	self.FontSizeButton.Text:Hide()
+	self.FontSizeButton:SetupMenu(function(_, rootDescription)
+		for _, size in ipairs(FontUtil:GetFontSizes()) do
+			rootDescription:CreateRadio(tostring(size), function()
+				return self.fontSize == size
+			end, function()
+				self:SetFontSize(size, true)
+			end)
+		end
 	end)
 	self.FontSizeUpButton:SetScript("OnClick", function()
 		self:StepFontSize(1)
@@ -789,8 +795,6 @@ function o:ApplyCodeFont(notify)
 	self.CodeEditBox:SetFontObject(font)
 	self.Gutter.ScrollChild.Numbers:SetFontObject(font)
 	self.WrapMeasure.Text:SetFontObject(font)
-	UIDropDownMenu_SetText(self.FontDropdown, choice.label)
-	UIDropDownMenu_SetText(self.FontSizeDropdown, tostring(self.fontSize))
 	-- Disable the step buttons at the ends of FontUtil:GetFontSizes() -- both
 	-- templates ship a DisabledTexture for exactly this state.
 	local sizes = FontUtil:GetFontSizes()

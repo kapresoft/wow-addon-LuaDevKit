@@ -102,16 +102,16 @@
                 <Layers>
                     <Layer level="BACKGROUND">
                         <!-- Diagonal tex-coords set in Lua OnLoad (SetTexCoord's 8-value quad form isn't expressible in XML) -->
-                        <Texture parentKey="Line1" file="Interface\Tooltips\UI-Tooltip-Border">
+                        <Texture hidden="false" parentKey="Line1" file="Interface\Tooltips\UI-Tooltip-Border">
                             <Size x="14" y="14"/>
                             <Anchors>
-                                <Anchor point="BOTTOMRIGHT" x="-8" y="8"/>
+                                <Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
                             </Anchors>
                         </Texture>
-                        <Texture parentKey="Line2" file="Interface\Tooltips\UI-Tooltip-Border">
-                            <Size x="8" y="8"/>
+                        <Texture hidden="false" parentKey="Line2" file="Interface\Tooltips\UI-Tooltip-Border">
+                            <Size x="6" y="6"/>
                             <Anchors>
-                                <Anchor point="BOTTOMRIGHT" x="-8" y="8"/>
+                                <Anchor point="BOTTOMRIGHT" x="-6" y="6"/>
                             </Anchors>
                         </Texture>
                     </Layer>
@@ -131,50 +131,54 @@
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Size y="28"/>
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="2"/>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="0"/>
                     <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT" x="0" y="2"/>
                 </Anchors>
                 <Frames>
-                    <!-- Absolute names (not $parent-relative): TopBar itself has no
-                         name, only a parentKey, so $parent expansion would break here.
-
-                         Both dropdowns below are hidden: only their menu machinery
-                         (UIDropDownMenu_Initialize/ToggleDropDownMenu/UIDropDownMenu_SetText)
-                         is used. The visible triggers are FontButton/FontSizeButton,
-                         mirroring WowLua's icon-button pattern (a plain Button that opens
-                         an otherwise-invisible UIDropDownMenuTemplate frame). -->
-                    <Frame name="LDK_CodeEditorFontDropdown" parentKey="FontDropdown"
-                           inherits="UIDropDownMenuTemplate" hidden="true">
-                        <Anchors>
-                            <Anchor point="RIGHT" x="-6" y="0"/>
-                        </Anchors>
-                    </Frame>
-                    <Button name="LDK_CodeEditorFontButton" parentKey="FontButton">
+                    <!-- Options/tools menu: no natural per-item icon, so the
+                         plain arrow-only template fits (no chrome to hide). -->
+                    <DropdownButton parentKey="OptionsButton" inherits="WowStyle1ArrowDropdownTemplate">
+                        <KeyValues>
+                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                        </KeyValues>
+                        <Size x="20" y="20"/>
+                        <Anchors><Anchor point="RIGHT" x="-6" y="2"/></Anchors>
+                    </DropdownButton>
+                    <DropdownButton parentKey="BorderButton" inherits="WowStyle1DropdownTemplate">
+                        <KeyValues>
+                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                        </KeyValues>
+                        <Size x="20" y="20"/>
+                        <Anchors><Anchor point="RIGHT" relativeKey="$parent.OptionsButton" relativePoint="LEFT" x="-6" y="0"/></Anchors>
+                        <NormalTexture file="Interface\Icons\INV_Misc_Bag_08"/>
+                        <HighlightTexture file="Interface\Icons\INV_Misc_Bag_08" alphaMode="ADD"/>
+                    </DropdownButton>
+                    <DropdownButton parentKey="FontButton" inherits="WowStyle1DropdownTemplate">
+                        <KeyValues>
+                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                        </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontDropdown" relativePoint="RIGHT" x="-4" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.BorderButton" relativePoint="LEFT" x="-4" y="0"/>
                         </Anchors>
                         <NormalTexture file="Interface\Icons\INV_Misc_Note_01"/>
                         <HighlightTexture file="Interface\Icons\INV_Misc_Note_01" alphaMode="ADD"/>
-                    </Button>
-                    <Frame name="LDK_CodeEditorFontSizeDropdown" parentKey="FontSizeDropdown"
-                           inherits="UIDropDownMenuTemplate" hidden="true">
-                        <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontButton" relativePoint="LEFT" x="10" y="0"/>
-                        </Anchors>
-                    </Frame>
-                    <Button name="LDK_CodeEditorFontSizeButton" parentKey="FontSizeButton">
+                    </DropdownButton>
+                    <DropdownButton parentKey="FontSizeButton" inherits="WowStyle1DropdownTemplate">
+                        <KeyValues>
+                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                        </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors>
                             <Anchor point="RIGHT" relativeKey="$parent.FontButton" relativePoint="LEFT" x="-4" y="0"/>
                         </Anchors>
                         <NormalTexture file="Interface\Icons\INV_Misc_Gear_08"/>
                         <HighlightTexture file="Interface\Icons\INV_Misc_Gear_08" alphaMode="ADD"/>
-                    </Button>
+                    </DropdownButton>
                     <!-- Step font size up/down, left of the size dropdown trigger.
                          Chat-frame scroll icons (same art Blizzard uses on
                          LootFrame's page buttons), not a scrollbar template. -->
-                    <Button name="LDK_CodeEditorFontSizeUpButton" parentKey="FontSizeUpButton">
+                    <Button parentKey="FontSizeUpButton">
                         <Size x="28" y="28"/>
                         <Anchors>
                             <Anchor point="RIGHT" relativeKey="$parent.FontSizeButton" relativePoint="LEFT" x="-2" y="0"/>
@@ -184,7 +188,7 @@
                         <DisabledTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollUp-Disabled"/>
                         <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
                     </Button>
-                    <Button name="LDK_CodeEditorFontSizeDownButton" parentKey="FontSizeDownButton">
+                    <Button parentKey="FontSizeDownButton">
                         <Size x="28" y="28"/>
                         <Anchors>
                             <Anchor point="RIGHT" relativeKey="$parent.FontSizeUpButton" relativePoint="LEFT" x="6" y="0"/>
