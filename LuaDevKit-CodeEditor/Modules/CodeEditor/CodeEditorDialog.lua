@@ -5,10 +5,12 @@ See GitHub issue #90.
 -------------------------------------------------------------------------------]]
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
-local cns = ns:cns()
+local cns, O = ns:cns(), ns:cns().O
+local DB, bdrops = O.Database, O.Backdrops
+local fut, LSM, FAIAP = O.FontUtil, O.LSM, O.FAIAP
+local str_eq = O.String.EqualsIgnoreCase
 
 local libName = "CodeEditorDialog"
---local p, t = ns:log(libName)
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -20,18 +22,7 @@ local strlenutf8 = strlenutf8
 Local Vars
 -------------------------------------------------------------------------------]]
 
--- Font choices/sizes (family list, CJK-locale gating, size snapping) live in
--- FontUtil.lua (LuaDevKit-Core), reached via cns.O.FontUtil -- this dialog
--- only consumes them.
-local FontUtil = cns.O.FontUtil
-
---- @type LibSharedMedia-3.0
-local LSM = cns.O.LSM
-
--- May be nil (LibStub's silent-fail arg in Namespace.lua): EnableLuaFormatter
--- already no-ops colorization entirely when FAIAP isn't present, so
--- CodeEditBox:GetText() is untouched, native raw text in that case too.
-local FAIAP = cns.O.FAIAP
+local DEFAULT_BORDER_SETTINGS = bdrops:GetBorderSettings()
 
 -- Fewest digits the gutter is sized for, so a short file's gutter doesn't
 -- widen again the moment it reaches line 10.
@@ -61,6 +52,10 @@ local GUTTER_SLACK = 0
 -- axis had to shrink: total, so the usable extent is the screen's minus this.
 local SCREEN_MARGIN = 100
 
+local fontChoices = fut:GetFontChoices()
+--local defaultFontChoice = #fontChoices > 0 and fontChoices[1]
+local defaultFontChoice = fut:GetDefaultFontChoice()
+
 -- Configure() defaults, and the shape of the snapshot passed to the
 -- OnConfigChanged callback.
 local DEFAULTS = {
@@ -70,7 +65,7 @@ local DEFAULTS = {
 	-- client's asset system is ready for custom font files) makes SetFont
 	-- fail with "file not found" even though the same path works fine once the
 	-- dialog is actually opened later in the session.
-	fontFamily = cns:GetFonts()[1].key,
+	fontFamily = defaultFontChoice and defaultFontChoice.key,
 	fontSize = 14,
 	wrapText = false,
 }
@@ -84,27 +79,28 @@ local HEADER_BACKDROP = {
 	-- Flat white 8x8 (the same texture LibSharedMedia registers as its "Solid"
 	-- background/statusbar) so SetBackdropColor's tint isn't multiplied against
 	-- art detail -- white * color = that exact color.
-	bgFile = "Interface\\Buttons\\WHITE8X8",
-	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
+	bgFile = [[Interface\Buttons\WHITE8X8]],
+	edgeFile = [[Interface\FriendsFrame\UI-Toast-Border]],
 	tile = true,
 	tileEdge = true,
-	tileSize = 64,
-	edgeSize = 12,
+	tileSize = 4,
+	edgeSize = 8,
 	insets = { left = 3, right = 3, top = 3, bottom = 3 },
 }
 
+--- @deprecated
 local MAIN_BACKDROP = {
-	bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
-	edgeFile = "Interface\\FriendsFrame\\UI-Toast-Border",
+	bgFile = [[Interface\FriendsFrame\UI-Toast-Background]],
+	edgeFile = [[Interface\FriendsFrame\UI-Toast-Border]],
 	tile = true,
 	tileEdge = true,
-	tileSize = 32,
-	edgeSize = 12,
+	tileSize = 4,
+	edgeSize = 8,
 	insets = { left = 3, right = 3, top = 4, bottom = 3 },
 }
 
 local TOP_AND_BOTTOM_BACKDROP = {
-	bgFile = "Interface\\FriendsFrame\\UI-Toast-Background",
+	bgFile = [[Interface\FriendsFrame\UI-Toast-Background]],
 	tile = false,
 	tileSize = 0,
 	edgeSize = 0,
@@ -141,7 +137,7 @@ Types
 --- @field fontSize number One of FontUtil:GetFontSizes() (10/12/14/16/18/20/24/28); other values snap to nearest
 --- @field wrapText boolean
 
---- @class LDK_CodeEditorDialogMixin : Frame
+--- @class LDK_CodeEditorDialogMixin : Frame, BackdropTemplate
 --- @field Header LDK_CodeEditorHeader Full-width title bar; carries drag-to-move
 --- @field TopBar Frame Reserved space for future toolbar/controls
 --- @field FontDropdown Frame The font-choice UIDropDownMenu, anchored inside TopBar
@@ -161,6 +157,7 @@ Types
 --- @field CloseButton Button
 --- @field SizerSE Frame Bottom-right resize grip
 --- @field HeaderTitle FontString
+--- @field borderStyle Name
 LDK_CodeEditorDialogMixin = {}
 local o = LDK_CodeEditorDialogMixin
 
@@ -348,6 +345,8 @@ end
 Methods
 -------------------------------------------------------------------------------]]
 function o:OnLoad()
+	self:OnLoad_GripLines()
+
 	-- parentKey="CodeEditBox" resolves onto the ScrollFrame (its immediate XML
 	-- parent), not this dialog frame -- alias it here so the rest of this file
 	-- can address it as self.CodeEditBox.
@@ -367,52 +366,31 @@ function o:OnLoad()
 	-- Gutter numbers EditBox: no justifyH attribute exists for EditBox in XML, so
 	-- justify here; the right inset keeps digits off the gutter's clip edge.
 	local numbers = self.Gutter.ScrollChild.Numbers
+
 	-- enableKeyboard="false" (XML) only blocks the box from acquiring focus on
 	-- its own; it does not refuse input once focused some other way. SetEnabled
 	-- is the actual read-only switch.
 	numbers:SetEnabled(false)
 	numbers:SetJustifyH("RIGHT")
+
 	-- Right inset absorbs the EditBox's 10px right-shift (XML anchors) on top of
 	-- the 4px margin, so the right-justified digits land back inside the Gutter's
 	-- clip edge instead of just outside it.
 	numbers:SetTextInsets(0, 4, 0, 0)
+
 	-- An EditBox needs more room for a line than its width minus insets
 	-- suggests, and a line that doesn't fit stops its rendering at "...". So the
 	-- box is made far wider than any gutter, right-anchored (XML), and the
 	-- Gutter clips the unused left side.
 	numbers:SetWidth(NUMBERS_BOX_WIDTH)
 
-	self:SetBackdrop(MAIN_BACKDROP)
-	self.Header:SetBackdrop(HEADER_BACKDROP)
-	--self.Header:SetBackdrop(BACKDROP_TOAST_12_12)
-	-- #3A373B, to stand out from TopBar/body.
-
 	local headerColor = CreateColorFromRGBHexString("151B2B")
 	--self.Header:SetBackdropColor(0.2275, 0.2157, 0.2314, .95)
 	self.Header:SetBackdropColor(headerColor:GetRGBA())
-	--self.TopBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
-	--self.BottomBar:SetBackdrop(TOP_AND_BOTTOM_BACKDROP)
-	local backdrop, numberBackdrop = LDK_BORDER_DEFS['minimal'], LDK_BORDER_DEFS['minimal']
-	if SHOW_GUTTER_OUTLINE then
-		self.GutterBackdrop:SetBackdrop(numberBackdrop.backdrop)
-    self.GutterBackdrop:SetBackdropColor(unpack(numberBackdrop.bgColor))
-    self.GutterBackdrop:SetBackdropBorderColor(unpack(numberBackdrop.borderColor))
-	end
-	self.CodeBackdrop:SetBackdrop(backdrop.backdrop)
-	self.CodeBackdrop:SetBackdropColor(unpack(backdrop.bgColor))
-	self.CodeBackdrop:SetBackdropBorderColor(unpack(backdrop.borderColor))
 
-  -- Diagonal resize-grip lines
-	local line1 = self.SizerSE.Line1
-	local x1 = 0.1 * 14 / 17
-	local line1Origin = 0.05
-	local line1Center = 0.1
-	line1:SetTexCoord(line1Origin - x1, line1Center, line1Origin, line1Center + x1, line1Origin, line1Center - x1, line1Center + x1, line1Center)
-	local line2 = self.SizerSE.Line2
-	local x2 = 0.1 * 5 / 17
-	local line2Origin = 0.032
-	local line2Center = 0.40
-	line2:SetTexCoord(line2Origin - x2, line2Center, line2Origin, line2Center + x2, line2Origin, line2Center - x2, line2Center + x2, line2Center)
+  -- todo: will come from settings in the future
+  local name = 'Default'
+  self:SetBorderStyle(name)
 
 	if self.SetResizeBounds then -- WoW 10.0+
 		self:SetResizeBounds(400, 250)
@@ -420,15 +398,7 @@ function o:OnLoad()
 		self:SetMinResize(400, 250)
 	end
 
-	-- clampedToScreen only constrains position, so a dialog left wider than the
-	-- screen (sized at a high UI scale, then scaled down) can't be nudged back
-	-- into view by moving alone -- it has to shrink.
-	self.ScaleWatcher = CreateFrame("Frame")
-	self.ScaleWatcher:RegisterEvent("UI_SCALE_CHANGED")
-	self.ScaleWatcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
-	self.ScaleWatcher:SetScript("OnEvent", function()
-		self:ClampToScreen(true)
-	end)
+	self:OnLoad_ScaleWatcher()
 
 	-- Header children: parentKey resolves onto the immediate XML parent (Title /
 	-- CloseFrame), not this dialog frame -- alias them, same as CodeEditBox above.
@@ -447,6 +417,8 @@ function o:OnLoad()
 	-- immediate XML parent), not this dialog frame -- alias them here, same as
 	-- CodeEditBox above.
 	self.OptionsButton = self.TopBar.OptionsButton
+
+	--- @type DropdownButton
 	self.BorderButton = self.TopBar.BorderButton
 	self.FontButton = self.TopBar.FontButton
 	self.FontSizeButton = self.TopBar.FontSizeButton
@@ -457,28 +429,80 @@ function o:OnLoad()
 		rootDescription:CreateButton("Options", function() end)
 		rootDescription:CreateButton("Results Inspector", function() end)
 	end)
-	-- Icon-only: hide WowStyle1DropdownTemplate's own text-button chrome so
-	-- just this frame's own NormalTexture (set in XML) shows, matching
-	-- FontSizeButton's look.
+
+	self:OnLoad_BorderButton()
+	self:OnLoad_Fonts()
+	self.BottomBar.WrapCheckButton.text:SetText("Wrap Text")
+	self:OnLoad_CodeEditBox()
+
+	-- Prototype-only: pre-fill with sample code long enough to force scrolling,
+	-- so gutter/scroll sync can be tested immediately on open.
+	if ns.EXAMPLE_CODE then self:SetText(ns.EXAMPLE_CODE) end
+
+	self:RefreshGutter()
+end
+
+--- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
+--- viewport, so lines never reach a wrap boundary and logical line count
+--- (\n-based) always equals visual line count. Start at the viewport's
+--- height (not 1px) so there's a clickable/visible area before any text
+--- is typed; RefreshGutter grows it from here as needed.
+function o:OnLoad_CodeEditBox()
+	self.CodeEditBox:SetHeight(self.ScrollFrame:GetHeight())
+	self.CodeEditBox:SetAutoFocus(false)
+	self:SetWrapText(DEFAULTS.wrapText)
+	-- Horizontal text padding: EditBox insets are the actual API for this --
+	-- the frame's own anchors position the whole (4000px-wide, no-wrap) hit
+	-- region, not the glyphs within it, so nudging those anchors doesn't pad
+	-- the text. Top/bottom stay 0 -- the gutter's line labels are positioned
+	-- independently of CodeEditBox's insets, so a vertical inset here would
+	-- desync line 1's label from the code's actual first line.
+	self.CodeEditBox:SetTextInsets(6, 6, 0, 0)
+end
+
+--- clampedToScreen only constrains position, so a dialog left wider than the
+--- screen (sized at a high UI scale, then scaled down) can't be nudged back
+--- into view by moving alone -- it has to shrink.
+function o:OnLoad_ScaleWatcher()
+	self.ScaleWatcher = CreateFrame("Frame")
+	self.ScaleWatcher:RegisterEvent("UI_SCALE_CHANGED")
+	self.ScaleWatcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
+	self.ScaleWatcher:SetScript("OnEvent", function()
+		self:ClampToScreen(true)
+	end)
+end
+
+--- Icon-only: hide WowStyle1DropdownTemplate's own text-button chrome so
+--- just this frame's own NormalTexture (set in XML) shows, matching
+--- FontSizeButton's look.
+function o:OnLoad_BorderButton()
 	self.BorderButton.Background:Hide()
 	self.BorderButton.Arrow:Hide()
 	self.BorderButton.Text:Hide()
+
+	--- @param rootDescription RootMenuDescriptionProxy
 	self.BorderButton:SetupMenu(function(_, rootDescription)
-		for _, name in ipairs(cns:GetBorders()) do
+		local function addRadio(name)
 			rootDescription:CreateRadio(name, function()
-				return self.borderStyle == name
+				return str_eq(self.borderStyle, name)
 			end, function()
-				self.borderStyle = name
-				-- todo: needs impl
-				--self:SetBorderStyle(name)
+				self:SetBorderStyle(name)
 			end)
 		end
+		addRadio('Default')
+		bdrops:ForEachBorder(addRadio, function(name)
+			return name:lower() == 'none'
+		end)
 	end)
+
+end
+
+function o:OnLoad_Fonts()
 	self.FontButton.Background:Hide()
 	self.FontButton.Arrow:Hide()
 	self.FontButton.Text:Hide()
 	self.FontButton:SetupMenu(function(_, rootDescription)
-		for _, choice in ipairs(cns:GetFonts()) do
+		for _, choice in ipairs(fontChoices) do
 			-- CreateButton never checks IsSelected() -- only CreateRadio draws
 			-- a checkmark for the current selection.
 			rootDescription:CreateRadio(choice.label, function()
@@ -492,7 +516,7 @@ function o:OnLoad()
 	self.FontSizeButton.Arrow:Hide()
 	self.FontSizeButton.Text:Hide()
 	self.FontSizeButton:SetupMenu(function(_, rootDescription)
-		for _, size in ipairs(FontUtil:GetFontSizes()) do
+		for _, size in ipairs(fut:GetFontSizes()) do
 			rootDescription:CreateRadio(tostring(size), function()
 				return self.fontSize == size
 			end, function()
@@ -508,30 +532,20 @@ function o:OnLoad()
 	end)
 	self.fontSize = DEFAULTS.fontSize
 	self:SetCodeFont(DEFAULTS.fontFamily)
+end
 
-	self.BottomBar.WrapCheckButton.text:SetText("Wrap Text")
-
-	-- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
-	-- viewport, so lines never reach a wrap boundary and logical line count
-	-- (\n-based) always equals visual line count. Start at the viewport's
-	-- height (not 1px) so there's a clickable/visible area before any text
-	-- is typed; RefreshGutter grows it from here as needed.
-	self.CodeEditBox:SetHeight(self.ScrollFrame:GetHeight())
-	self.CodeEditBox:SetAutoFocus(false)
-	self:SetWrapText(DEFAULTS.wrapText)
-	-- Horizontal text padding: EditBox insets are the actual API for this --
-	-- the frame's own anchors position the whole (4000px-wide, no-wrap) hit
-	-- region, not the glyphs within it, so nudging those anchors doesn't pad
-	-- the text. Top/bottom stay 0 -- the gutter's line labels are positioned
-	-- independently of CodeEditBox's insets, so a vertical inset here would
-	-- desync line 1's label from the code's actual first line.
-	self.CodeEditBox:SetTextInsets(6, 6, 0, 0)
-
-	-- Prototype-only: pre-fill with sample code long enough to force scrolling,
-	-- so gutter/scroll sync can be tested immediately on open.
-	if ns.EXAMPLE_CODE then self:SetText(ns.EXAMPLE_CODE) end
-
-	self:RefreshGutter()
+--- Diagonal resize-grip lines
+function o:OnLoad_GripLines()
+	local line1 = self.SizerSE.Line1
+	local x1 = 0.1 * 14 / 17
+	local line1Origin = 0.05
+	local line1Center = 0.1
+	line1:SetTexCoord(line1Origin - x1, line1Center, line1Origin, line1Center + x1, line1Origin, line1Center - x1, line1Center + x1, line1Center)
+	local line2 = self.SizerSE.Line2
+	local x2 = 0.1 * 5 / 17
+	local line2Origin = 0.032
+	local line2Center = 0.40
+	line2:SetTexCoord(line2Origin - x2, line2Center, line2Origin, line2Center + x2, line2Origin, line2Center - x2, line2Center + x2, line2Center)
 end
 
 --- Raise on every Show, not just on click: toplevel="true" only re-raises on
@@ -763,6 +777,40 @@ function o:OnWrapToggled(checked)
 	self:SetWrapText(checked, true)
 end
 
+--- Applies an LSM-registered border (cns:GetBorders()) as the dialog frame's
+--- own backdrop edge (the outer window border). CodeBackdrop/GutterBackdrop
+--- stay pinned to LDK_BORDER_DEFS['minimal'] (set once in OnLoad) and are not
+--- affected by this.
+--- @param name string? LSM border media name, from cns:GetBorders()
+function o:SetBorderStyle(name)
+  local bs = bdrops:GetBorderSettings(name)
+  if not bs then return end
+  local main = bs.main
+	self.borderStyle = bs.name
+	self:SetBackdrop(main.backdrop)
+	tr(libName, 'SetBorderStyle', 'showGutterOutline=', bs.showGutterOutline)
+
+  -- editBox Border has its own style
+  local code = bs.code
+  local editBoxBorder = bdrops.CODE_EDITBOX_BORDER
+  self.CodeBackdrop:SetBackdrop(code.backdrop)
+  -- CodeBackdrop must use main frame backdrop
+  self.CodeBackdrop:SetBackdropColor(unpack(code.bgColor))
+  self.CodeBackdrop:SetBackdropBorderColor(unpack(code.borderColor))
+
+  --local bs, numberBackdrop = bdrops:GetBorderSettings(), LDK_BORDER_DEFS['minimal']
+  self.GutterBackdrop:SetBackdrop(code.backdrop)
+  self.GutterBackdrop:SetBackdropColor(unpack(code.bgColor))
+
+  -- todo: still debating whether bs.showGutterOutline is a border setting property global
+  local gutterBdBorderColor = { 0, 0, 0, 0 }
+  if bs.showGutterOutline ~= false then gutterBdBorderColor = code.borderColor end
+  self.GutterBackdrop:SetBackdropBorderColor(unpack(gutterBdBorderColor))
+
+	-- todo: See what Header looks like synced to the same border style
+	--self.Header:SetBackdrop(backdrop)
+end
+
 --- Applies a font (by FontUtil font-choice key, at the current fontSize) to
 --- the code box, the gutter numbers, and the hidden wrap measuring string
 --- together -- inherits="..." in XML only binds once at load, so switching
@@ -770,7 +818,7 @@ end
 --- @param fontFamily string Key into FontUtil:GetFontChoices()
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetCodeFont(fontFamily, notify)
-	local choice = FontUtil:FindFontChoice(fontFamily)
+	local choice = fut:FindFontChoice(fontFamily)
 	if not choice then
 		return
 	end
@@ -783,7 +831,7 @@ end
 --- half of the same (family, size) lookup into FontUtil:GetFontChoices()[].bySize.
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:ApplyCodeFont(notify)
-	local choice = FontUtil:FindFontChoice(self.fontFamily)
+	local choice = fut:FindFontChoice(self.fontFamily)
 	if not choice then
 		return
 	end
@@ -797,7 +845,7 @@ function o:ApplyCodeFont(notify)
 	self.WrapMeasure.Text:SetFontObject(font)
 	-- Disable the step buttons at the ends of FontUtil:GetFontSizes() -- both
 	-- templates ship a DisabledTexture for exactly this state.
-	local sizes = FontUtil:GetFontSizes()
+	local sizes = fut:GetFontSizes()
 	self.FontSizeDownButton:SetEnabled(self.fontSize ~= sizes[1])
 	self.FontSizeUpButton:SetEnabled(self.fontSize ~= sizes[#sizes])
 	-- RefreshGutter re-sizes the gutter for the new font's digit width.
@@ -812,7 +860,7 @@ end
 --- @param fontSize number
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetFontSize(fontSize, notify)
-	self.fontSize = FontUtil:NearestFontSize(fontSize)
+	self.fontSize = fut:NearestFontSize(fontSize)
 	self:ApplyCodeFont(notify)
 end
 
@@ -821,7 +869,7 @@ end
 --- but this guards against any other caller). User-driven, so notifies.
 --- @param delta number 1 to step up, -1 to step down
 function o:StepFontSize(delta)
-	local sizes = FontUtil:GetFontSizes()
+	local sizes = fut:GetFontSizes()
 	local index = 1
 	for i, size in ipairs(sizes) do
 		if size == self.fontSize then index = i break end
@@ -889,11 +937,11 @@ function o:Configure(options)
 	-- since removed. Without this, ApplyCodeFont's own nil-guard would silently
 	-- no-op and leave whatever font was previously applied.
 	local fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
-	if not FontUtil:FindFontChoice(fontFamily) then
+	if not fut:FindFontChoice(fontFamily) then
 		fontFamily = DEFAULTS.fontFamily
 	end
 	self.fontFamily = fontFamily
-	self.fontSize = FontUtil:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
+	self.fontSize = fut:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
 	local wrapText = options.wrapText
 	if wrapText == nil then
 		wrapText = self.wrapText

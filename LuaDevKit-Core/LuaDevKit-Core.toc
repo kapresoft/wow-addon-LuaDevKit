@@ -39,13 +39,17 @@ ThirdParty\Libs\Ace3\LibStub\LibStub.lua
 ThirdParty\Libs\Ace3\CallbackHandler-1.0\CallbackHandler-1.0.lua
 ThirdParty\Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
 ThirdParty\Libs\Ace3\AceLocale-3.0\AceLocale-3.0.lua
+ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\String.lua
 
 Libs\External\FAIAP.lua
 Libs\Namespace.lua
 #@do-not-package@
 Libs\Developer\DeveloperSetup.lua
 #@end-do-not-package@
-Libs\Fonts\FontUtil.lua
+
+Libs\Modules\FontUtil.lua
+Libs\Modules\Backdrops.lua
+Libs\Modules\Database.lua
 #@do-not-package@
 Libs\Developer\Developer.lua
 #@end-do-not-package@
