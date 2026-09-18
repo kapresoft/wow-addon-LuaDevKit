@@ -6,7 +6,7 @@ local addon, xns = ...
 local ns = xns; LDK_CORE_NS = ns
 ns.addon = addon
 
-print('Namespace', 'val=', ns)
+local libName = 'LDK_Core_Namespace'
 
 --- @class LDK_Core_Objects
 --- @field FAIAP? LuaDevKit-FAIAP-1-0
@@ -25,6 +25,16 @@ local function RegisterObjects(self)
   self.String = LibStub('Kapresoft-String-2-0')
   self.Table = LibStub('Kapresoft-Table-2-0')
 end; RegisterObjects(O)
+
+local function InitAddOn_LibSharedMedia_Keys()
+  local mt = O.LSM.MediaType
+  --- @return string?
+  local function lsmKey(key)
+    return ('%s_%s'):format(strlower(ns.addon), strlower(key))
+  end
+  mt.BACKGROUND_LDK = lsmKey(mt.BACKGROUND)
+  mt.BORDER_LDK = lsmKey(mt.BORDER)
+end; InitAddOn_LibSharedMedia_Keys()
 
 -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
 -- CodeEditorDialog's first SetText call so that first paint already goes

@@ -6,10 +6,10 @@ See GitHub issue #90.
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
 local cns, O = ns:cns(), ns:cns().O
-local bdrops = O.Backdrops
+local bdrops, String = O.Backdrops, O.String
 local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
 local mt = lsm.MediaType
-local str_eq = O.String.EqualsIgnoreCase
+local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
 
 local libName = "CodeEditorDialog"
 
@@ -353,11 +353,11 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local name = 'Default'
-  --name = cns.addon .. ' Minimal'
+  --name = 'Minimal'
   --name = "Blizzard Achievement Wood"
-  name = "Blizzard Dialog Gold"
-  --local name = 'Default'
-  self:SetBorderStyle(name)
+  --name = "Blizzard Dialog Gold"
+
+  self:ApplyTheme(name)
 
 	if self.SetResizeBounds then -- WoW 10.0+
 		self:SetResizeBounds(400, 250)
@@ -493,14 +493,13 @@ function o:OnLoad_BorderButton()
 	self.BorderButton:SetupMenu(function(_, rootDescription)
 		local function addRadio(name)
 			rootDescription:CreateRadio(name, function()
-				return str_eq(self.borderStyle, name)
+				return name and str_eq(self.borderStyle, name)
 			end, function()
-				self:SetBorderStyle(name)
+				self:ApplyTheme(name)
 			end)
 		end
-		addRadio('Default')
 		bdrops:ForEachBorder(addRadio, function(name)
-			return name:lower() == 'none'
+			return name and name:lower() ~= 'none'
 		end)
 	end)
 
@@ -789,16 +788,18 @@ function o:OnWrapToggled(checked)
 end
 
 --- @param name string? @LSM border media name
-function o:SetBorderStyle(name)
-
+function o:ApplyTheme(name)
   local bs = bdrops:GetBorderSettings(name)
   if not bs then return end
 
   local main = bs.main
 	self.borderStyle = bs.name
-	self:SetBackdrop(main.backdrop)
-	if main.backdrop.borderColor then self:SetBackdropBorderColor(unpack(main.backdrop.borderColor)) end
-  if main.backdrop.bgColor then self:SetBackdropColor(unpack(main.backdrop.bgColor)) end
+  local bd = main.backdrop
+  if bd then
+    self:SetBackdrop(bd)
+    if bd.borderColor then self:SetBackdropBorderColor(unpack(bd.borderColor)) end
+    if bd.bgColor then self:SetBackdropColor(unpack(bd.bgColor)) end
+  end
 
   local gutterBdBorderColor = { 0, 0, 0, 0 }
   local code = bs.code
@@ -816,9 +817,7 @@ function o:SetBorderStyle(name)
       self.CodeBackdrop:SetBackdropColor(unpack(bgColor))
     end
     if borderColor then
-      tr(libName, 'SetBorderStyle', bs.name, 'borderColor=', fmt(borderColor))
       self.CodeBackdrop:SetBackdropBorderColor(unpack(borderColor))
-      --self.CodeBackdrop:SetBackdropBorderColor(unpack(borderColor))
       if bs.showGutterOutline ~= false then
         gutterBdBorderColor = borderColor
       end
