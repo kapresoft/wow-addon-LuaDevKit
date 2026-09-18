@@ -352,6 +352,7 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local name = 'Default'
+  --name = 'Abyss'
   --name = 'Minimal'
   --name = "Blizzard Achievement Wood"
   --name = "Blizzard Dialog Gold"

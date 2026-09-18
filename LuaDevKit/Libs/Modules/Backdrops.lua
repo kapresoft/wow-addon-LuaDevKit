@@ -39,10 +39,8 @@ Type Definitions
 --- @class LDK_BorderSetting
 --- @field name Name
 --- @field showGutterOutline? boolean @Defaults to true
---- @field backdrop LDK_Backdrop
 --- @field main LDK_BorderSetting
 --- @field code LDK_BorderSetting
---- @field header LDK_BorderSetting
 
 --- @class LDK_HeaderSetting
 --- @field backdrop LDK_Backdrop
@@ -89,9 +87,9 @@ local LSM_BLIZZ_NAMES = {
 }
 local lbn = LSM_BLIZZ_NAMES
 
-local DEFAULT_BG_NAME = 'Default'
 local DEF_BG = [[Interface\FriendsFrame\UI-Toast-Background]]
 local BG_WHITE = [[interface\buttons\white8x8]]
+local BD_DEFAULT = 'Default'
 local BD_MINIMAL, BD_DARK_KNIGHT, BD_ABYSS = 'Minimal', 'Dark Knight', 'Abyss'
 
 --[[-----------------------------------------------------------------------------
@@ -143,13 +141,30 @@ end
 
 ---@type table<string, LDK_HeaderSetting>
 local HEADER_BACKDROP_OVERRIDES = {
+  [BD_DEFAULT] = {
+    backdrop = {
+      bgFile = lsmFetchBg(lbg.BLIZZARD_DIALOG_BACKGROUND_GOLD),
+      tile = false,
+      tileEdge = false,
+      bgColor = { 1, 1, 1, 1 },
+    },
+  },
+  [BD_ABYSS] = {
+    backdrop = {
+      bgFile = lsmFetchBg(lbg.BLIZZARD_TABARD_BACKGROUND),
+      tile = false,
+      tileEdge = false, edgeSize = 16,
+      bgColor = { 1, 1, 1, 0.8 },
+    },
+  },
   [lbn.BLIZZARD_ACHIEVEMENT_WOOD] = {
     backdrop = {
       bgFile = lsmFetchBg(lbg.BLIZZARD_GARRISON_BACKGROUND),
+      tile = false,
+      tileEdge = false, edgeSize = 20,
       bgColor = { 1, 1, 1, 1.0 },
-      edgeSize = 16,
     },
-    height = 32,
+    height = 30,
   },
   [lbn.BLIZZARD_DIALOG] = {
     backdrop = {
@@ -204,11 +219,10 @@ local function __InitCustomBorders()
       backdrop = {
         bgFile = [[Interface\FriendsFrame\UI-Toast-Background]],
         edgeFile = [[Interface\FriendsFrame\UI-Toast-Border]],
-        tile = true,
-        tileEdge = true,
-        tileSize = 4,
-        edgeSize = 8,
+        tileSize = 4, tile = true,
+        edgeSize = 8, tileEdge = false,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        borderColor = { 1, 1, 1, 1.0 },
       },
     },
     code = {
@@ -254,6 +268,7 @@ local function __InitCustomBorders()
         edgeFile = [[interface\addons\actionbarplus-core\assets\textures\ui-tooltip-border-maw]],
         edgeSize = 16,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        borderColor = { 1, 1, 1, 1.0 },
       },
     },
     code = {
@@ -304,16 +319,11 @@ local function __InitBorders()
     main = {
       backdrop = {
         bgFile = DEF_BG,
-        tile = true,
-        tileEdge = true,
-        edgeSize = 42,
+        tile = false,
+        tileEdge = false,
+        edgeSize = 24,
         insets = { left = 2, right = 2, top = 2, bottom = 2 },
         borderColor = { 1, 1, 1, 1.0 },
-      },
-    },
-    header = {
-      backdrop = {
-        edgeSize = 8,
       },
     },
     code = {
@@ -467,12 +477,13 @@ function o:GetBorder(name) return lsmFetchBorderCustom(name) or lsmFetchBorder(n
 function o:GetBackground(name) return lsmFetchBgCustom(name) or lsmFetchBg(name) end
 
 ---@return LDK_BorderSetting
-function o:GetDefaultBorderSettings() return borderSettings[DEFAULT_BG_NAME] end
+function o:GetDefaultBorderSettings() return borderSettings[BD_DEFAULT] end
 
 ---@param name Name? @Returns the default border setting if nil
 ---@return LDK_BorderSetting
 function o:GetBorderSettings(name) return borderSettings[name] or self:GetDefaultBorderSettings() end
 
+-- todo: Should this be in LDK_BorderSetting.header?
 --- Header Settings are derived from main with overrides in header
 --- @param name Name? @Returns the default border setting if nil
 --- @return LDK_HeaderSetting?
