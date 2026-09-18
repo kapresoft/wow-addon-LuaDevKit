@@ -50,9 +50,9 @@ ignore:
   - doc
   - LICENSE
   - CHANGELOG.md
-  - LuaDevKit-Core/Assets
-  - LuaDevKit-Core/Libs
-  - LuaDevKit-Core/ThirdParty/ThirdParty.xml
+  - LuaDevKit/Assets
+  - LuaDevKit/Libs
+  - LuaDevKit/ThirdParty/ThirdParty.xml
   - LuaDevKit-CodeEditor/Modules
   - ThirdParty-Libs/Ace3/LibStub/tests
   - ThirdParty-Libs/Ace3/CallbackHandler-1.0/CallbackHandler-1.0.xml
@@ -101,6 +101,6 @@ ignore:
 
 # Base path is .release/
 move-folders:
-  _setup/ThirdParty-Libs/SharedMediaFontsMono/Libs/Annotations: ../LuaDevKit-Core/ThirdParty/Annotations/SharedMediaFontsMono
-  _setup/ThirdParty-Libs/LibPrettyPrint/Libs/Annotations: ../LuaDevKit-Core/ThirdParty/Annotations/LibPrettyPrint
-  _setup/ThirdParty-Libs: ../LuaDevKit-Core/ThirdParty/Libs
+  _setup/ThirdParty-Libs/SharedMediaFontsMono/Libs/Annotations: ../LuaDevKit/ThirdParty/Annotations/SharedMediaFontsMono
+  _setup/ThirdParty-Libs/LibPrettyPrint/Libs/Annotations: ../LuaDevKit/ThirdParty/Annotations/LibPrettyPrint
+  _setup/ThirdParty-Libs: ../LuaDevKit/ThirdParty/Libs

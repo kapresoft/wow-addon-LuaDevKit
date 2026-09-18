@@ -40,6 +40,7 @@ ThirdParty\Libs\Ace3\CallbackHandler-1.0\CallbackHandler-1.0.lua
 ThirdParty\Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
 ThirdParty\Libs\Ace3\AceLocale-3.0\AceLocale-3.0.lua
 ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\String.lua
+ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\Table.lua
 
 Libs\External\FAIAP.lua
 Libs\Namespace.lua

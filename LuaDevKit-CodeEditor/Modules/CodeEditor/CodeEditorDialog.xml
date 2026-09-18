@@ -37,16 +37,16 @@
                  anchor to it: fixed-width close + fluid title means the title
                  absorbs all remaining width. -->
             <Frame parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
-                <Size y="34"/>
+                <Size y="28"/>
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeTo="$parent" x="-2" y="-4"/>
-                    <Anchor point="TOPRIGHT" relativeTo="$parent" x="2" y="4"/>
+                    <Anchor point="TOPLEFT" relativeTo="$parent" x="-2" y="1"/>
+                    <Anchor point="TOPRIGHT" relativeTo="$parent" x="2" y="-1"/>
                 </Anchors>
                 <Frames>
                     <!-- No enableMouse: drags over its empty margin fall through
                          to Header; the Button still takes its own clicks. -->
-                    <Frame parentKey="CloseFrame">
-                        <Size x="32"/>
+                    <Frame parentKey="CloseFrame" inherits="BackdropTemplate">
+                        <Size x="28" />
                         <Anchors>
                             <Anchor point="TOPRIGHT"/>
                             <Anchor point="BOTTOMRIGHT"/>
@@ -57,15 +57,15 @@
                                  GetParent(), which at this depth is CloseFrame. -->
                             <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
                                 <Anchors>
-                                    <Anchor point="CENTER" x="-4" y="2"/>
+                                    <Anchor point="CENTER" x="-1" y="0"/>
                                 </Anchors>
                             </Button>
                         </Frames>
                     </Frame>
-                    <Frame parentKey="Title">
+                    <Frame parentKey="Title" inherits="BackdropTemplate">
                         <Anchors>
                             <Anchor point="TOPLEFT"/>
-                            <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CloseFrame" relativePoint="BOTTOMLEFT"/>
+                            <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CloseFrame" relativePoint="BOTTOMLEFT" x="5"/>
                         </Anchors>
                         <Layers>
                             <Layer level="ARTWORK">
@@ -130,8 +130,8 @@
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Size y="28"/>
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="0"/>
-                    <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT" x="0" y="2"/>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
                 </Anchors>
                 <Frames>
                     <!-- Options/tools menu: no natural per-item icon, so the

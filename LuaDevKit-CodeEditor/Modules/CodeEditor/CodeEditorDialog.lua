@@ -6,8 +6,9 @@ See GitHub issue #90.
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
 local cns, O = ns:cns(), ns:cns().O
-local DB, bdrops = O.Database, O.Backdrops
-local fut, LSM, FAIAP = O.FontUtil, O.LSM, O.FAIAP
+local bdrops = O.Backdrops
+local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
+local mt = lsm.MediaType
 local str_eq = O.String.EqualsIgnoreCase
 
 local libName = "CodeEditorDialog"
@@ -22,7 +23,7 @@ local strlenutf8 = strlenutf8
 Local Vars
 -------------------------------------------------------------------------------]]
 
-local DEFAULT_BORDER_SETTINGS = bdrops:GetBorderSettings()
+local HEADER_HEIGHT = 28
 
 -- Fewest digits the gutter is sized for, so a short file's gutter doesn't
 -- widen again the moment it reaches line 10.
@@ -52,9 +53,7 @@ local GUTTER_SLACK = 0
 -- axis had to shrink: total, so the usable extent is the screen's minus this.
 local SCREEN_MARGIN = 100
 
-local fontChoices = fut:GetFontChoices()
---local defaultFontChoice = #fontChoices > 0 and fontChoices[1]
-local defaultFontChoice = fut:GetDefaultFontChoice()
+local fontChoices, defaultFontChoice = fut:GetFontChoices(), fut:GetDefaultFontChoice()
 
 -- Configure() defaults, and the shape of the snapshot passed to the
 -- OnConfigChanged callback.
@@ -68,43 +67,6 @@ local DEFAULTS = {
 	fontFamily = defaultFontChoice and defaultFontChoice.key,
 	fontSize = 14,
 	wrapText = false,
-}
-
---[[-----------------------------------------------------------------------------
-Backdrops
--------------------------------------------------------------------------------]]
-local HEADER_BACKDROP = {
-	--bgFile = "Interface\\FrameGeneral\\UI-Background-Rock",
-	--bgFile = "Interface\\WorldStateFrame\\WorldStateFinalScoreFrame-TopBackground",
-	-- Flat white 8x8 (the same texture LibSharedMedia registers as its "Solid"
-	-- background/statusbar) so SetBackdropColor's tint isn't multiplied against
-	-- art detail -- white * color = that exact color.
-	bgFile = [[Interface\Buttons\WHITE8X8]],
-	edgeFile = [[Interface\FriendsFrame\UI-Toast-Border]],
-	tile = true,
-	tileEdge = true,
-	tileSize = 4,
-	edgeSize = 8,
-	insets = { left = 3, right = 3, top = 3, bottom = 3 },
-}
-
---- @deprecated
-local MAIN_BACKDROP = {
-	bgFile = [[Interface\FriendsFrame\UI-Toast-Background]],
-	edgeFile = [[Interface\FriendsFrame\UI-Toast-Border]],
-	tile = true,
-	tileEdge = true,
-	tileSize = 4,
-	edgeSize = 8,
-	insets = { left = 3, right = 3, top = 4, bottom = 3 },
-}
-
-local TOP_AND_BOTTOM_BACKDROP = {
-	bgFile = [[Interface\FriendsFrame\UI-Toast-Background]],
-	tile = false,
-	tileSize = 0,
-	edgeSize = 0,
-	insets = { left = 8, right = 8, top = 12, bottom = 8 },
 }
 
 --[[-----------------------------------------------------------------------------
@@ -125,7 +87,7 @@ Types
 --- @class LDK_CodeEditorHeaderCloseFrame : Frame
 --- @field CloseButton Button
 
---- @class LDK_CodeEditorHeader : Frame
+--- @class LDK_CodeEditorHeader : Frame, BackdropTemplate
 --- @field Title LDK_CodeEditorHeaderTitle Fluid: absorbs all width left by CloseFrame
 --- @field CloseFrame LDK_CodeEditorHeaderCloseFrame Fixed 32px, pinned right
 
@@ -389,7 +351,12 @@ function o:OnLoad()
 	self.Header:SetBackdropColor(headerColor:GetRGBA())
 
   -- todo: will come from settings in the future
+  --local name = cns.addon .. ' Dark Knight'
   local name = 'Default'
+  --name = cns.addon .. ' Minimal'
+  --name = "Blizzard Achievement Wood"
+  name = "Blizzard Dialog Gold"
+  --local name = 'Default'
   self:SetBorderStyle(name)
 
 	if self.SetResizeBounds then -- WoW 10.0+
@@ -440,6 +407,48 @@ function o:OnLoad()
 	if ns.EXAMPLE_CODE then self:SetText(ns.EXAMPLE_CODE) end
 
 	self:RefreshGutter()
+  --self:OnLoad_Tmp_NineSliceDemo()
+
+end
+
+function o:OnLoad_Tmp_NineSliceDemo()
+  -- Demo: NineSlice "ButtonFrameTemplateNoPortrait" layout (EventTrace-style border art)
+  	local nineSlice = CreateFrame("Frame", nil, UIParent)
+  	nineSlice:SetSize(500, 300)
+  	nineSlice:SetPoint("CENTER", UIParent, 0, 0)
+  	--local bg = nineSlice:CreateTexture(nil, "BACKGROUND")
+  	--bg:SetTexture([[Interface\FrameGeneral\UI-Background-Rock]], true, true)
+  	--bg:SetPoint("TOPLEFT", 6, -21)
+  	--bg:SetPoint("BOTTOMRIGHT", -2, 2)
+
+  	--local titleBg = nineSlice:CreateTexture(nil, "BACKGROUND", nil, -6)
+  	--titleBg:SetAtlas([[_UI-Frame-TitleTileBg]], true)
+  	--titleBg:SetPoint("TOPLEFT", 6, -3)
+  	--titleBg:SetPoint("TOPRIGHT", -2, -3)
+  	--titleBg:SetHeight(20)
+
+  	local titleText = nineSlice:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  	titleText:SetWordWrap(false)
+  	titleText:SetPoint("TOP", 0, -10)
+  	--titleText:SetPoint("LEFT", titleBg, "LEFT")
+  	--titleText:SetPoint("RIGHT", titleBg, "RIGHT")
+  	titleText:SetText("Code Editor")
+  	local myLayout = {
+      TopLeftCorner =	{ atlas = "CharacterCreateDropdown-NineSlice-CornerTopLeft", x=-30, y=20 },
+      TopRightCorner =	{ atlas = "CharacterCreateDropdown-NineSlice-CornerTopRight", x=30, y=20 },
+      BottomLeftCorner =	{ atlas = "CharacterCreateDropdown-NineSlice-CornerBottomLeft", x=-30, y=-20 },
+      BottomRightCorner =	{ atlas = "CharacterCreateDropdown-NineSlice-CornerBottomRight", x=30, y=-20 },
+      TopEdge = { atlas = "_CharacterCreateDropdown-NineSlice-EdgeTop", },
+      BottomEdge = { atlas = "_CharacterCreateDropdown-NineSlice-EdgeBottom", },
+      LeftEdge = { atlas = "!CharacterCreateDropdown-NineSlice-EdgeLeft", },
+      RightEdge = { atlas = "!CharacterCreateDropdown-NineSlice-EdgeRight", },
+      Center = { atlas = "CharacterCreateDropdown-NineSlice-Center", },
+    }
+
+  	--NineSliceUtil.ApplyLayoutByName(nineSlice, 'CharacterCreateDropdown')
+  	NineSliceUtil.ApplyLayout(nineSlice, myLayout)
+
+  	nineSlice:Show()
 end
 
 --- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
@@ -564,7 +573,9 @@ function o:OnShow()
 	-- so reopening the dialog later doesn't reset wherever the user left off.
 	if not self.initialFocusApplied then
 		self.initialFocusApplied = true
-		self.CodeEditBox:SetFocus()
+		-- todo: SetFocus() puts the cursor in the editbox
+		-- turn off for now
+		--self.CodeEditBox:SetFocus()
 		self.CodeEditBox:SetCursorPosition(0)
 	end
 end
@@ -777,38 +788,66 @@ function o:OnWrapToggled(checked)
 	self:SetWrapText(checked, true)
 end
 
---- Applies an LSM-registered border (cns:GetBorders()) as the dialog frame's
---- own backdrop edge (the outer window border). CodeBackdrop/GutterBackdrop
---- stay pinned to LDK_BORDER_DEFS['minimal'] (set once in OnLoad) and are not
---- affected by this.
---- @param name string? LSM border media name, from cns:GetBorders()
+--- @param name string? @LSM border media name
 function o:SetBorderStyle(name)
+
   local bs = bdrops:GetBorderSettings(name)
   if not bs then return end
+
   local main = bs.main
 	self.borderStyle = bs.name
 	self:SetBackdrop(main.backdrop)
-	tr(libName, 'SetBorderStyle', 'showGutterOutline=', bs.showGutterOutline)
+	if main.backdrop.borderColor then self:SetBackdropBorderColor(unpack(main.backdrop.borderColor)) end
+  if main.backdrop.bgColor then self:SetBackdropColor(unpack(main.backdrop.bgColor)) end
 
-  -- editBox Border has its own style
-  local code = bs.code
-  local editBoxBorder = bdrops.CODE_EDITBOX_BORDER
-  self.CodeBackdrop:SetBackdrop(code.backdrop)
-  -- CodeBackdrop must use main frame backdrop
-  self.CodeBackdrop:SetBackdropColor(unpack(code.bgColor))
-  self.CodeBackdrop:SetBackdropBorderColor(unpack(code.borderColor))
-
-  --local bs, numberBackdrop = bdrops:GetBorderSettings(), LDK_BORDER_DEFS['minimal']
-  self.GutterBackdrop:SetBackdrop(code.backdrop)
-  self.GutterBackdrop:SetBackdropColor(unpack(code.bgColor))
-
-  -- todo: still debating whether bs.showGutterOutline is a border setting property global
   local gutterBdBorderColor = { 0, 0, 0, 0 }
-  if bs.showGutterOutline ~= false then gutterBdBorderColor = code.borderColor end
-  self.GutterBackdrop:SetBackdropBorderColor(unpack(gutterBdBorderColor))
+  local code = bs.code
 
-	-- todo: See what Header looks like synced to the same border style
-	--self.Header:SetBackdrop(backdrop)
+  if code and code.backdrop then
+    local cbd = code.backdrop
+    local bgColor = cbd.bgColor
+    local borderColor = cbd.borderColor
+
+    self.GutterBackdrop:SetBackdrop(cbd)
+    self.CodeBackdrop:SetBackdrop(cbd)
+
+    if bgColor then
+      self.GutterBackdrop:SetBackdropColor(unpack(bgColor))
+      self.CodeBackdrop:SetBackdropColor(unpack(bgColor))
+    end
+    if borderColor then
+      tr(libName, 'SetBorderStyle', bs.name, 'borderColor=', fmt(borderColor))
+      self.CodeBackdrop:SetBackdropBorderColor(unpack(borderColor))
+      --self.CodeBackdrop:SetBackdropBorderColor(unpack(borderColor))
+      if bs.showGutterOutline ~= false then
+        gutterBdBorderColor = borderColor
+      end
+    end
+  end
+  -- todo: still debating whether bs.showGutterOutline is a border setting property global
+  self.GutterBackdrop:SetBackdropBorderColor(unpack(gutterBdBorderColor))
+  self:_SetHeaderBorderStyle(bs)
+end
+
+--- @private
+--- @param bs LDK_BorderSetting
+function o:_SetHeaderBorderStyle(bs)
+  -- Header Backdrop
+  local headerS = bdrops:GetHeaderSettings(bs.name)
+  local bd = bs.main.backdrop
+  local height = HEADER_HEIGHT
+  local bgColor = bd.bgColor or { 0.73, 0.73, 0.73, 1.0 }
+  local borderColor = bd.borderColor or { 0.56, 0.56, 0.56, 1.0 }
+  if headerS then
+    if headerS.backdrop then bd = headerS.backdrop end
+    if bd.bgColor then bgColor = bd.bgColor end
+    if bd.borderColor then borderColor = bd.borderColor end
+    if headerS.height then height = headerS.height end
+  end
+  self.Header:SetBackdrop(bd)
+  self.Header:SetBackdropColor(unpack(bgColor))
+  self.Header:SetBackdropBorderColor(unpack(borderColor))
+  self.Header:SetHeight(height)
 end
 
 --- Applies a font (by FontUtil font-choice key, at the current fontSize) to

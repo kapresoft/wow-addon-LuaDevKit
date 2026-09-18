@@ -15,6 +15,7 @@ print('Namespace', 'val=', ns)
 --- @field Backdrops LDK_Backdrops
 --- @field Database LDK_Database
 --- @field String Kapresoft-String-2-0
+--- @field Table Kapresoft-Table-2-0
 local O = {}; ns.O = O
 
 --- @param self LDK_Core_Objects
@@ -22,6 +23,7 @@ local function RegisterObjects(self)
   self.FAIAP = LibStub('LuaDevKit-FAIAP-1-0', true)
   self.LSM = LibStub('LibSharedMedia-3.0')
   self.String = LibStub('Kapresoft-String-2-0')
+  self.Table = LibStub('Kapresoft-Table-2-0')
 end; RegisterObjects(O)
 
 -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
