@@ -61,7 +61,6 @@ function o:OnKeyDown(key)
   self:SetPropagateKeyboardInput(false)
 end
 
-
 -- No OnSizeChanged handler: RefreshGutter is the only thing that resizes this
 -- EditBox, so reacting to that here just fed itself. See CodeEditorDialog.xml.
 --

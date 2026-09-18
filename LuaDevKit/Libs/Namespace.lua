@@ -34,7 +34,8 @@ local function InitAddOn_LibSharedMedia_Keys()
   end
   mt.BACKGROUND_LDK = lsmKey(mt.BACKGROUND)
   mt.BORDER_LDK = lsmKey(mt.BORDER)
-end; InitAddOn_LibSharedMedia_Keys()
+end
+InitAddOn_LibSharedMedia_Keys()
 
 -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
 -- CodeEditorDialog's first SetText call so that first paint already goes
@@ -56,17 +57,16 @@ function ns:EnableLuaFormatter(editBox)
   local f = self.O.FAIAP
   -- todo: move to a config
   local COLOR_DEFS = {
-    [f.tokens.TOKEN_KEYWORD]       = "|cffCF8E6D",  -- tan keywords
-    [f.tokens.TOKEN_STRING]        = "|cffEFEFEF",  -- white strings
-    [f.tokens.TOKEN_NUMBER]        = "|cff2AACB8",  -- teal numbers
-    [f.tokens.TOKEN_COMMENT_SHORT] = "|cff9B9EA5",  -- gray comments
-    [f.tokens.TOKEN_COMMENT_LONG]  = "|cff9B9EA5",  -- gray comments
-    [f.tokens.TOKEN_IDENTIFIER]    = "|cff56B2FF",  -- light blue identifiers
-    ["and"]                        = "|cffFFB9B0",  -- salmon
-    ["or"]                         = "|cffFFB9B0",  -- salmon
-    ["not"]                        = "|cffFFB9B0",  -- salmon
-    [0] = "|r",                                     -- required: the stop code
+    [f.tokens.TOKEN_KEYWORD] = '|cffCF8E6D',       -- tan keywords
+    [f.tokens.TOKEN_STRING] = '|cffEFEFEF',        -- white strings
+    [f.tokens.TOKEN_NUMBER] = '|cff2AACB8',        -- teal numbers
+    [f.tokens.TOKEN_COMMENT_SHORT] = '|cff9B9EA5', -- gray comments
+    [f.tokens.TOKEN_COMMENT_LONG] = '|cff9B9EA5',  -- gray comments
+    [f.tokens.TOKEN_IDENTIFIER] = '|cff56B2FF',    -- light blue identifiers
+    ['and'] = '|cffFFB9B0',                        -- salmon
+    ['or'] = '|cffFFB9B0',                         -- salmon
+    ['not'] = '|cffFFB9B0',                        -- salmon
+    [0] = '|r'                                     -- required: the stop code
   }
   f.enable(editBox, COLOR_DEFS)
 end
-
