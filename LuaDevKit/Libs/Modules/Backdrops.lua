@@ -8,10 +8,14 @@ local str_notBlank = String.IsNotBlank
 local tbl_deepCopy = Table.DeepCopy
 local tbl_Merge = Table.MergeRecursive
 
+local themeReqMsg = '%s: %s is required'
+local nameReqMsg = '%s: %s should be a string.'
+
 --[[-----------------------------------------------------------------------------
 Backdrops
 -------------------------------------------------------------------------------]]
 --- @class LDK_Backdrops
+--- @field theme LDK_ThemeNames
 local o, libName = {}, 'Backdrops'
 O.Backdrops = o
 
@@ -51,17 +55,16 @@ Type Definitions
 
 --- @class LDK_ThemeSet
 --- @field name Name
---- @field label? Name @Display name override for menus; defaults to name
 --- @field main LDK_MainTheme
 --- @field code LDK_CodeTheme
 
 --- @class LDK_BorderSettings : table<string, LDK_ThemeSet>
---- @field ['Blizzard Achievement Wood'] LDK_ThemeSet
---- @field ['Blizzard Chat Bubble'] LDK_ThemeSet
---- @field ['Blizzard Dialog'] LDK_ThemeSet
---- @field ['Blizzard Dialog Gold'] LDK_ThemeSet
---- @field ['Blizzard Party'] LDK_ThemeSet
---- @field ['Blizzard Tooltip'] LDK_ThemeSet
+--- @field ['Oakframe'] LDK_ThemeSet
+--- @field ['Whisper'] LDK_ThemeSet
+--- @field ['Stonecut'] LDK_ThemeSet
+--- @field ['Gilded'] LDK_ThemeSet
+--- @field ['Warband'] LDK_ThemeSet
+--- @field ['Ashen'] LDK_ThemeSet
 local borderSettings = {}
 
 --- @see LibSharedMedia-3.0
@@ -95,11 +98,49 @@ local LSM_BLIZZ_NAMES = {
   BLIZZARD_TOOLTIP = 'Blizzard Tooltip',
 }
 local lbn = LSM_BLIZZ_NAMES
-
-local DEF_BG = [[Interface\FriendsFrame\UI-Toast-Background]]
+local BG_TOAST = [[Interface\FriendsFrame\UI-Toast-Background]]
 local BG_WHITE = [[interface\buttons\white8x8]]
-local BD_DEFAULT = 'Default'
-local BD_MINIMAL, BD_DARK_KNIGHT, BD_ABYSS = 'Minimal', 'Dark Knight', 'Abyss'
+local BORDER_TOAST = [[Interface\FriendsFrame\UI-Toast-Border]]
+local BORDER_MAW = [[interface\addons\actionbarplus-core\assets\textures\ui-tooltip-border-maw]]
+
+--- @class LDK_ThemeNames
+--- @field Default Name
+--- @field Minimal Name
+--- @field DarkKnight Name
+--- @field Abyss Name
+--- @field Oakframe Name
+--- @field Whisper Name
+--- @field Stonecut Name
+--- @field Gilded Name
+--- @field Warband Name
+--- @field Ashen Name
+local THEME = {
+  Default = 'Default',
+  Minimal = 'Minimal',
+  DarkKnight = 'Dark Knight',
+  Abyss = 'Abyss',
+  Oakframe = 'Oakframe',
+  Whisper = 'Whisper',
+  Stonecut = 'Stonecut',
+  Gilded = 'Gilded',
+  Warband = 'Warband',
+  Ashen = 'Ashen',
+}
+o.theme = THEME
+
+-- "Default" first, then Minimal, then the rest alphabetically.
+local THEME_ORDER = {
+  THEME.Default,
+  THEME.Minimal,
+  THEME.Abyss,
+  THEME.Ashen,
+  THEME.DarkKnight,
+  THEME.Gilded,
+  THEME.Oakframe,
+  THEME.Stonecut,
+  THEME.Warband,
+  THEME.Whisper,
+}
 
 --[[-----------------------------------------------------------------------------
 Custom Backdrops
@@ -125,67 +166,45 @@ local function acceptAll() return true end
 
 --- @param name Name
 --- @return string?
-local function lsmFetchBg(name)
-  assertsafe(str_notBlank(name), 'lsmFetchBg(name): name should be string')
+--- @private
+local function _bg(name)
+  assertsafe(str_notBlank(name), nameReqMsg, '_bg(name)', 'name')
   return lsm:Fetch(mt.BACKGROUND, name, true)
 end
---- @param name Name
---- @return string?
-local function lsmFetchBgCustom(name)
-  assertsafe(str_notBlank(name), 'lsmFetchBgCustom(name): name should be string')
-  return lsm:Fetch(mt.BACKGROUND_LDK, name, true)
-end
---- @param name Name
---- @return string?
-local function lsmFetchBorder(name)
-  assertsafe(str_notBlank(name), 'lsmFetchBorder(name): name should be string')
-  return lsm:Fetch(mt.BORDER, name, true)
-end --- @param name Name
 
+--- @private
+--- @param name Name
 --- @return string?
-local function lsmFetchBorderCustom(name)
-  assertsafe(str_notBlank(name), 'lsmFetchBorderCustom(name): name should be string')
-  return lsm:Fetch(mt.BORDER_LDK, name, true)
+local function _border(name)
+  assertsafe(str_notBlank(name), nameReqMsg, '_border(name)', 'name')
+  return lsm:Fetch(mt.BORDER, name, true)
 end
 
 --- @package
 --- @param theme LDK_ThemeSet
-local function _RegisterBorderSetting(theme)
+local function _RegisterTheme(theme)
+  local m = '_RegisterTheme(theme)'
+  assertsafe(theme, themeReqMsg, m, 'theme')
   local name = theme.name
-  assertsafe(str_notBlank(name), '_BorderSetting(borderSetting.name) should be a valid string')
-  lsm:Register(mt.BACKGROUND_LDK, name, theme.main.backdrop.bgFile)
-  theme.main.backdrop.edgeFile = o:GetBorder(name)
+  assertsafe(str_notBlank(name), themeReqMsg, m, 'theme.name')
+  assertsafe(theme.main.backdrop.bgFile, themeReqMsg, m, 'main.backdrop.bgFile')
+  assertsafe(theme.main.backdrop.edgeFile, themeReqMsg, m, 'theme.main.backdrop.edgeFile')
   borderSettings[name] = theme
 end
 
---- @package
---- @param borderSetting LDK_ThemeSet
-local function _RegisterCustomBorderSetting(borderSetting)
-  local requiredMsg = '_RegisterCustomBorderSetting(borderSetting): %s is required'
-  assertsafe(borderSetting, requiredMsg, 'borderSetting')
 
-  local name = borderSetting.name
-  assertsafe(
-    str_notBlank(name),
-    '_RegisterCustomBorderSetting(borderSetting) %s should be a valid string',
-    'borderSetting.name'
-  )
-  assertsafe(borderSetting.main.backdrop.bgFile, requiredMsg, 'main.backdrop.bgFile')
-  assertsafe(borderSetting.main.backdrop.edgeFile, requiredMsg, 'main.backdrop.edgeFile')
-
-  lsm:Register(mt.BACKGROUND_LDK, name, borderSetting.main.backdrop.bgFile)
-  lsm:Register(mt.BORDER_LDK, name, borderSetting.main.backdrop.edgeFile)
-  borderSettings[name] = borderSetting
-end
-
-local function __InitCustomBorders()
-  _RegisterCustomBorderSetting({
-    name = 'Default',
+-- Registers every selectable border theme. Each one is a fully tuned
+-- LDK_ThemeSet, not a raw LSM border name -- GetBorderNames() only lists
+-- themes registered here, since an untuned border has no matching edgeSize/
+-- insets/colors and would look broken in the editor.
+local function __InitBorders()
+  _RegisterTheme({
+    name = THEME.Default,
     --showGutterOutline = false,
     main = {
       backdrop = {
-        bgFile = [[Interface\FriendsFrame\UI-Toast-Background]],
-        edgeFile = [[Interface\FriendsFrame\UI-Toast-Border]],
+        bgFile = BG_TOAST,
+        edgeFile = BORDER_TOAST,
         tileSize = 4,
         tile = true,
         edgeSize = 8,
@@ -196,7 +215,7 @@ local function __InitCustomBorders()
     },
     code = {
       backdrop = {
-        edgeFile = [[Interface\Buttons\WHITE8x8]],
+        edgeFile = BG_WHITE,
         tileSize = 4,
         edgeSize = 1,
         insets = { left = 3, right = 3, top = 4, bottom = 3 },
@@ -205,12 +224,12 @@ local function __InitCustomBorders()
       },
     },
   })
-  _RegisterCustomBorderSetting({
-    name = BD_DARK_KNIGHT,
+  _RegisterTheme({
+    name = THEME.DarkKnight,
     main = {
       backdrop = {
-        bgFile = DEF_BG,
-        edgeFile = lsmFetchBorder(lbn.BLIZZARD_TOOLTIP),
+        bgFile = BG_TOAST,
+        edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
         tile = false,
         tileEdge = false,
         edgeSize = 12,
@@ -220,7 +239,7 @@ local function __InitCustomBorders()
       },
       header = {
         backdrop = {
-          bgFile = lsmFetchBg(lbg.BLIZZARD_PARCHMENT),
+          bgFile = _bg(lbg.BLIZZARD_PARCHMENT),
           bgColor = { 0.12, 0.12, 0.12, 1.0 },
         },
       },
@@ -238,19 +257,19 @@ local function __InitCustomBorders()
       },
     },
   })
-  _RegisterCustomBorderSetting({
-    name = BD_ABYSS,
+  _RegisterTheme({
+    name = THEME.Abyss,
     main = {
       backdrop = {
-        bgFile = DEF_BG,
-        edgeFile = [[interface\addons\actionbarplus-core\assets\textures\ui-tooltip-border-maw]],
+        bgFile = BG_TOAST,
+        edgeFile = BORDER_MAW,
         edgeSize = 16,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
         borderColor = { 1, 1, 1, 1.0 },
       },
       header = {
         backdrop = {
-          bgFile = lsmFetchBg(lbg.BLIZZARD_TABARD_BACKGROUND),
+          bgFile = _bg(lbg.BLIZZARD_TABARD_BACKGROUND),
           tile = false,
           tileEdge = false,
           edgeSize = 16,
@@ -271,8 +290,8 @@ local function __InitCustomBorders()
       },
     },
   })
-  _RegisterCustomBorderSetting({
-    name = BD_MINIMAL,
+  _RegisterTheme({
+    name = THEME.Minimal,
     main = {
       backdrop = {
         tile = false,
@@ -303,17 +322,12 @@ local function __InitCustomBorders()
       },
     },
   })
-end
-
-local function __InitBorders()
-  __InitCustomBorders()
-
-  _RegisterBorderSetting({
-    name = lbn.BLIZZARD_ACHIEVEMENT_WOOD,
-    label = 'Oakframe',
+  _RegisterTheme({
+    name = THEME.Oakframe,
     main = {
       backdrop = {
-        bgFile = DEF_BG,
+        edgeFile = _border(lbn.BLIZZARD_ACHIEVEMENT_WOOD),
+        bgFile = BG_TOAST,
         tile = false,
         tileEdge = false,
         edgeSize = 24,
@@ -322,7 +336,7 @@ local function __InitBorders()
       },
       header = {
         backdrop = {
-          bgFile = lsmFetchBg(lbg.BLIZZARD_GARRISON_BACKGROUND),
+          bgFile = _bg(lbg.BLIZZARD_GARRISON_BACKGROUND),
           tile = false,
           tileEdge = false,
           edgeSize = 20,
@@ -343,12 +357,12 @@ local function __InitBorders()
       },
     },
   })
-  _RegisterBorderSetting({
-    name = lbn.BLIZZARD_CHAT_BUBBLE,
-    label = 'Whisper',
+  _RegisterTheme({
+    name = THEME.Whisper,
     main = {
       backdrop = {
-        bgFile = DEF_BG,
+        edgeFile = _border(lbn.BLIZZARD_CHAT_BUBBLE),
+        bgFile = BG_TOAST,
         tile = false,
         tileEdge = false,
         --tileSize = 4,
@@ -360,7 +374,7 @@ local function __InitBorders()
       header = {
         backdrop = {
           edgeSize = 14,
-          bgFile = lsmFetchBg(lbg.BLIZZARD_PARCHMENT),
+          bgFile = _bg(lbg.BLIZZARD_PARCHMENT),
           bgColor = { 0.58, 0.58, 0.58, 1 },
         },
       },
@@ -377,12 +391,12 @@ local function __InitBorders()
       },
     },
   })
-  _RegisterBorderSetting({
-    name = lbn.BLIZZARD_DIALOG,
-    label = 'Stonecut',
+  _RegisterTheme({
+    name = THEME.Stonecut,
     main = {
       backdrop = {
-        bgFile = DEF_BG,
+        edgeFile = _border(lbn.BLIZZARD_DIALOG),
+        bgFile = BG_TOAST,
         tile = false,
         tileEdge = false,
         edgeSize = 24,
@@ -391,7 +405,7 @@ local function __InitBorders()
       },
       header = {
         backdrop = {
-          bgFile = lsmFetchBg(lbg.BLIZZARD_COLLECTIONS_BACKGROUND),
+          bgFile = _bg(lbg.BLIZZARD_COLLECTIONS_BACKGROUND),
         },
         height = 35,
       },
@@ -408,12 +422,12 @@ local function __InitBorders()
       },
     },
   })
-  _RegisterBorderSetting({
-    name = lbn.BLIZZARD_DIALOG_GOLD,
-    label = 'Gilded',
+  _RegisterTheme({
+    name = THEME.Gilded,
     main = {
       backdrop = {
-        bgFile = lsmFetchBg(lbg.BLIZZARD_DIALOG_BACKGROUND_GOLD),
+        edgeFile = _border(lbn.BLIZZARD_DIALOG_GOLD),
+        bgFile = _bg(lbg.BLIZZARD_DIALOG_BACKGROUND_GOLD),
         tile = false,
         tileEdge = false,
         tileSize = 12,
@@ -424,7 +438,7 @@ local function __InitBorders()
       },
       header = {
         backdrop = {
-          bgFile = lsmFetchBg(lbg.BLIZZARD_GARRISON_BACKGROUND_3),
+          bgFile = _bg(lbg.BLIZZARD_GARRISON_BACKGROUND_3),
           bgColor = { 1, 1, 1, 0.8 },
         },
         height = 35,
@@ -442,12 +456,12 @@ local function __InitBorders()
       },
     },
   })
-  _RegisterBorderSetting({
-    name = lbn.BLIZZARD_PARTY,
-    label = 'Warband',
+  _RegisterTheme({
+    name = THEME.Warband,
     main = {
       backdrop = {
-        bgFile = DEF_BG,
+        edgeFile = _border(lbn.BLIZZARD_PARTY),
+        bgFile = BG_TOAST,
         tile = true,
         tileEdge = true,
         tileSize = 8,
@@ -467,12 +481,12 @@ local function __InitBorders()
       },
     },
   })
-  _RegisterBorderSetting({
-    name = lbn.BLIZZARD_TOOLTIP,
-    label = 'Ashen',
+  _RegisterTheme({
+    name = THEME.Ashen,
     main = {
       backdrop = {
-        bgFile = DEF_BG,
+        edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
+        bgFile = BG_TOAST,
         tile = false,
         tileEdge = false,
         edgeSize = 12,
@@ -498,16 +512,8 @@ end
 Methods & Fields
 -------------------------------------------------------------------------------]]
 
---- @param name string @Border media name, from ns:GetBorders()
---- @return string?     @The edgeFile Texture path, or nil if name isn't registered
-function o:GetBorder(name) return lsmFetchBorderCustom(name) or lsmFetchBorder(name) end
-
---- @param name string  @Background media name, from ns:GetBorders()
---- @return string?     @The edgeFile Texture path, or nil if name isn't registered
-function o:GetBackground(name) return lsmFetchBgCustom(name) or lsmFetchBg(name) end
-
 ---@return LDK_ThemeSet
-function o:GetDefaultBorderSettings() return borderSettings[BD_DEFAULT] end
+function o:GetDefaultBorderSettings() return borderSettings[THEME.Default] end
 
 ---@param name Name? @Returns the default border setting if nil
 ---@return LDK_ThemeSet
@@ -530,28 +536,11 @@ end
 --- This is a custom ordered border name list
 --- @return string[]
 function o:GetBorderNames()
-  local main = lsm:List(mt.BORDER) --[[@as string[] ]]
-  local custom = lsm:List(mt.BORDER_LDK) --[[@as string[] ]]
-
-  -- "Default" first, then this addon's own (LuaDevKit-prefixed) custom
-  -- borders, then everything else registered under the real mt.BORDER.
-  local defaultBorder = self:GetDefaultBorderSettings()
-  assert(is_tbl(defaultBorder), 'Unexpected Error:: default-border is nil or empty.')
-  local merged = { defaultBorder.name, BD_MINIMAL }
-  for _, name in ipairs(custom or {}) do
-    if name ~= defaultBorder.name and name ~= BD_MINIMAL then merged[#merged + 1] = name end
+  local names = {}
+  for i, name in ipairs(THEME_ORDER) do
+    names[i] = name
   end
-  for _, name in ipairs(main or {}) do
-    merged[#merged + 1] = name
-  end
-  return merged
-end
-
---- @param name Name
---- @return string @The theme's display label, or name if no override is set
-function o:GetBorderLabel(name)
-  local theme = self:GetBorderSettings(name)
-  return (theme and theme.label) or name
+  return names
 end
 
 --- @param callbackFn fun(name:string)

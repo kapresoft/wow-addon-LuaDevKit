@@ -26,17 +26,6 @@ local function RegisterObjects(self)
   self.Table = LibStub('Kapresoft-Table-2-0')
 end; RegisterObjects(O)
 
-local function InitAddOn_LibSharedMedia_Keys()
-  local mt = O.LSM.MediaType
-  --- @return string?
-  local function lsmKey(key)
-    return ('%s_%s'):format(strlower(ns.addon), strlower(key))
-  end
-  mt.BACKGROUND_LDK = lsmKey(mt.BACKGROUND)
-  mt.BORDER_LDK = lsmKey(mt.BORDER)
-end
-InitAddOn_LibSharedMedia_Keys()
-
 -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
 -- CodeEditorDialog's first SetText call so that first paint already goes
 -- through FAIAP's SetText override; its GetText override returns decoded

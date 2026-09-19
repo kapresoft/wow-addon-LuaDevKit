@@ -351,16 +351,10 @@ function o:OnLoad()
 
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
-  local name = 'Default'
-  name = 'Abyss'
-  --name = 'Minimal'
-  --name = 'Dark Knight'
-  --name = 'Blizzard Tooltip'
-  --name = 'Blizzard Achievement Wood'
-  --name = 'Blizzard Dialog'
-  --name = 'Blizzard Dialog Gold'
-  --name = 'Blizzard Chat Bubble'
-
+  local th = bdrops.theme
+  local name = th.Default
+  name = th.Abyss
+  --name = th.DarkKnight
   self:ApplyTheme(name)
 
   if self.SetResizeBounds then -- WoW 10.0+
@@ -500,7 +494,7 @@ function o:OnLoad_BorderButton()
   self.BorderButton:SetupMenu(function(_, rootDescription)
     local function addRadio(name)
       rootDescription:CreateRadio(
-        bdrops:GetBorderLabel(name),
+        name,
         function() return name and str_eq(self.borderStyle, name) end,
         function() self:ApplyTheme(name) end
       )
