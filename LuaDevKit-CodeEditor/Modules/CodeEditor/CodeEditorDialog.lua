@@ -354,8 +354,12 @@ function o:OnLoad()
   local name = 'Default'
   --name = 'Abyss'
   --name = 'Minimal'
-  --name = "Blizzard Achievement Wood"
-  --name = "Blizzard Dialog Gold"
+  --name = 'Dark Knight'
+  name = 'Blizzard Tooltip'
+  --name = 'Blizzard Achievement Wood'
+  --name = 'Blizzard Dialog'
+  --name = 'Blizzard Dialog Gold'
+  --name = 'Blizzard Chat Bubble'
 
   self:ApplyTheme(name)
 
@@ -810,7 +814,7 @@ function o:ApplyTheme(name)
     end
     if borderColor then
       self.CodeBackdrop:SetBackdropBorderColor(unpack(borderColor))
-      if bs.showGutterOutline ~= false then gutterBdBorderColor = borderColor end
+      if code.showGutterOutline ~= false then gutterBdBorderColor = borderColor end
     end
   end
   -- todo: still debating whether bs.showGutterOutline is a border setting property global
@@ -819,19 +823,22 @@ function o:ApplyTheme(name)
 end
 
 --- @private
---- @param bs LDK_BorderSetting
+--- @param bs LDK_ThemeSet
 function o:_SetHeaderBorderStyle(bs)
-  -- Header Backdrop
-  local headerS = bdrops:GetHeaderSettings(bs.name)
   local bd = bs.main.backdrop
   local height = HEADER_HEIGHT
   local bgColor = bd.bgColor or { 0.73, 0.73, 0.73, 1.0 }
   local borderColor = bd.borderColor or { 0.56, 0.56, 0.56, 1.0 }
-  if headerS then
-    if headerS.backdrop then bd = headerS.backdrop end
-    if bd.bgColor then bgColor = bd.bgColor end
-    if bd.borderColor then borderColor = bd.borderColor end
-    if headerS.height then height = headerS.height end
+
+  local hbo = bdrops:GetHeaderBackdropOverride(bs)
+  if hbo then
+    local hbd = hbo.backdrop
+    if hbd then
+      bd = hbd
+      if hbd.bgColor then bgColor = hbd.bgColor end
+      if hbd.borderColor then borderColor = hbd.borderColor end
+    end
+    if bs.main.header.height then height = bs.main.header.height end
   end
   self.Header:SetBackdrop(bd)
   self.Header:SetBackdropColor(unpack(bgColor))
