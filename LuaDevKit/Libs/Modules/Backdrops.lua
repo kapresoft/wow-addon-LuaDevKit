@@ -51,6 +51,7 @@ Type Definitions
 
 --- @class LDK_ThemeSet
 --- @field name Name
+--- @field label? Name @Display name override for menus; defaults to name
 --- @field main LDK_MainTheme
 --- @field code LDK_CodeTheme
 
@@ -221,8 +222,8 @@ local function __InitCustomBorders()
         backdrop = {
           bgFile = lsmFetchBg(lbg.BLIZZARD_PARCHMENT),
           bgColor = { 0.12, 0.12, 0.12, 1.0 },
-        }
-      }
+        },
+      },
     },
     code = {
       backdrop = {
@@ -286,8 +287,8 @@ local function __InitCustomBorders()
       header = {
         backdrop = {
           bgColor = { 0.085, 0.085, 0.085, 0.98 },
-        }
-      }
+        },
+      },
     },
     code = {
       backdrop = {
@@ -309,6 +310,7 @@ local function __InitBorders()
 
   _RegisterBorderSetting({
     name = lbn.BLIZZARD_ACHIEVEMENT_WOOD,
+    label = 'Oakframe',
     main = {
       backdrop = {
         bgFile = DEF_BG,
@@ -343,6 +345,7 @@ local function __InitBorders()
   })
   _RegisterBorderSetting({
     name = lbn.BLIZZARD_CHAT_BUBBLE,
+    label = 'Whisper',
     main = {
       backdrop = {
         bgFile = DEF_BG,
@@ -376,6 +379,7 @@ local function __InitBorders()
   })
   _RegisterBorderSetting({
     name = lbn.BLIZZARD_DIALOG,
+    label = 'Stonecut',
     main = {
       backdrop = {
         bgFile = DEF_BG,
@@ -406,6 +410,7 @@ local function __InitBorders()
   })
   _RegisterBorderSetting({
     name = lbn.BLIZZARD_DIALOG_GOLD,
+    label = 'Gilded',
     main = {
       backdrop = {
         bgFile = lsmFetchBg(lbg.BLIZZARD_DIALOG_BACKGROUND_GOLD),
@@ -439,6 +444,7 @@ local function __InitBorders()
   })
   _RegisterBorderSetting({
     name = lbn.BLIZZARD_PARTY,
+    label = 'Warband',
     main = {
       backdrop = {
         bgFile = DEF_BG,
@@ -463,6 +469,7 @@ local function __InitBorders()
   })
   _RegisterBorderSetting({
     name = lbn.BLIZZARD_TOOLTIP,
+    label = 'Ashen',
     main = {
       backdrop = {
         bgFile = DEF_BG,
@@ -471,7 +478,7 @@ local function __InitBorders()
         edgeSize = 12,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
         borderColor = { 0.81, 0.81, 0.81, 1 },
-      }
+      },
     },
     code = {
       backdrop = {
@@ -530,14 +537,21 @@ function o:GetBorderNames()
   -- borders, then everything else registered under the real mt.BORDER.
   local defaultBorder = self:GetDefaultBorderSettings()
   assert(is_tbl(defaultBorder), 'Unexpected Error:: default-border is nil or empty.')
-  local merged = { defaultBorder.name }
+  local merged = { defaultBorder.name, BD_MINIMAL }
   for _, name in ipairs(custom or {}) do
-    if name ~= defaultBorder.name then merged[#merged + 1] = name end
+    if name ~= defaultBorder.name and name ~= BD_MINIMAL then merged[#merged + 1] = name end
   end
   for _, name in ipairs(main or {}) do
     merged[#merged + 1] = name
   end
   return merged
+end
+
+--- @param name Name
+--- @return string @The theme's display label, or name if no override is set
+function o:GetBorderLabel(name)
+  local theme = self:GetBorderSettings(name)
+  return (theme and theme.label) or name
 end
 
 --- @param callbackFn fun(name:string)

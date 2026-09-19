@@ -352,10 +352,10 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local name = 'Default'
-  --name = 'Abyss'
+  name = 'Abyss'
   --name = 'Minimal'
   --name = 'Dark Knight'
-  name = 'Blizzard Tooltip'
+  --name = 'Blizzard Tooltip'
   --name = 'Blizzard Achievement Wood'
   --name = 'Blizzard Dialog'
   --name = 'Blizzard Dialog Gold'
@@ -500,7 +500,7 @@ function o:OnLoad_BorderButton()
   self.BorderButton:SetupMenu(function(_, rootDescription)
     local function addRadio(name)
       rootDescription:CreateRadio(
-        name,
+        bdrops:GetBorderLabel(name),
         function() return name and str_eq(self.borderStyle, name) end,
         function() self:ApplyTheme(name) end
       )
