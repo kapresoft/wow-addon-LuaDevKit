@@ -10,6 +10,7 @@ local bdrops, String = O.Backdrops, O.String
 local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
 local mt = lsm.MediaType
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
+local upk = unpack
 
 local libName = 'CodeEditorDialog'
 
@@ -22,6 +23,11 @@ local strlenutf8 = strlenutf8
 --[[-----------------------------------------------------------------------------
 Local Vars
 -------------------------------------------------------------------------------]]
+local GUTTER = {
+  borderColor = { 1, 1, 1, 0 },
+  bgColor = { 0, 0, 0, 0 },
+  textColor = { 1, 1, 1, 1.0 },
+}
 
 local HEADER_HEIGHT = 28
 
@@ -352,9 +358,7 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local th = bdrops.theme
-  local name = th.Default
-  name = th.Abyss
-  --name = th.DarkKnight
+  local name = th.Stonecut
   self:ApplyTheme(name)
 
   if self.SetResizeBounds then -- WoW 10.0+
@@ -499,7 +503,7 @@ function o:OnLoad_BorderButton()
         function() self:ApplyTheme(name) end
       )
     end
-    bdrops:ForEachBorder(addRadio, function(name) return name and name:lower() ~= 'none' end)
+    bdrops:EachTheme(addRadio, function(name) return name and name:lower() ~= 'none' end)
   end)
 end
 
@@ -791,11 +795,12 @@ function o:ApplyTheme(name)
     if bd.bgColor then self:SetBackdropColor(unpack(bd.bgColor)) end
   end
 
-  local gutterBdBorderColor = { 0, 0, 0, 0 }
+  local gutterTextC = GUTTER.textColor
   local code = bs.code
 
   if code and code.backdrop then
     local cbd = code.backdrop
+    local gutter = code.gutter
     local bgColor = cbd.bgColor
     local borderColor = cbd.borderColor
 
@@ -803,16 +808,17 @@ function o:ApplyTheme(name)
     self.CodeBackdrop:SetBackdrop(cbd)
 
     if bgColor then
-      self.GutterBackdrop:SetBackdropColor(unpack(bgColor))
-      self.CodeBackdrop:SetBackdropColor(unpack(bgColor))
+      self.CodeBackdrop:SetBackdropColor(upk(bgColor))
     end
     if borderColor then
-      self.CodeBackdrop:SetBackdropBorderColor(unpack(borderColor))
-      if code.showGutterOutline ~= false then gutterBdBorderColor = borderColor end
+      self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
     end
+    if gutter and gutter.textColor then gutterTextC = gutter.textColor end
   end
-  -- todo: still debating whether bs.showGutterOutline is a border setting property global
-  self.GutterBackdrop:SetBackdropBorderColor(unpack(gutterBdBorderColor))
+  -- gutter borderColor is alpha 0 (hidden)
+  self.GutterBackdrop:SetBackdropBorderColor(upk(GUTTER.borderColor))
+  self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
+  self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextC))
   self:_SetHeaderBorderStyle(bs)
 end
 

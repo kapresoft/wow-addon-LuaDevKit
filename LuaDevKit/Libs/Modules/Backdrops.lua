@@ -49,14 +49,19 @@ Type Definitions
 --- @field backdrop LDK_Backdrop
 --- @field header LDK_MainHeaderOverride
 
+--- @class LDK_GutterTheme
+--- @field textColor? RGBA @Optional override
+
 --- @class LDK_CodeTheme : LDK_MainTheme
 --- @field showGutterOutline? boolean @Defaults to true
 --- @field backdrop LDK_Backdrop
+--- @field gutter LDK_GutterTheme
 
 --- @class LDK_ThemeSet
 --- @field name Name
 --- @field main LDK_MainTheme
 --- @field code LDK_CodeTheme
+--- @field enabled? boolean @Defaults to true; set false to exclude from GetThemes()/EachTheme()
 
 --- @class LDK_BorderSettings : table<string, LDK_ThemeSet>
 --- @field ['Oakframe'] LDK_ThemeSet
@@ -192,9 +197,8 @@ local function _RegisterTheme(theme)
   borderSettings[name] = theme
 end
 
-
 -- Registers every selectable border theme. Each one is a fully tuned
--- LDK_ThemeSet, not a raw LSM border name -- GetBorderNames() only lists
+-- LDK_ThemeSet, not a raw LSM border name -- GetThemes() only lists
 -- themes registered here, since an untuned border has no matching edgeSize/
 -- insets/colors and would look broken in the editor.
 local function __InitBorders()
@@ -221,6 +225,39 @@ local function __InitBorders()
         insets = { left = 3, right = 3, top = 4, bottom = 3 },
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
+      },
+      gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
+    },
+  })
+  _RegisterTheme({
+    name = THEME.Minimal,
+    main = {
+      backdrop = {
+        tile = false,
+        tileEdge = false,
+        bgFile = BG_WHITE,
+        edgeFile = BG_WHITE,
+        edgeSize = 1,
+        insets = { left = 1, right = 1, top = 1, bottom = 1 },
+        bgColor = { 0.1, 0.1, 0.1, 0.98 },
+        borderColor = { rgb(LIGHTGRAY_FONT_COLOR, 0.75) },
+      },
+      header = {
+        backdrop = {
+          bgColor = { 0.085, 0.085, 0.085, 0.98 },
+        },
+      },
+    },
+    code = {
+      backdrop = {
+        bgFile = BG_WHITE,
+        edgeFile = BG_WHITE,
+        tileEdge = true,
+        tileSize = 4,
+        edgeSize = 1,
+        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+        bgColor = { 0.1, 0.1, 0.1, 0.1 },
+        borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       },
     },
   })
@@ -274,38 +311,6 @@ local function __InitBorders()
           tileEdge = false,
           edgeSize = 16,
           bgColor = { 1, 1, 1, 0.8 },
-        },
-      },
-    },
-    code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileEdge = true,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
-        bgColor = { 0.1, 0.1, 0.1, 0.1 },
-        borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
-      },
-    },
-  })
-  _RegisterTheme({
-    name = THEME.Minimal,
-    main = {
-      backdrop = {
-        tile = false,
-        tileEdge = false,
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        edgeSize = 1,
-        insets = { left = 1, right = 1, top = 1, bottom = 1 },
-        bgColor = { 0.1, 0.1, 0.1, 0.98 },
-        borderColor = { rgb(LIGHTGRAY_FONT_COLOR, 0.75) },
-      },
-      header = {
-        backdrop = {
-          bgColor = { 0.085, 0.085, 0.085, 0.98 },
         },
       },
     },
@@ -401,6 +406,7 @@ local function __InitBorders()
         tileEdge = false,
         edgeSize = 24,
         insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        bgColor = { 0.85, 0.85, 0.88, 1.0 },
         borderColor = { 1, 1, 1, 1.0 },
       },
       header = {
@@ -417,8 +423,12 @@ local function __InitBorders()
         tileSize = 4,
         edgeSize = 1,
         insets = { left = 3, right = 3, top = 4, bottom = 3 },
-        bgColor = { 0.1, 0.1, 0.1, 0.1 },
-        borderColor = { 0.6, 0.6, 0.6, 0.1 },
+        bgColor = { 0.1, 0.1, 0.1, 0.9 },
+        borderColor = { 0.55, 0.58, 0.62, 1 },
+      },
+      gutter = {
+        --  56B2FF
+        textColor = { 0.337, 0.698, 1.000, 1.0 },
       },
     },
   })
@@ -450,9 +460,12 @@ local function __InitBorders()
         edgeFile = BG_WHITE,
         tileSize = 4,
         edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+        insets = { left = 0, right = 0, top = 0, bottom = 0 },
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
-        borderColor = { 0.6, 0.6, 0.6, 0.1 },
+        borderColor = { 0.9, 0.75, 0.35, 1 },
+      },
+      gutter = {
+        textColor = { 0.541, 0.522, 0.471, 1.0 },
       },
     },
   })
@@ -483,6 +496,7 @@ local function __InitBorders()
   })
   _RegisterTheme({
     name = THEME.Ashen,
+    enabled = false,
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
@@ -533,22 +547,23 @@ function o:GetHeaderBackdropOverride(theme)
   return hov
 end
 
---- This is a custom ordered border name list
+--- This is a custom ordered theme name list, excluding themes with enabled = false
 --- @return string[]
-function o:GetBorderNames()
+function o:GetThemes()
   local names = {}
-  for i, name in ipairs(THEME_ORDER) do
-    names[i] = name
+  for _, name in ipairs(THEME_ORDER) do
+    local theme = borderSettings[name]
+    if theme and theme.enabled ~= false then names[#names + 1] = name end
   end
   return names
 end
 
 --- @param callbackFn fun(name:string)
---- @param acceptFilterFn? fun(name:string) : boolean @Return true to accept (include) a border; defaults to accepting all
-function o:ForEachBorder(callbackFn, acceptFilterFn)
+--- @param acceptFilterFn? fun(name:string) : boolean @Return true to accept (include) a theme; defaults to accepting all
+function o:EachTheme(callbackFn, acceptFilterFn)
   if not callbackFn then return end
   local fn = acceptFilterFn or acceptAll
-  for _, name in ipairs(self:GetBorderNames()) do
+  for _, name in ipairs(self:GetThemes()) do
     if fn(name) then callbackFn(name) end
   end
 end
