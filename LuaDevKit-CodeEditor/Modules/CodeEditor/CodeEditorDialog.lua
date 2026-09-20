@@ -247,13 +247,26 @@ local function TrimToMaxLines(text)
   return table.concat(kept, '\n')
 end
 
+--- Digit width the gutter is sized for, and the width line numbers are padded
+--- to. A multiLine EditBox ignores SetJustifyH (WowLua's own line-number box
+--- and every Blizzard multiLine EditBox leave it at LEFT), so the column is
+--- right-aligned by padding instead: every catalog font is monospace, so
+--- numbers padded to a common width line up on their last digit.
+--- @param lastLine number Highest line number the gutter shows
+--- @return number
+local function GutterDigits(lastLine)
+  return math.max(#tostring(lastLine), MIN_GUTTER_DIGITS)
+end
+
 --- @param numLines number
---- @return string text "1\n2\n...\nN"
+--- @param digits number Width each number is right-padded to (see GutterDigits)
+--- @return string text "  1\n  2\n...\n999"
 --- @return number rows Rendered row count, for sizing the gutter
-local function LineNumbersText(numLines)
+local function LineNumbersText(numLines, digits)
+  local fmt = '%' .. digits .. 'd'
   local parts = {}
   for i = 1, numLines do
-    parts[i] = i
+    parts[i] = fmt:format(i)
   end
   return table.concat(parts, '\n'), numLines
 end
@@ -261,16 +274,18 @@ end
 --- Wrap mode: each logical line gets its number followed by (rows - 1) blank
 --- lines, so the gutter's rows mirror the code's wrapped visual rows.
 --- @param self LDK_CodeEditorDialog
+--- @param digits number Width each number is right-padded to (see GutterDigits)
 --- @return string text
 --- @return number rows Rendered row count, for sizing the gutter
-local function WrappedLineNumbersText(self)
+local function WrappedLineNumbersText(self, digits)
   local measure = self.WrapMeasure.Text
+  local fmt = '%' .. digits .. 'd'
   local parts = {}
   local n = 0
   -- Trailing '\n' keeps a final empty line counted, matching CountLines().
   for line in (self.CodeEditBox:GetText() .. '\n'):gmatch('(.-)\n') do
     n = n + 1
-    parts[#parts + 1] = n
+    parts[#parts + 1] = fmt:format(n)
     measure:SetText(line)
     local rows = measure:GetNumLines()
     for _ = 2, rows do
@@ -288,9 +303,8 @@ end
 --- @param lastLine number Highest line number the gutter shows
 --- @return number
 local function GutterWidth(self, lastLine)
-  local digits = math.max(#tostring(lastLine), MIN_GUTTER_DIGITS)
   local measure = self.WrapMeasure.Text
-  measure:SetText(string.rep('0', digits))
+  measure:SetText(string.rep('0', GutterDigits(lastLine)))
   -- Measured width plus GUTTER_SLACK: an EditBox needs more room for a line
   -- than its width minus text insets suggests (at size 10, a 26px 4-digit
   -- number still wrapped in a 31px text area), and a line that doesn't fit
@@ -1027,10 +1041,11 @@ function o:RefreshGutter()
   end
 
   local text, rows
+  local digits = GutterDigits(lastLine)
   if self.wrapText then
-    text, rows = WrappedLineNumbersText(self)
+    text, rows = WrappedLineNumbersText(self, digits)
   else
-    text, rows = LineNumbersText(lastLine)
+    text, rows = LineNumbersText(lastLine, digits)
   end
 
   -- Both columns render the same row count in the same font, so rows times the
