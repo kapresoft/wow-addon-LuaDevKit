@@ -422,7 +422,7 @@ local function __InitBorders()
         edgeFile = BG_WHITE,
         tileSize = 4,
         edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
         borderColor = { 0.55, 0.58, 0.62, 1 },
       },

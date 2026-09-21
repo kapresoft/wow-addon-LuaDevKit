@@ -24,7 +24,8 @@ local strlenutf8 = strlenutf8
 Local Vars
 -------------------------------------------------------------------------------]]
 local GUTTER = {
-  borderColor = { 1, 1, 1, 0 },
+  useCodeBorderColor = false,
+  borderColor = { 0.133, 0.341, 0.031, 0 },
   bgColor = { 0, 0, 0, 0 },
   textColor = { 1, 1, 1, 1.0 },
 }
@@ -39,21 +40,23 @@ local MIN_GUTTER_DIGITS = 2
 -- in-game, not a file editor; text past this is dropped on the way in.
 local MAX_LINES = 3000
 
--- Horizontal room around the digits inside GutterBackdrop: the Gutter
--- ScrollFrame is inset 5px on each side (XML), the numbers EditBox has a 4px
--- right text inset (OnLoad), plus 4px of left margin.
-local GUTTER_PADDING = 5 + 5 + 4 + 4
+-- Shared by both viewports: unequal top insets drift the gutter's rows out of
+-- step with the code's.
+local VIEWPORT_TOP_BOTTOM_INSET = 3
 
--- Draws the gutter's border in the same backdrop as the code area, so the
--- line-number column's bounds are visible while working on its layout.
-local SHOW_GUTTER_OUTLINE = true
+-- Space between the last digit and the code panel (visible gap is this plus 4).
+local GUTTER_TEXT_RIGHT_INSET = 10
 
--- Width of the gutter's numbers EditBox; only needs to exceed any gutter width.
-local NUMBERS_BOX_WIDTH = 500
+-- Gutter width beyond the digits: XML insets (left, right) plus text inset and left margin.
+local GUTTER_PADDING = 5 + 4 + GUTTER_TEXT_RIGHT_INSET + 4
 
 -- Extra room beyond the measured digit width, since an EditBox needs more than
 -- its text area's arithmetic suggests before it will render a line.
 local GUTTER_SLACK = 0
+
+-- Horizontal text padding inside CodeEditBox (left, right).
+local CODE_TEXT_INSET_LEFT = 0
+local CODE_TEXT_INSET_RIGHT = 6
 
 -- Breathing room left when the dialog is clamped to the screen, on whichever
 -- axis had to shrink: total, so the usable extent is the screen's minus this.
@@ -79,7 +82,7 @@ local DEFAULTS = {
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_CodeEditorGutterChild : Frame
---- @field Numbers EditBox Read-only "1\n2\n...\nN" in the code font, right-justified
+--- @field Numbers EditBox Read-only "1\n2\n...\nN" in the code font, padded to a common digit width
 
 --- @class LDK_CodeEditorGutter : ScrollFrame
 --- @field ScrollChild LDK_CodeEditorGutterChild
@@ -248,10 +251,19 @@ local function TrimToMaxLines(text)
 end
 
 --- Digit width the gutter is sized for, and the width line numbers are padded
---- to. A multiLine EditBox ignores SetJustifyH (WowLua's own line-number box
---- and every Blizzard multiLine EditBox leave it at LEFT), so the column is
---- right-aligned by padding instead: every catalog font is monospace, so
---- numbers padded to a common width line up on their last digit.
+--- to. This padding, not justification, is what lines the column up: the box
+--- is LEFT justified, so every row starts at the same x, and equal character
+--- counts in a monospace font put every row's last digit at the same x too.
+---
+--- RIGHT justification looks equivalent but is not. It places each line at
+--- (text area right minus that line's width), and a font whose advance is not
+--- a whole number of pixels at the current size makes that width fractional:
+--- JetBrains Mono and PT Mono are 0.6em (8.4px at size 14), so the remainder
+--- cycles with the digit count and each line's right edge rounds to a
+--- different pixel, leaving the column visibly ragged. Ubuntu Mono (0.5em) and
+--- the Noto CJK faces (1.0em) are whole pixels, which is why only some fonts
+--- showed it. LEFT plus padding never computes a line width, so the problem
+--- cannot arise in any font at any size.
 --- @param lastLine number Highest line number the gutter shows
 --- @return number
 local function GutterDigits(lastLine)
@@ -259,7 +271,7 @@ local function GutterDigits(lastLine)
 end
 
 --- @param numLines number
---- @param digits number Width each number is right-padded to (see GutterDigits)
+--- @param digits number Width each number is padded to (see GutterDigits)
 --- @return string text "  1\n  2\n...\n999"
 --- @return number rows Rendered row count, for sizing the gutter
 local function LineNumbersText(numLines, digits)
@@ -274,7 +286,7 @@ end
 --- Wrap mode: each logical line gets its number followed by (rows - 1) blank
 --- lines, so the gutter's rows mirror the code's wrapped visual rows.
 --- @param self LDK_CodeEditorDialog
---- @param digits number Width each number is right-padded to (see GutterDigits)
+--- @param digits number Width each number is padded to (see GutterDigits)
 --- @return string text
 --- @return number rows Rendered row count, for sizing the gutter
 local function WrappedLineNumbersText(self, digits)
@@ -326,6 +338,7 @@ end
 Methods
 -------------------------------------------------------------------------------]]
 function o:OnLoad()
+  self:OnLoad_Viewports()
   self:OnLoad_GripLines()
 
   -- parentKey="CodeEditBox" resolves onto the ScrollFrame (its immediate XML
@@ -344,30 +357,17 @@ function o:OnLoad()
   scrollBar:SetPoint('TOPLEFT', self.ScrollFrame, 'TOPRIGHT', 6, -11)
   scrollBar:SetPoint('BOTTOMLEFT', self.ScrollFrame, 'BOTTOMRIGHT', 6, 10)
 
-  -- Gutter numbers EditBox: no justifyH attribute exists for EditBox in XML, so
-  -- justify here; the right inset keeps digits off the gutter's clip edge.
   local numbers = self.Gutter.ScrollChild.Numbers
 
   -- enableKeyboard="false" (XML) only blocks the box from acquiring focus on
   -- its own; it does not refuse input once focused some other way. SetEnabled
   -- is the actual read-only switch.
   numbers:SetEnabled(false)
-  numbers:SetJustifyH('RIGHT')
-
-  -- Right inset absorbs the EditBox's 10px right-shift (XML anchors) on top of
-  -- the 4px margin, so the right-justified digits land back inside the Gutter's
-  -- clip edge instead of just outside it.
-  numbers:SetTextInsets(0, 4, 0, 0)
-
-  -- An EditBox needs more room for a line than its width minus insets
-  -- suggests, and a line that doesn't fit stops its rendering at "...". So the
-  -- box is made far wider than any gutter, right-anchored (XML), and the
-  -- Gutter clips the unused left side.
-  numbers:SetWidth(NUMBERS_BOX_WIDTH)
-
-  local headerColor = CreateColorFromRGBHexString('151B2B')
-  --self.Header:SetBackdropColor(0.2275, 0.2157, 0.2314, .95)
-  self.Header:SetBackdropColor(headerColor:GetRGBA())
+  -- LEFT, not RIGHT: the numbers are padded to a common width (see GutterDigits).
+  numbers:SetJustifyH('LEFT')
+  -- TOP keeps row 1 at the top when the box is taller than its text (short files).
+  numbers:SetJustifyV('TOP')
+  numbers:SetTextInsets(0, GUTTER_TEXT_RIGHT_INSET, 0, 0)
 
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
@@ -472,6 +472,16 @@ function o:OnLoad_Tmp_NineSliceDemo()
   nineSlice:Show()
 end
 
+--- Places both scroll viewports inside their backdrops. Anchored here rather
+--- than in XML so the shared vertical inset lives in one place.
+function o:OnLoad_Viewports()
+  local v = VIEWPORT_TOP_BOTTOM_INSET
+  self.Gutter:SetPoint('TOPLEFT', self.GutterBackdrop, 'TOPLEFT', 5, -v)
+  self.Gutter:SetPoint('BOTTOMRIGHT', self.GutterBackdrop, 'BOTTOMRIGHT', -4, v)
+  self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -v)
+  self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, v)
+end
+
 --- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
 --- viewport, so lines never reach a wrap boundary and logical line count
 --- (\n-based) always equals visual line count. Start at the viewport's
@@ -481,13 +491,8 @@ function o:OnLoad_CodeEditBox()
   self.CodeEditBox:SetHeight(self.ScrollFrame:GetHeight())
   self.CodeEditBox:SetAutoFocus(false)
   self:SetWrapText(DEFAULTS.wrapText)
-  -- Horizontal text padding: EditBox insets are the actual API for this --
-  -- the frame's own anchors position the whole (4000px-wide, no-wrap) hit
-  -- region, not the glyphs within it, so nudging those anchors doesn't pad
-  -- the text. Top/bottom stay 0 -- the gutter's line labels are positioned
-  -- independently of CodeEditBox's insets, so a vertical inset here would
-  -- desync line 1's label from the code's actual first line.
-  self.CodeEditBox:SetTextInsets(6, 6, 0, 0)
+  -- Insets, not anchors, pad the text; top/bottom stay 0 or line 1 desyncs from the gutter.
+  self.CodeEditBox:SetTextInsets(CODE_TEXT_INSET_LEFT, CODE_TEXT_INSET_RIGHT, 0, 0)
 end
 
 --- clampedToScreen only constrains position, so a dialog left wider than the
@@ -809,7 +814,8 @@ function o:ApplyTheme(name)
     if bd.bgColor then self:SetBackdropColor(unpack(bd.bgColor)) end
   end
 
-  local gutterTextC = GUTTER.textColor
+  local gutterTextColor = GUTTER.textColor
+  local gutterBorderColor = GUTTER.borderColor
   local code = bs.code
 
   if code and code.backdrop then
@@ -826,13 +832,14 @@ function o:ApplyTheme(name)
     end
     if borderColor then
       self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
+      if GUTTER.useCodeBorderColor then gutterBorderColor = borderColor end
     end
-    if gutter and gutter.textColor then gutterTextC = gutter.textColor end
+    if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
   end
   -- gutter borderColor is alpha 0 (hidden)
-  self.GutterBackdrop:SetBackdropBorderColor(upk(GUTTER.borderColor))
+  self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
-  self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextC))
+  self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextColor))
   self:_SetHeaderBorderStyle(bs)
 end
 
@@ -1019,11 +1026,9 @@ function o:RefreshGutter()
   end
 
   -- Width must be set explicitly (scroll children ignore right-side anchors).
-  -- Sized to the numbers EditBox, not to the Gutter: the child is what the
-  -- EditBox anchors to, so a gutter-width child clipped every number down to
-  -- the gutter and a 4-digit line stopped rendering at "...". Wider than the
-  -- Gutter is fine -- the Gutter clips the overhang, and the numbers are
-  -- right-justified, so the digits still land at its right edge.
+  -- Matched to the Gutter: the numbers EditBox fills this child, and
+  -- GutterWidth above already sized the Gutter to hold the widest line number
+  -- plus GUTTER_PADDING, so the digits fit without clipping.
   local gutterWidth = gutter:GetWidth()
   if SizeDiffers(child:GetWidth(), gutterWidth) then child:SetWidth(gutterWidth) end
 

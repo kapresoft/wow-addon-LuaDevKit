@@ -241,10 +241,8 @@
 
             <!-- Borders live on separate backing frames: a ScrollFrame clips at its
                  outer rect, but a backdrop edge is drawn *inside* that rect, so
-                 content scrolled under the border band. Each ScrollFrame is inset
-                 5px (BACKDROP_TOAST_12_12's own inset) inside its backing frame so
-                 the clip edge lands just inside the border line. Gutter and code
-                 share the same top inset so line rows stay aligned. -->
+                 content scrolled under the border band. Gutter and code must keep
+                 the same top inset or their line rows drift apart. -->
             <Frame parentKey="GutterBackdrop" inherits="BackdropTemplate">
                 <Size x="34" y="1"/>
                 <Anchors>
@@ -257,10 +255,7 @@
                  the code area does; vertical scroll is driven in lockstep with it (see
                  OnCodeEditBoxScroll) rather than by direct user interaction. -->
             <ScrollFrame parentKey="Gutter">
-                <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPLEFT" x="5" y="-5"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.GutterBackdrop" relativePoint="BOTTOMRIGHT" x="-5" y="5"/>
-                </Anchors>
+                <!-- Anchored in Lua (OnLoad_Viewports): its inset must track the code viewport's. -->
                 <ScrollChild>
                     <!-- Size is set from Lua (RefreshGutter): scroll children keep their
                          explicit size over right-side anchors, so a fixed width here
@@ -268,12 +263,8 @@
                     <Frame parentKey="ScrollChild">
                         <Size x="1" y="1"/>
                         <Anchors>
-                            <!-- TOPRIGHT, not TOPLEFT: the child is far wider than the
-                                 Gutter, so a left anchor pushed its right edge (and the
-                                 right-justified Numbers anchored to it) hundreds of pixels
-                                 past the clip edge, off screen. Anchored on the right, the
-                                 extra width hangs off to the left where the Gutter clips
-                                 it, and the digits land at the visible right edge. -->
+                            <!-- One corner only. RefreshGutter gives this frame its
+                                 width and height; a second anchor would fight that. -->
                             <Anchor point="TOPLEFT"/>
                         </Anchors>
                         <Frames>
@@ -283,12 +274,11 @@
                                  FontString: those truncate past ~30,000 characters or
                                  ~65,536 rendered height, which a long file reaches.
                                  Mouse and keyboard are off so it never takes focus or shows
-                                 a caret. Right justification, the right text inset, and the
-                                 width are set in Lua OnLoad, since EditBox has no justifyH
-                                 attribute. Anchored on the right only and far wider than the
-                                 gutter: right-justified digits still end at the gutter's edge,
-                                 the excess hangs off the left where the Gutter clips it, and
-                                 no number can ever be too wide to fit. -->
+                                 a caret. Font, justification and text insets are all set in
+                                 Lua (OnLoad and ApplyCodeFont), so there is no nested
+                                 FontString here; CodeEditBox has none either. The numbers
+                                 are padded to a common digit width and LEFT justified, which
+                                 is what lines the column up. See GutterDigits. -->
                             <EditBox parentKey="Numbers" multiLine="true"
                                      enableMouseClicks="false"
                                      autoFocus="false" enableMouse="false" enableKeyboard="false">
@@ -296,15 +286,6 @@
                                     <Anchor point="TOPLEFT"/>
                                     <Anchor point="BOTTOMRIGHT"/>
                                 </Anchors>
-                                <!-- The EditBox's own text component. Without this, its
-                                     default row cap ended the gutter at "..." around line
-                                     1859 no matter how wide the column was. maxLines is
-                                     what WowLua's line-number box sets for the same
-                                     reason; nonspacewrap keeps a number from being split
-                                     across two rows, which would desync the gutter from
-                                     the code. -->
-                                <FontString inherits="LDK_CodeEditorFont"
-                                            justifyH="RIGHT" justifyV="TOP"/>
                             </EditBox>
                         </Frames>
                     </Frame>
@@ -331,10 +312,7 @@
 
             <!-- Code area: no-wrap EditBox inside a scroll frame (vertical scrollbar via UIPanelScrollFrameTemplate) -->
             <ScrollFrame parentKey="ScrollFrame" inherits="UIPanelScrollFrameTemplate">
-                <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.CodeBackdrop" relativePoint="TOPLEFT" x="5" y="-5"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.ScrollBarGap" relativePoint="BOTTOMRIGHT" x="-5" y="5"/>
-                </Anchors>
+                <!-- Anchored in Lua (OnLoad_Viewports): its inset must track the gutter's. -->
                 <Scripts>
                     <!-- Focus fallback, mirroring Blizzard's InputScrollFrame_OnMouseDown
                          on UIPanelInputScrollFrameTemplate. The ScrollFrame sits below
