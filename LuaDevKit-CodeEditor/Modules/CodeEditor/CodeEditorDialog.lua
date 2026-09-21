@@ -32,6 +32,22 @@ local GUTTER = {
 
 local HEADER_HEIGHT = 28
 
+-- Height StatusBar opens at, and the floors the divider drag clamps between.
+-- MIN_CODE_HEIGHT is what stops a downward drag from squeezing the code area
+-- out of existence; the max output height is derived from it, not fixed.
+local STATUS_BAR_HEIGHT = 100
+local MIN_STATUS_HEIGHT = 40
+local MIN_CODE_HEIGHT = 60
+
+-- Matches StatusDivider's Size y in XML. The divider sits between the code area
+-- and StatusBar, so its height comes out of the space they share.
+local STATUS_DIVIDER_HEIGHT = 10
+
+-- Output lines kept before the oldest are dropped. Same reasoning as MAX_LINES:
+-- an unbounded EditBox truncates mid-text at its letters cap and takes every
+-- line below the cut with it.
+local MAX_OUTPUT_LINES = 500
+
 -- Fewest digits the gutter is sized for, so a short file's gutter doesn't
 -- widen again the moment it reaches line 10.
 local MIN_GUTTER_DIGITS = 2
@@ -94,6 +110,14 @@ Types
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
 
+--- @class LDK_CodeEditorStatusBar : Frame, BackdropTemplate
+--- @field EvalStatus EditBox Read-only output box, no ScrollFrame around it
+
+--- @class LDK_CodeEditorStatusDivider : Button
+--- @field Grip Texture The draggable handle, colored by ApplyTheme
+--- @field cursorStart number|nil Screen Y at drag start
+--- @field heightStart number|nil StatusBar height at drag start
+
 --- @class LDK_CodeEditorHeaderTitle : Frame
 --- @field Text FontString The dialog title, centered
 
@@ -121,6 +145,10 @@ Types
 --- @field fontFamily string Key of the currently applied font (see FontUtil:GetFontChoices())
 --- @field fontSize number Current fontSize option, applied to rendering (snapped to FontUtil:GetFontSizes())
 --- @field BottomBar LDK_CodeEditorBottomBar
+--- @field StatusBar LDK_CodeEditorStatusBar Output panel between the code area and BottomBar
+--- @field StatusDivider LDK_CodeEditorStatusDivider Drag handle that sets StatusBar's height
+--- @field EvalStatus EditBox Alias of StatusBar.EvalStatus
+--- @field outputLines string[] Appended evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean Current wrap-mode state
 --- @field onConfigChanged fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
@@ -133,6 +161,8 @@ Types
 --- @field SizerSE Frame Bottom-right resize grip
 --- @field HeaderTitle FontString
 --- @field borderStyle Name
+--- @field statusGripColor RGBA Resting divider grip color, from the active theme
+--- @field statusGripHoverColor RGBA Hovered divider grip color, from the active theme
 LDK_CodeEditorDialogMixin = {}
 local o = LDK_CodeEditorDialogMixin
 
@@ -330,6 +360,17 @@ local function GutterWidth(self, lastLine)
   return math.ceil(measure:GetStringWidth()) + GUTTER_SLACK + GUTTER_PADDING
 end
 
+--- Tallest StatusBar that still leaves MIN_CODE_HEIGHT for the code area.
+--- Measured off the live frames (TopBar's bottom to BottomBar's top) rather
+--- than summing row heights, so it stays right as the header and bars change.
+--- @param self LDK_CodeEditorDialog
+--- @return number
+local function MaxStatusHeight(self)
+  local top, bottom = self.TopBar:GetBottom(), self.BottomBar:GetTop()
+  if not top or not bottom then return STATUS_BAR_HEIGHT end
+  return math.max(MIN_STATUS_HEIGHT, top - bottom - STATUS_DIVIDER_HEIGHT - MIN_CODE_HEIGHT)
+end
+
 --- Width the EditBox actually wraps text at: viewport minus its text insets.
 --- @param self LDK_CodeEditorDialog
 --- @return number
@@ -342,13 +383,16 @@ end
 Methods
 -------------------------------------------------------------------------------]]
 function o:OnLoad()
+  -- parentKey resolves onto the immediate XML parent (the ScrollFrame, the
+  -- StatusBar), not this dialog frame -- alias both here so the rest of this
+  -- file can address them directly. Hoisted above OnLoad_Viewports because that
+  -- is what anchors EvalStatus.
+  self.CodeEditBox = self.ScrollFrame.CodeEditBox
+  self.EvalStatus = self.StatusBar.EvalStatus
+
   self:OnLoad_Viewports()
   self:OnLoad_GripLines()
 
-  -- parentKey="CodeEditBox" resolves onto the ScrollFrame (its immediate XML
-  -- parent), not this dialog frame -- alias it here so the rest of this file
-  -- can address it as self.CodeEditBox.
-  self.CodeEditBox = self.ScrollFrame.CodeEditBox
   cns:EnableLuaFormatter(self.CodeEditBox)
 
   -- UIPanelScrollFrameTemplate's ScrollBar anchors at y=-16/16 (SecureScrollTemplates.xml),
@@ -420,6 +464,7 @@ function o:OnLoad()
   self:OnLoad_Fonts()
   self.BottomBar.WrapCheckButton.text:SetText('Wrap Text')
   self:OnLoad_CodeEditBox()
+  self:OnLoad_StatusBar()
 
   -- Prototype-only: pre-fill with sample code long enough to force scrolling,
   -- so gutter/scroll sync can be tested immediately on open.
@@ -485,6 +530,8 @@ function o:OnLoad_Viewports()
   self.Gutter:SetPoint('BOTTOMRIGHT', self.GutterBackdrop, 'BOTTOMRIGHT', -4, v)
   self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -v)
   self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, v)
+  self.EvalStatus:SetPoint('TOPLEFT', self.StatusBar, 'TOPLEFT', 2, -v)
+  self.EvalStatus:SetPoint('BOTTOMRIGHT', self.StatusBar, 'BOTTOMRIGHT', -2, v)
 end
 
 --- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
@@ -498,6 +545,20 @@ function o:OnLoad_CodeEditBox()
   self:SetWrapText(DEFAULTS.wrapText)
   -- Insets, not anchors, pad the text; top/bottom stay 0 or line 1 desyncs from the gutter.
   self.CodeEditBox:SetTextInsets(CODE_TEXT_INSET_LEFT, CODE_TEXT_INSET_RIGHT, 0, 0)
+end
+
+--- Read-only output box: same treatment as the gutter's Numbers box, for the
+--- same reason. enableKeyboard="false" (XML) only stops it acquiring focus on
+--- its own; SetEnabled is the actual read-only switch.
+function o:OnLoad_StatusBar()
+  local box = self.EvalStatus
+  box:SetEnabled(false)
+  box:SetJustifyH('LEFT')
+  -- TOP keeps the first line at the top when the box is taller than its text.
+  box:SetJustifyV('TOP')
+  box:SetTextInsets(2, 2, 0, 0)
+  self.StatusBar:SetHeight(STATUS_BAR_HEIGHT)
+  self:ClearOutput()
 end
 
 --- clampedToScreen only constrains position, so a dialog left wider than the
@@ -676,6 +737,18 @@ function o:ClampToScreen(withMargin)
   end
 end
 
+--- The dialog itself was resized (SizerSE drag, or a clamp after a scale
+--- change). StatusBar keeps whatever height it had, so the code area absorbs
+--- the difference -- re-clamp in case that pushed it under MIN_CODE_HEIGHT.
+--- Safe to react to here, unlike the child size events: nothing in this file
+--- resizes the dialog frame, so this cannot feed itself.
+function o:OnSizeChanged()
+  -- OnSizeChanged fires while the frame is still being built, before its XML
+  -- children (and the OnLoad aliases) exist.
+  if not self.StatusBar then return end
+  self:SetStatusHeight(self.StatusBar:GetHeight())
+end
+
 function o:OnClickClose() self:Hide() end
 
 --- Escape while the dialog itself has keyboard focus (e.g. after the
@@ -843,16 +916,30 @@ function o:ApplyTheme(name)
 
     self.GutterBackdrop:SetBackdrop(cbd)
     self.CodeBackdrop:SetBackdrop(cbd)
+    self.StatusBar:SetBackdrop(cbd)
 
     if bgColor then
       self.CodeBackdrop:SetBackdropColor(upk(bgColor))
+      self.StatusBar:SetBackdropColor(upk(bgColor))
     end
     if borderColor then
       self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
+      self.StatusBar:SetBackdropBorderColor(upk(borderColor))
       if GUTTER.useCodeBorderColor then gutterBorderColor = borderColor end
     end
     if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
   end
+  -- The output panel borrows the code panel's backdrop (above), but its own
+  -- colors are the theme's: the grip is a handle, not a hairline border, so it
+  -- is tuned per theme rather than taken from code.backdrop.borderColor, whose
+  -- alpha is far too low to see at this size.
+  local status = bs.status
+  local divider = status.divider
+  -- Both remembered so OnStatusDividerHover can swap between them.
+  self.statusGripColor = divider.gripColor
+  self.statusGripHoverColor = divider.gripHoverColor
+  self.StatusDivider.Grip:SetColorTexture(upk(divider.gripColor))
+  self.EvalStatus:SetTextColor(upk(status.textColor))
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
@@ -912,6 +999,7 @@ function o:ApplyCodeFont(notify)
   self.CodeEditBox:SetFontObject(font)
   self.Gutter.ScrollChild.Numbers:SetFontObject(font)
   self.WrapMeasure.Text:SetFontObject(font)
+  self.EvalStatus:SetFontObject(font)
   -- Disable the step buttons at the ends of FontUtil:GetFontSizes() -- both
   -- templates ship a DisabledTexture for exactly this state.
   local sizes = fut:GetFontSizes()
@@ -1100,6 +1188,98 @@ function o:RefreshGutter()
   numbers:SetCursorPosition(0)
 
   self.refreshingGutter = false
+end
+
+--[[-----------------------------------------------------------------------------
+Status bar: divider drag and evaluation output
+-------------------------------------------------------------------------------]]
+--- Sets the output panel's height, clamped so neither panel can be squeezed
+--- away. The code area needs no work of its own: GutterBackdrop and
+--- CodeBackdrop anchor their bottoms to StatusDivider, so it follows.
+--- @param height number
+function o:SetStatusHeight(height)
+  height = Clamp(height, MIN_STATUS_HEIGHT, MaxStatusHeight(self))
+  if SizeDiffers(self.StatusBar:GetHeight(), height) then self.StatusBar:SetHeight(height) end
+end
+
+--- @return number
+function o:GetStatusHeight() return self.StatusBar:GetHeight() end
+
+--- Divider drag, the same OnUpdate-while-held approach WowLua's resize bar
+--- uses. StartSizing is not an option here: this resizes a child, not the
+--- dialog, so the offset is tracked by hand.
+function o:OnStatusDividerMouseDown()
+  local divider = self.StatusDivider
+  divider.cursorStart = select(2, GetCursorPosition())
+  divider.heightStart = self.StatusBar:GetHeight()
+  divider:SetScript('OnUpdate', function() self:OnStatusDividerUpdate() end)
+end
+
+function o:OnStatusDividerMouseUp() self.StatusDivider:SetScript('OnUpdate', nil) end
+
+--- StatusBar is anchored by its bottom, so its top edge is what the drag moves:
+--- cursor up (rising Y) grows it, cursor down shrinks it. GetCursorPosition
+--- reports screen pixels while frame heights are UI units, hence the scale
+--- division.
+function o:OnStatusDividerUpdate()
+  local divider = self.StatusDivider
+  if not divider.cursorStart then return end
+  local delta = (select(2, GetCursorPosition()) - divider.cursorStart) / self:GetEffectiveScale()
+  self:SetStatusHeight(divider.heightStart + delta)
+end
+
+--- @param hovered boolean
+function o:OnStatusDividerHover(hovered)
+  local color = hovered and self.statusGripHoverColor or self.statusGripColor
+  self.StatusDivider.Grip:SetColorTexture(upk(color))
+end
+
+--- Drops every line of output collected so far.
+function o:ClearOutput()
+  self.outputLines = {}
+  self:RefreshOutput()
+end
+
+--- Appends one evaluation's output, keeping the previous runs above it.
+--- Embedded newlines are split out so the line cap counts what is actually
+--- rendered, not how many calls were made.
+--- @param text string
+function o:AppendOutput(text)
+  local lines = self.outputLines or {}
+  -- Trailing '\n' keeps a final empty line, matching CountLines().
+  for line in (tostring(text or '') .. '\n'):gmatch('(.-)\n') do
+    lines[#lines + 1] = line
+  end
+  local excess = #lines - MAX_OUTPUT_LINES
+  if excess > 0 then
+    -- Shift the survivors down rather than rebuilding the table, so the oldest
+    -- lines fall off the front without reallocating on every append.
+    for i = 1, #lines - excess do
+      lines[i] = lines[i + excess]
+    end
+    for i = #lines - excess + 1, #lines do
+      lines[i] = nil
+    end
+  end
+  self.outputLines = lines
+  self:RefreshOutput()
+end
+
+--- @return string Everything currently shown in the output panel
+function o:GetOutput() return table.concat(self.outputLines or {}, '\n') end
+
+--- Pushes the collected lines into the output box. SetMaxLetters is raised
+--- first for the same reason the gutter does it: an EditBox truncates at its
+--- letters cap, ending mid-text and dropping every line below the cut.
+--- strlenutf8, not #text -- SetMaxLetters counts characters, # counts bytes.
+function o:RefreshOutput()
+  local text = self:GetOutput()
+  local box = self.EvalStatus
+  box:SetMaxLetters(strlenutf8(text))
+  box:SetText(text)
+  -- SetText leaves the caret at the end; reset it so the box has no reason to
+  -- scroll its own text toward the caret.
+  box:SetCursorPosition(0)
 end
 
 --- @return string

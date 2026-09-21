@@ -57,10 +57,19 @@ Type Definitions
 --- @field backdrop LDK_Backdrop
 --- @field gutter LDK_GutterTheme
 
+--- @class LDK_DividerTheme
+--- @field gripColor RGBA @The resting handle color
+--- @field gripHoverColor RGBA @The handle color while the pointer is over it
+
+--- @class LDK_StatusTheme
+--- @field textColor RGBA @Evaluation output text
+--- @field divider LDK_DividerTheme
+
 --- @class LDK_ThemeSet
 --- @field name Name
 --- @field main LDK_MainTheme
 --- @field code LDK_CodeTheme
+--- @field status LDK_StatusTheme
 --- @field enabled? boolean @Defaults to true; set false to exclude from GetThemes()/EachTheme()
 
 --- @class LDK_BorderSettings : table<string, LDK_ThemeSet>
@@ -194,6 +203,10 @@ local function _RegisterTheme(theme)
   assertsafe(str_notBlank(name), themeReqMsg, m, 'theme.name')
   assertsafe(theme.main.backdrop.bgFile, themeReqMsg, m, 'main.backdrop.bgFile')
   assertsafe(theme.main.backdrop.edgeFile, themeReqMsg, m, 'theme.main.backdrop.edgeFile')
+  -- Every theme carries its own complete status value; nothing is merged in
+  -- behind it, so an omission has to surface here and not at ApplyTheme time.
+  assertsafe(theme.status, themeReqMsg, m, 'theme.status')
+  assertsafe(theme.status.divider, themeReqMsg, m, 'theme.status.divider')
   borderSettings[name] = theme
 end
 
@@ -228,6 +241,13 @@ local function __InitBorders()
       },
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { 0.6, 0.6, 0.6, 0.9 },
+        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
+      },
+    },
   })
   _RegisterTheme({
     name = THEME.Minimal,
@@ -261,6 +281,13 @@ local function __InitBorders()
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       },
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
+    },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
+        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
+      },
     },
   })
   _RegisterTheme({
@@ -298,6 +325,13 @@ local function __InitBorders()
         textColor = { 0.255, 0.380, 0.204, 1.0}
       }
     },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
+        gripHoverColor = { 0.255, 0.380, 0.204, 1 },
+      },
+    },
   })
   _RegisterTheme({
     name = THEME.Abyss,
@@ -333,6 +367,13 @@ local function __InitBorders()
       -- 6C9292
       gutter = { textColor = { 0.424, 0.573, 0.573, 1 } },
     },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
+        gripHoverColor = { 0.424, 0.573, 0.573, 1 },
+      },
+    },
   })
   _RegisterTheme({
     name = THEME.Oakframe,
@@ -366,6 +407,13 @@ local function __InitBorders()
         insets = { left = 3, right = 3, top = 4, bottom = 3 },
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
+      },
+    },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { 0.6, 0.6, 0.6, 0.9 },
+        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
       },
     },
   })
@@ -405,6 +453,13 @@ local function __InitBorders()
       -- FFF67E
       gutter = { textColor = { 1.000, 0.965, 0.494, 0.5 } },
     },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { 0.6, 0.6, 0.6, 0.9 },
+        gripHoverColor = { 1.000, 0.965, 0.494, 1 },
+      },
+    },
   })
   _RegisterTheme({
     name = THEME.Stonecut,
@@ -438,6 +493,13 @@ local function __InitBorders()
       },
       gutter = {
         textColor = { 0.388, 0.361, 0.329, 1.0 },
+      },
+    },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { 0.388, 0.361, 0.329, 0.9 },
+        gripHoverColor = { 0.588, 0.561, 0.529, 1 },
       },
     },
   })
@@ -478,6 +540,13 @@ local function __InitBorders()
         textColor = { 1.000, 0.820, 0.000, 0.58 },
       },
     },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { 1.000, 0.820, 0.000, 0.7 },
+        gripHoverColor = { 1.000, 0.820, 0.000, 1.0 },
+      },
+    },
   })
   _RegisterTheme({
     name = THEME.Warband,
@@ -501,6 +570,13 @@ local function __InitBorders()
         insets = { left = 3, right = 3, top = 4, bottom = 3 },
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
+      },
+    },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { 0.6, 0.6, 0.6, 0.9 },
+        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
       },
     },
   })
@@ -527,6 +603,13 @@ local function __InitBorders()
         insets = { left = 3, right = 3, top = 4, bottom = 3 },
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
+      },
+    },
+    status = {
+      textColor = { 0.78, 0.82, 0.85, 1 },
+      divider = {
+        gripColor = { 0.6, 0.6, 0.6, 0.9 },
+        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
       },
     },
   })

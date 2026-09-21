@@ -27,6 +27,7 @@
         <Scripts>
             <OnLoad method="OnLoad"/>
             <OnShow method="OnShow"/>
+            <OnSizeChanged method="OnSizeChanged"/>
             <OnKeyDown method="OnKeyDown"/>
         </Scripts>
 
@@ -221,6 +222,68 @@
                 </Frames>
             </Frame>
 
+            <!-- Output panel: evaluation results, appended run after run. Full
+                 width like BottomBar, which it sits directly on top of. Its
+                 height is the split point between the code area and this panel;
+                 StatusDivider is what writes that height. -->
+            <Frame parentKey="StatusBar" inherits="BackdropTemplate">
+                <Size y="100"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.BottomBar" relativePoint="TOPLEFT" x="0" y="0"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomBar" relativePoint="TOPRIGHT" x="0" y="0"/>
+                </Anchors>
+                <Frames>
+                    <!-- Read-only output box; no ScrollFrame around it, so it
+                         shows whatever fits its current height. Same treatment
+                         as the gutter's Numbers box: mouse and keyboard off so
+                         it never takes focus or shows a caret. Font,
+                         justification and insets come from Lua
+                         (OnLoad_StatusBar, ApplyCodeFont); it is anchored in
+                         OnLoad_Viewports alongside the other viewports. -->
+                    <EditBox parentKey="EvalStatus" multiLine="true"
+                             enableMouseClicks="false"
+                             autoFocus="false" enableMouse="false" enableKeyboard="false"/>
+                </Frames>
+            </Frame>
+
+            <!-- Drag handle between the code area and the output panel. It
+                 resizes StatusBar; the code area follows because GutterBackdrop
+                 and CodeBackdrop anchor their bottoms to this frame's top. -->
+            <Button parentKey="StatusDivider" enableMouse="true">
+                <Size y="10"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.StatusBar" relativePoint="TOPLEFT" x="0" y="0"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.StatusBar" relativePoint="TOPRIGHT" x="0" y="0"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <!-- Colored in Lua (ApplyTheme), like every other border here. -->
+                        <Texture parentKey="Grip">
+                            <Size x="80" y="4"/>
+                            <Anchors>
+                                <Anchor point="CENTER"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Scripts>
+                    <OnMouseDown>
+                        if button == "LeftButton" then
+                        self:GetParent():OnStatusDividerMouseDown()
+                        end
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():OnStatusDividerMouseUp()
+                    </OnMouseUp>
+                    <OnEnter>
+                        self:GetParent():OnStatusDividerHover(true)
+                    </OnEnter>
+                    <OnLeave>
+                        self:GetParent():OnStatusDividerHover(false)
+                    </OnLeave>
+                </Scripts>
+            </Button>
+
             <!-- Hidden measuring string for wrap mode: same font and wrap settings as
                  CodeEditBox, width matched to its text area, so GetNumLines() reports
                  how many visual rows a given logical line will occupy. -->
@@ -246,7 +309,7 @@
                 <Size x="34" y="1"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.TopBar" relativePoint="BOTTOMLEFT" x="16" y="0"/>
-                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.BottomBar" relativePoint="TOPLEFT" x="16" y="0"/>
+                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.StatusDivider" relativePoint="TOPLEFT" x="16" y="0"/>
                 </Anchors>
             </Frame>
 
@@ -295,7 +358,7 @@
                 <Anchors>
                     <!-- x="-1" overlaps the gutter's border; a gap would show two borders. -->
                     <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="-1" y="0"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomBar" relativePoint="TOPRIGHT" x="-29" y="0"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.StatusDivider" relativePoint="TOPRIGHT" x="-29" y="0"/>
                 </Anchors>
             </Frame>
 
