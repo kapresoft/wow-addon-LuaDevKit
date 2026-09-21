@@ -31,19 +31,7 @@ end; RegisterObjects(O)
 --- @return table<string, string>
 function ns:GetLocale() return self.O.AceLocale:GetLocale(self.addon, true) end
 
--- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
--- CodeEditorDialog's first SetText call so that first paint already goes
--- through FAIAP's SetText override; its GetText override returns decoded
--- (uncolored) text, so CountLines/RefreshGutter/wrap measuring all keep
--- seeing clean source.
---
--- Known risk, not yet observed in practice: colorCodeEditbox() calls
--- indentEditbox() when the line count changes, and indentEditbox()'s write
--- guard compares color-STRIPPED text against its COLORED result, so it always
--- rewrites. If those two halves start invalidating each other's caches, this
--- will show up as continuous SetText/SetCursorPosition churn -- drop the
--- indentEditbox() call in colorCodeEditbox() if so, since only the colorize
--- half is wanted here.
+--- Enables Lua syntax colorization (WowLua's FAIAP) on the given EditBox.
 --- @param editBox EditBox
 function ns:EnableLuaFormatter(editBox)
   if not editBox or not self.O.FAIAP then return end
