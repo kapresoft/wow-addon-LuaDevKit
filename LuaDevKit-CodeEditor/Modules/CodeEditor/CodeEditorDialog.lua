@@ -116,8 +116,8 @@ Types
 
 --- @class LDK_CodeEditorStatusDivider : Button
 --- @field Grip Texture The draggable handle, colored by ApplyTheme
---- @field MaximizeButton Button Up arrow left of Grip; grows StatusBar to its max
---- @field MinimizeButton Button Down arrow right of Grip; shrinks StatusBar to its min
+--- @field MaximizeButton Button Up arrow above the divider's right end; grows StatusBar to its max
+--- @field MinimizeButton Button Down arrow right of MaximizeButton; shrinks StatusBar to its min
 --- @field cursorStart number|nil Screen Y at drag start
 --- @field heightStart number|nil StatusBar height at drag start
 
@@ -391,6 +391,18 @@ local function AddTooltip(frame, key)
   frame:HookScript('OnLeave', function() GameTooltip:Hide() end)
 end
 
+--- Rotates every state texture of an arrow button, so hover and press keep
+--- the direction. Radians, counter-clockwise; common-dropdown-a-button's art
+--- points down, so 0 = down, math.pi = up.
+--- @param button Button
+--- @param radians number
+local function RotateArrow(button, radians)
+  button:GetNormalTexture():SetRotation(radians)
+  button:GetPushedTexture():SetRotation(radians)
+  button:GetDisabledTexture():SetRotation(radians)
+  button:GetHighlightTexture():SetRotation(radians)
+end
+
 --- Width the EditBox actually wraps text at: viewport minus its text insets.
 --- @param self LDK_CodeEditorDialog
 --- @return number
@@ -587,6 +599,8 @@ function o:OnLoad_StatusBar()
   local divider = self.StatusDivider
   divider.MaximizeButton:SetScript('OnClick', function() self:MaximizeStatus() end)
   divider.MinimizeButton:SetScript('OnClick', function() self:MinimizeStatus() end)
+  RotateArrow(divider.MinimizeButton, 0)
+  RotateArrow(divider.MaximizeButton, math.pi)
   AddTooltip(divider, 'Resize Output')
   AddTooltip(divider.MaximizeButton, 'Maximize Output')
   AddTooltip(divider.MinimizeButton, 'Minimize Output')
@@ -634,6 +648,9 @@ function o:OnLoad_ThemeButton()
     end
     bdrops:EachTheme(addRadio, function(name) return name and name:lower() ~= 'none' end)
   end)
+  -- Theme names are registry keys (ApplyTheme/str_eq look them up), so the
+  -- menu entries stay untranslated; only the button label is localized.
+  AddTooltip(self.ThemeButton, 'Theme')
 end
 
 function o:OnLoad_Fonts()
@@ -665,6 +682,10 @@ function o:OnLoad_Fonts()
   end)
   self.FontSizeUpButton:SetScript('OnClick', function() self:StepFontSize(1) end)
   self.FontSizeDownButton:SetScript('OnClick', function() self:StepFontSize(-1) end)
+  AddTooltip(self.FontSizeUpButton, 'Increase Font Size')
+  AddTooltip(self.FontSizeDownButton, 'Decrease Font Size')
+  AddTooltip(self.FontButton, 'Font Family')
+  AddTooltip(self.FontSizeButton, 'Font Size')
   self.fontSize = DEFAULTS.fontSize
   self:SetCodeFont(DEFAULTS.fontFamily)
 end

@@ -60,7 +60,7 @@ Type Definitions
 --- @class LDK_DividerTheme
 --- @field gripColor RGBA @The resting handle color
 --- @field gripHoverColor RGBA @The handle color while the pointer is over it
---- @field arrowColor RGBA @Tint for the maximize/minimize arrows either side of the handle
+--- @field arrowColor RGBA @Tint for the maximize/minimize arrows at the divider's right end
 
 --- @class LDK_StatusTheme
 --- @field textColor RGBA @Evaluation output text

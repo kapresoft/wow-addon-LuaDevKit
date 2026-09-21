@@ -267,28 +267,26 @@
                     </Layer>
                 </Layers>
                 <Frames>
-                    <!-- Jump the output panel to its tallest and shortest
-                         allowed heights. MinimalScrollBar's arrow atlases:
-                         flat light gray, so the theme's arrowColor tints them
-                         cleanly, and shipped in every client flavor this addon
-                         targets. Sized 16x10 (native 17x11) so each sits flush
-                         in the 10px divider. OnClick is wired in Lua
-                         (OnLoad_StatusBar). -->
-                    <Button parentKey="MaximizeButton">
-                        <Size x="16" y="10"/>
-                        <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.Grip" relativePoint="LEFT" x="-4" y="0"/>
-                        </Anchors>
-                        <NormalTexture parentKey="NormalTexture" atlas="minimal-scrollbar-arrow-top"/>
-                        <HighlightTexture parentKey="HighlightTexture" atlas="minimal-scrollbar-arrow-top" alphaMode="ADD"/>
-                    </Button>
+                    <!-- Jump the output panel to its max/min height; rotated and wired in Lua (OnLoad_StatusBar). -->
                     <Button parentKey="MinimizeButton">
-                        <Size x="16" y="10"/>
+                        <Size x="20" y="20"/>
                         <Anchors>
-                            <Anchor point="LEFT" relativeKey="$parent.Grip" relativePoint="RIGHT" x="4" y="0"/>
+                            <Anchor point="BOTTOMRIGHT" relativePoint="RIGHT" x="-32" y="4"/>
                         </Anchors>
-                        <NormalTexture parentKey="NormalTexture" atlas="minimal-scrollbar-arrow-bottom"/>
-                        <HighlightTexture parentKey="HighlightTexture" atlas="minimal-scrollbar-arrow-bottom" alphaMode="ADD"/>
+                        <NormalTexture parentKey="NormalTexture" atlas="common-dropdown-a-button"/>
+                        <PushedTexture atlas="common-dropdown-a-button"/>
+                        <DisabledTexture atlas="common-dropdown-a-button"/>
+                        <HighlightTexture atlas="common-dropdown-a-button" alphaMode="ADD"/>
+                    </Button>
+                    <Button parentKey="MaximizeButton">
+                        <Size x="20" y="20"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.MinimizeButton" relativePoint="LEFT" x="2" y="5"/>
+                        </Anchors>
+                        <NormalTexture parentKey="NormalTexture" atlas="common-dropdown-a-button"/>
+                        <PushedTexture atlas="common-dropdown-a-button"/>
+                        <DisabledTexture atlas="common-dropdown-a-button"/>
+                        <HighlightTexture atlas="common-dropdown-a-button" alphaMode="ADD"/>
                     </Button>
                 </Frames>
                 <Scripts>
