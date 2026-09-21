@@ -44,6 +44,9 @@ local MIN_CODE_HEIGHT = 60
 -- and StatusBar, so its height comes out of the space they share.
 local STATUS_DIVIDER_HEIGHT = 10
 
+-- Alpha for the output arrows; dimming reads as disabled on every theme background.
+local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = 1.0, 0.2
+
 -- Output lines kept before the oldest are dropped. Same reasoning as MAX_LINES:
 -- an unbounded EditBox truncates mid-text at its letters cap and takes every
 -- line below the cut with it.
@@ -392,8 +395,8 @@ local function AddTooltip(frame, key)
 end
 
 --- Rotates every state texture of an arrow button, so hover and press keep
---- the direction. Radians, counter-clockwise; common-dropdown-a-button's art
---- points down, so 0 = down, math.pi = up.
+--- the direction. Radians, counter-clockwise; bag-arrow's art points left, so
+--- math.pi / 2 = down, -math.pi / 2 = up.
 --- @param button Button
 --- @param radians number
 local function RotateArrow(button, radians)
@@ -401,6 +404,14 @@ local function RotateArrow(button, radians)
   button:GetPushedTexture():SetRotation(radians)
   button:GetDisabledTexture():SetRotation(radians)
   button:GetHighlightTexture():SetRotation(radians)
+end
+
+--- Enables an arrow button, or disables and dims it.
+--- @param button Button
+--- @param enabled boolean
+local function UpdateArrowState(button, enabled)
+  button:SetEnabled(enabled)
+  button:SetAlpha(enabled and ARROW_ENABLED_ALPHA or ARROW_DISABLED_ALPHA)
 end
 
 --- Width the EditBox actually wraps text at: viewport minus its text insets.
@@ -599,8 +610,8 @@ function o:OnLoad_StatusBar()
   local divider = self.StatusDivider
   divider.MaximizeButton:SetScript('OnClick', function() self:MaximizeStatus() end)
   divider.MinimizeButton:SetScript('OnClick', function() self:MinimizeStatus() end)
-  RotateArrow(divider.MinimizeButton, 0)
-  RotateArrow(divider.MaximizeButton, math.pi)
+  RotateArrow(divider.MinimizeButton, math.pi / 2)
+  RotateArrow(divider.MaximizeButton, -math.pi / 2)
   AddTooltip(divider, 'Resize Output')
   AddTooltip(divider.MaximizeButton, 'Maximize Output')
   AddTooltip(divider.MinimizeButton, 'Minimize Output')
@@ -1253,8 +1264,13 @@ Status bar: divider drag and evaluation output
 --- CodeBackdrop anchor their bottoms to StatusDivider, so it follows.
 --- @param height number
 function o:SetStatusHeight(height)
-  height = Clamp(height, MIN_STATUS_HEIGHT, MaxStatusHeight(self))
+  local maxHeight = MaxStatusHeight(self)
+  height = Clamp(height, MIN_STATUS_HEIGHT, maxHeight)
   if SizeDiffers(self.StatusBar:GetHeight(), height) then self.StatusBar:SetHeight(height) end
+  -- Disable the arrow for whichever end the panel is already at.
+  local divider = self.StatusDivider
+  UpdateArrowState(divider.MaximizeButton, SizeDiffers(height, maxHeight))
+  UpdateArrowState(divider.MinimizeButton, SizeDiffers(height, MIN_STATUS_HEIGHT))
 end
 
 --- @return number
