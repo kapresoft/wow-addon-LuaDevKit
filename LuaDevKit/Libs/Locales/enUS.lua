@@ -4,7 +4,7 @@
 local ns = select(2, ...)
 
 --- @type AceLocale-3.0
-local L = LibStub('AceLocale-3.0'):NewLocale(ns.addon, 'enUS', true)
+local L = ns.O.AceLocale:NewLocale(ns.addon, 'enUS', true, ns.options.ignoreMissingKeys)
 if not L then return end
 
 -- Label/description pairs: the label key is the short text itself (= true),
