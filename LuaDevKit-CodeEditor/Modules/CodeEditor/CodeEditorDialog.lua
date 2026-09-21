@@ -54,6 +54,10 @@ local GUTTER_PADDING = 5 + 4 + GUTTER_TEXT_RIGHT_INSET + 4
 -- its text area's arithmetic suggests before it will render a line.
 local GUTTER_SLACK = 0
 
+-- OptionsButton's arrow glyph. Its template sizes the arrow from the atlas,
+-- so the button's own Size never reaches it.
+local OPTIONS_ARROW_SIZE = 18
+
 -- Horizontal text padding inside CodeEditBox (left, right).
 local CODE_TEXT_INSET_LEFT = 0
 local CODE_TEXT_INSET_RIGHT = 6
@@ -372,7 +376,7 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local th = bdrops.theme
-  local name = th.Stonecut
+  local name = th.DarkKnight
   self:ApplyTheme(name)
 
   if self.SetResizeBounds then -- WoW 10.0+
@@ -411,6 +415,7 @@ function o:OnLoad()
     rootDescription:CreateButton('Results Inspector', function() end)
   end)
 
+  self:OnLoad_OptionsButton()
   self:OnLoad_ThemeButton()
   self:OnLoad_Fonts()
   self.BottomBar.WrapCheckButton.text:SetText('Wrap Text')
@@ -503,6 +508,18 @@ function o:OnLoad_ScaleWatcher()
   self.ScaleWatcher:RegisterEvent('UI_SCALE_CHANGED')
   self.ScaleWatcher:RegisterEvent('DISPLAY_SIZE_CHANGED')
   self.ScaleWatcher:SetScript('OnEvent', function() self:ClampToScreen(true) end)
+end
+
+--- Enlarges the dropdown arrow. WowStyle1ArrowDropdownTemplate anchors the
+--- Arrow at CENTER with useAtlasSize, and its mixin re-applies SetAtlas with
+--- UseAtlasSize on every state change, so the size has to be re-asserted after
+--- each of those rather than set once.
+function o:OnLoad_OptionsButton()
+  local arrow = self.OptionsButton.Arrow
+  if not arrow then return end
+  local function SizeArrow() arrow:SetSize(OPTIONS_ARROW_SIZE, OPTIONS_ARROW_SIZE) end
+  SizeArrow()
+  hooksecurefunc(arrow, 'SetAtlas', SizeArrow)
 end
 
 --- Icon-only: hide WowStyle1DropdownTemplate's own text-button chrome so

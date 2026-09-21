@@ -231,6 +231,7 @@ local function __InitBorders()
   })
   _RegisterTheme({
     name = THEME.Minimal,
+    enabled = false,
     main = {
       backdrop = {
         tile = false,
@@ -259,6 +260,7 @@ local function __InitBorders()
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       },
+      gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
   })
   _RegisterTheme({
@@ -292,6 +294,9 @@ local function __InitBorders()
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       },
+      gutter = {
+        textColor = { 0.255, 0.380, 0.204, 1.0}
+      }
     },
   })
   _RegisterTheme({
@@ -325,6 +330,8 @@ local function __InitBorders()
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       },
+      -- 6C9292
+      gutter = { textColor = { 0.424, 0.573, 0.573, 1 } },
     },
   })
   _RegisterTheme({
@@ -380,6 +387,7 @@ local function __InitBorders()
         backdrop = {
           edgeSize = 14,
           bgFile = _bg(lbg.BLIZZARD_PARCHMENT),
+          insets = { left = 1, right = 1, top = 1, bottom = 1 },
           bgColor = { 0.58, 0.58, 0.58, 1 },
         },
       },
@@ -390,10 +398,12 @@ local function __InitBorders()
         edgeFile = BG_WHITE,
         tileSize = 4,
         edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+        insets = { left = 1, right = 1, top = 1, bottom = 1 },
         bgColor = { 0.08, 0.08, 0.08, 0.5 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
       },
+      -- FFF67E
+      gutter = { textColor = { 1.000, 0.965, 0.494, 0.5 } },
     },
   })
   _RegisterTheme({
@@ -422,13 +432,12 @@ local function __InitBorders()
         edgeFile = BG_WHITE,
         tileSize = 4,
         edgeSize = 1,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        insets = { left = 0, right = 0, top = 0, bottom = 0 },
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
-        borderColor = { 0.55, 0.58, 0.62, 1 },
+        borderColor = { 0.388, 0.361, 0.329, 0.21 },
       },
       gutter = {
-        --  56B2FF
-        textColor = { 0.337, 0.698, 1.000, 1.0 },
+        textColor = { 0.388, 0.361, 0.329, 1.0 },
       },
     },
   })
@@ -458,14 +467,15 @@ local function __InitBorders()
       backdrop = {
         bgFile = BG_WHITE,
         edgeFile = BG_WHITE,
-        tileSize = 4,
+        tile = false,
+        tileEdge = false,
         edgeSize = 1,
         insets = { left = 0, right = 0, top = 0, bottom = 0 },
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
-        borderColor = { 0.9, 0.75, 0.35, 1 },
+        borderColor = { 1.000, 0.820, 0.000, 0.53 },
       },
       gutter = {
-        textColor = { 0.541, 0.522, 0.471, 1.0 },
+        textColor = { 1.000, 0.820, 0.000, 0.58 },
       },
     },
   })

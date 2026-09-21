@@ -140,17 +140,16 @@
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
-                        <Size x="20" y="20"/>
-                        <Anchors><Anchor point="RIGHT" x="-10" y="2"/></Anchors>
+                        <Anchors><Anchor point="RIGHT" x="-7" y="2"/></Anchors>
                     </DropdownButton>
                     <DropdownButton parentKey="ThemeButton" inherits="WowStyle1DropdownTemplate">
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
                         <Size x="20" y="20"/>
-                        <Anchors><Anchor point="RIGHT" relativeKey="$parent.OptionsButton" relativePoint="LEFT" x="-6" y="0"/></Anchors>
-                        <NormalTexture atlas="charactercreate-customize-palette" useAtlasSize="false"/>
-                        <HighlightTexture atlas="charactercreate-customize-palette" alphaMode="ADD"/>
+                        <Anchors><Anchor point="RIGHT" relativeKey="$parent.OptionsButton" relativePoint="LEFT" x="2" y="0"/></Anchors>
+                        <NormalTexture file="interface\addons\luadevkit\assets\theme-btn.tga"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\theme-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
                     <DropdownButton parentKey="FontButton" inherits="WowStyle1DropdownTemplate">
                         <KeyValues>
@@ -158,10 +157,10 @@
                         </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.ThemeButton" relativePoint="LEFT" x="-4" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.ThemeButton" relativePoint="LEFT" x="-2" y="0"/>
                         </Anchors>
-                        <NormalTexture file="Interface\Icons\INV_Misc_Note_01"/>
-                        <HighlightTexture file="Interface\Icons\INV_Misc_Note_01" alphaMode="ADD"/>
+                        <NormalTexture file="interface\addons\luadevkit\assets\font-btn.tga"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\font-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
                     <DropdownButton parentKey="FontSizeButton" inherits="WowStyle1DropdownTemplate">
                         <KeyValues>
@@ -169,16 +168,16 @@
                         </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontButton" relativePoint="LEFT" x="-4" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.FontButton" relativePoint="LEFT" x="-2" y="0"/>
                         </Anchors>
-                        <NormalTexture file="Interface\Icons\INV_Misc_Gear_08"/>
-                        <HighlightTexture file="Interface\Icons\INV_Misc_Gear_08" alphaMode="ADD"/>
+                        <NormalTexture file="interface\addons\luadevkit\assets\font-size-btn.tga"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\font-size-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
                     <!-- Step font size up/down, left of the size dropdown trigger.
                          Chat-frame scroll icons (same art Blizzard uses on
                          LootFrame's page buttons), not a scrollbar template. -->
                     <Button parentKey="FontSizeUpButton">
-                        <Size x="28" y="28"/>
+                        <Size x="20" y="26"/>
                         <Anchors>
                             <Anchor point="RIGHT" relativeKey="$parent.FontSizeButton" relativePoint="LEFT" x="-2" y="0"/>
                         </Anchors>
@@ -188,9 +187,9 @@
                         <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
                     </Button>
                     <Button parentKey="FontSizeDownButton">
-                        <Size x="28" y="28"/>
+                        <Size x="20" y="26"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontSizeUpButton" relativePoint="LEFT" x="6" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.FontSizeUpButton" relativePoint="LEFT" x="3" y="0"/>
                         </Anchors>
                         <NormalTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Up"/>
                         <PushedTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Down"/>
@@ -294,8 +293,9 @@
 
             <Frame parentKey="CodeBackdrop" inherits="BackdropTemplate">
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="2" y="0"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomBar" relativePoint="TOPRIGHT" x="-28" y="0"/>
+                    <!-- x="-1" overlaps the gutter's border; a gap would show two borders. -->
+                    <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="-1" y="0"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomBar" relativePoint="TOPRIGHT" x="-29" y="0"/>
                 </Anchors>
             </Frame>
 
