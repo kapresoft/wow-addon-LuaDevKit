@@ -149,8 +149,8 @@
                         </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors><Anchor point="RIGHT" relativeKey="$parent.OptionsButton" relativePoint="LEFT" x="-6" y="0"/></Anchors>
-                        <NormalTexture file="Interface\Icons\INV_Misc_Bag_08"/>
-                        <HighlightTexture file="Interface\Icons\INV_Misc_Bag_08" alphaMode="ADD"/>
+                        <NormalTexture atlas="charactercreate-customize-palette" useAtlasSize="false"/>
+                        <HighlightTexture atlas="charactercreate-customize-palette" alphaMode="ADD"/>
                     </DropdownButton>
                     <DropdownButton parentKey="FontButton" inherits="WowStyle1DropdownTemplate">
                         <KeyValues>
