@@ -26,8 +26,7 @@ ns.addon, ns.options = addon, options
 --- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0
-local O = {}
-ns.O = O
+local O = {}; ns.O = O
 
 --- @param self LDK_Core_Objects
 local function RegisterObjects(self)
