@@ -393,14 +393,14 @@ function o:OnLoad()
 
   self.HeaderTitle:SetText('Code Editor (Prototype)')
 
-  -- parentKey="OptionsButton"/"BorderButton"/"FontButton"/"FontSizeButton"/
+  -- parentKey="OptionsButton"/"ThemeButton"/"FontButton"/"FontSizeButton"/
   -- "FontSizeUpButton"/"FontSizeDownButton" resolve onto TopBar (their
   -- immediate XML parent), not this dialog frame -- alias them here, same as
   -- CodeEditBox above.
   self.OptionsButton = self.TopBar.OptionsButton
 
   --- @type DropdownButton
-  self.BorderButton = self.TopBar.BorderButton
+  self.ThemeButton = self.TopBar.ThemeButton
   self.FontButton = self.TopBar.FontButton
   self.FontSizeButton = self.TopBar.FontSizeButton
   self.FontSizeUpButton = self.TopBar.FontSizeUpButton
@@ -411,7 +411,7 @@ function o:OnLoad()
     rootDescription:CreateButton('Results Inspector', function() end)
   end)
 
-  self:OnLoad_BorderButton()
+  self:OnLoad_ThemeButton()
   self:OnLoad_Fonts()
   self.BottomBar.WrapCheckButton.text:SetText('Wrap Text')
   self:OnLoad_CodeEditBox()
@@ -508,13 +508,13 @@ end
 --- Icon-only: hide WowStyle1DropdownTemplate's own text-button chrome so
 --- just this frame's own NormalTexture (set in XML) shows, matching
 --- FontSizeButton's look.
-function o:OnLoad_BorderButton()
-  self.BorderButton.Background:Hide()
-  self.BorderButton.Arrow:Hide()
-  self.BorderButton.Text:Hide()
+function o:OnLoad_ThemeButton()
+  self.ThemeButton.Background:Hide()
+  self.ThemeButton.Arrow:Hide()
+  self.ThemeButton.Text:Hide()
 
   --- @param rootDescription RootMenuDescriptionProxy
-  self.BorderButton:SetupMenu(function(_, rootDescription)
+  self.ThemeButton:SetupMenu(function(_, rootDescription)
     local function addRadio(name)
       rootDescription:CreateRadio(
         name,

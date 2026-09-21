@@ -143,7 +143,7 @@
                         <Size x="20" y="20"/>
                         <Anchors><Anchor point="RIGHT" x="-10" y="2"/></Anchors>
                     </DropdownButton>
-                    <DropdownButton parentKey="BorderButton" inherits="WowStyle1DropdownTemplate">
+                    <DropdownButton parentKey="ThemeButton" inherits="WowStyle1DropdownTemplate">
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
@@ -158,7 +158,7 @@
                         </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.BorderButton" relativePoint="LEFT" x="-4" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.ThemeButton" relativePoint="LEFT" x="-4" y="0"/>
                         </Anchors>
                         <NormalTexture file="Interface\Icons\INV_Misc_Note_01"/>
                         <HighlightTexture file="Interface\Icons\INV_Misc_Note_01" alphaMode="ADD"/>
