@@ -14,6 +14,7 @@ local libName = 'LDK_Core_Namespace'
 --- @field FontUtil LDK_FontUtil
 --- @field Backdrops LDK_Backdrops
 --- @field Database LDK_Database
+--- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0
 local O = {}; ns.O = O
@@ -24,7 +25,11 @@ local function RegisterObjects(self)
   self.LSM = LibStub('LibSharedMedia-3.0')
   self.String = LibStub('Kapresoft-String-2-0')
   self.Table = LibStub('Kapresoft-Table-2-0')
+  self.AceLocale = LibStub('AceLocale-3.0')
 end; RegisterObjects(O)
+
+--- @return table<string, string>
+function ns:GetLocale() return self.O.AceLocale:GetLocale(self.addon, true) end
 
 -- Lua syntax colorization, vendored from WowLua's FAIAP.lua. Runs before
 -- CodeEditorDialog's first SetText call so that first paint already goes

@@ -44,6 +44,7 @@ ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\Table.lua
 
 Libs\External\FAIAP.lua
 Libs\Namespace.lua
+Libs\Locales\_Locale.xml
 #@do-not-package@
 Libs\Developer\DeveloperSetup.lua
 #@end-do-not-package@

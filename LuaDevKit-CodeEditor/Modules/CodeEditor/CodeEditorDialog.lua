@@ -11,6 +11,7 @@ local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
 local mt = lsm.MediaType
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
 local upk = unpack
+local L = cns:GetLocale()
 
 local libName = 'CodeEditorDialog'
 
@@ -373,6 +374,23 @@ local function MaxStatusHeight(self)
   return math.max(MIN_STATUS_HEIGHT, top - bottom - STATUS_DIVIDER_HEIGHT - MIN_CODE_HEIGHT)
 end
 
+--- Blizzard-standard hover tooltip: the label as title, its '::Desc' entry as
+--- a wrapped description. GameTooltip_SetDefaultAnchor places it where every
+--- Blizzard tooltip goes (UIParent's bottom right on Classic, the Edit Mode
+--- tooltip position on Retail). Hooked, not set, so a frame's own OnEnter/
+--- OnLeave (e.g. the divider's grip highlight) keeps running alongside it.
+--- @param frame Frame
+--- @param key string Locale key of the label; the description is key .. '::Desc'
+local function AddTooltip(frame, key)
+  frame:HookScript('OnEnter', function(f)
+    GameTooltip_SetDefaultAnchor(GameTooltip, f)
+    GameTooltip_SetTitle(GameTooltip, L[key])
+    GameTooltip_AddNormalLine(GameTooltip, L[key .. '::Desc'])
+    GameTooltip:Show()
+  end)
+  frame:HookScript('OnLeave', function() GameTooltip:Hide() end)
+end
+
 --- Width the EditBox actually wraps text at: viewport minus its text insets.
 --- @param self LDK_CodeEditorDialog
 --- @return number
@@ -464,7 +482,7 @@ function o:OnLoad()
   self:OnLoad_OptionsButton()
   self:OnLoad_ThemeButton()
   self:OnLoad_Fonts()
-  self.BottomBar.WrapCheckButton.text:SetText('Wrap Text')
+  self:OnLoad_WrapCheckButton()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
 
@@ -549,6 +567,12 @@ function o:OnLoad_CodeEditBox()
   self.CodeEditBox:SetTextInsets(CODE_TEXT_INSET_LEFT, CODE_TEXT_INSET_RIGHT, 0, 0)
 end
 
+function o:OnLoad_WrapCheckButton()
+  local button = self.BottomBar.WrapCheckButton
+  button.text:SetText(L['Wrap Text'])
+  AddTooltip(button, 'Wrap Text')
+end
+
 --- Read-only output box: same treatment as the gutter's Numbers box, for the
 --- same reason. enableKeyboard="false" (XML) only stops it acquiring focus on
 --- its own; SetEnabled is the actual read-only switch.
@@ -563,6 +587,9 @@ function o:OnLoad_StatusBar()
   local divider = self.StatusDivider
   divider.MaximizeButton:SetScript('OnClick', function() self:MaximizeStatus() end)
   divider.MinimizeButton:SetScript('OnClick', function() self:MinimizeStatus() end)
+  AddTooltip(divider, 'Resize Output')
+  AddTooltip(divider.MaximizeButton, 'Maximize Output')
+  AddTooltip(divider.MinimizeButton, 'Minimize Output')
   self:ClearOutput()
 end
 
