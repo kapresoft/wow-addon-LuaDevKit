@@ -266,6 +266,31 @@
                         </Texture>
                     </Layer>
                 </Layers>
+                <Frames>
+                    <!-- Jump the output panel to its tallest and shortest
+                         allowed heights. MinimalScrollBar's arrow atlases:
+                         flat light gray, so the theme's arrowColor tints them
+                         cleanly, and shipped in every client flavor this addon
+                         targets. Sized 16x10 (native 17x11) so each sits flush
+                         in the 10px divider. OnClick is wired in Lua
+                         (OnLoad_StatusBar). -->
+                    <Button parentKey="MaximizeButton">
+                        <Size x="16" y="10"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.Grip" relativePoint="LEFT" x="-4" y="0"/>
+                        </Anchors>
+                        <NormalTexture parentKey="NormalTexture" atlas="minimal-scrollbar-arrow-top"/>
+                        <HighlightTexture parentKey="HighlightTexture" atlas="minimal-scrollbar-arrow-top" alphaMode="ADD"/>
+                    </Button>
+                    <Button parentKey="MinimizeButton">
+                        <Size x="16" y="10"/>
+                        <Anchors>
+                            <Anchor point="LEFT" relativeKey="$parent.Grip" relativePoint="RIGHT" x="4" y="0"/>
+                        </Anchors>
+                        <NormalTexture parentKey="NormalTexture" atlas="minimal-scrollbar-arrow-bottom"/>
+                        <HighlightTexture parentKey="HighlightTexture" atlas="minimal-scrollbar-arrow-bottom" alphaMode="ADD"/>
+                    </Button>
+                </Frames>
                 <Scripts>
                     <OnMouseDown>
                         if button == "LeftButton" then

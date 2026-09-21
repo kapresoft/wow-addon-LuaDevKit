@@ -115,6 +115,8 @@ Types
 
 --- @class LDK_CodeEditorStatusDivider : Button
 --- @field Grip Texture The draggable handle, colored by ApplyTheme
+--- @field MaximizeButton Button Up arrow left of Grip; grows StatusBar to its max
+--- @field MinimizeButton Button Down arrow right of Grip; shrinks StatusBar to its min
 --- @field cursorStart number|nil Screen Y at drag start
 --- @field heightStart number|nil StatusBar height at drag start
 
@@ -558,6 +560,9 @@ function o:OnLoad_StatusBar()
   box:SetJustifyV('TOP')
   box:SetTextInsets(2, 2, 0, 0)
   self.StatusBar:SetHeight(STATUS_BAR_HEIGHT)
+  local divider = self.StatusDivider
+  divider.MaximizeButton:SetScript('OnClick', function() self:MaximizeStatus() end)
+  divider.MinimizeButton:SetScript('OnClick', function() self:MinimizeStatus() end)
   self:ClearOutput()
 end
 
@@ -939,6 +944,8 @@ function o:ApplyTheme(name)
   self.statusGripColor = divider.gripColor
   self.statusGripHoverColor = divider.gripHoverColor
   self.StatusDivider.Grip:SetColorTexture(upk(divider.gripColor))
+  self.StatusDivider.MaximizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
+  self.StatusDivider.MinimizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self.EvalStatus:SetTextColor(upk(status.textColor))
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
@@ -1204,6 +1211,12 @@ end
 
 --- @return number
 function o:GetStatusHeight() return self.StatusBar:GetHeight() end
+
+--- Grows the output panel as far as MIN_CODE_HEIGHT allows (the up arrow).
+function o:MaximizeStatus() self:SetStatusHeight(MaxStatusHeight(self)) end
+
+--- Shrinks the output panel to MIN_STATUS_HEIGHT (the down arrow).
+function o:MinimizeStatus() self:SetStatusHeight(MIN_STATUS_HEIGHT) end
 
 --- Divider drag, the same OnUpdate-while-held approach WowLua's resize bar
 --- uses. StartSizing is not an option here: this resizes a child, not the

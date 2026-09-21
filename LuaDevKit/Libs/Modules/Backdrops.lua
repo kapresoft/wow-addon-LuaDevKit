@@ -60,6 +60,7 @@ Type Definitions
 --- @class LDK_DividerTheme
 --- @field gripColor RGBA @The resting handle color
 --- @field gripHoverColor RGBA @The handle color while the pointer is over it
+--- @field arrowColor RGBA @Tint for the maximize/minimize arrows either side of the handle
 
 --- @class LDK_StatusTheme
 --- @field textColor RGBA @Evaluation output text
@@ -246,6 +247,7 @@ local function __InitBorders()
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
+        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
       },
     },
   })
@@ -287,6 +289,7 @@ local function __InitBorders()
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
+        arrowColor = { rgb(GRAY_FONT_COLOR, 0.9) },
       },
     },
   })
@@ -330,6 +333,7 @@ local function __InitBorders()
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.255, 0.380, 0.204, 1 },
+        arrowColor = { rgb(GRAY_FONT_COLOR, 0.9) },
       },
     },
   })
@@ -372,6 +376,7 @@ local function __InitBorders()
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.424, 0.573, 0.573, 1 },
+        arrowColor = { rgb(GRAY_FONT_COLOR, 0.9) },
       },
     },
   })
@@ -414,6 +419,7 @@ local function __InitBorders()
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
+        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
       },
     },
   })
@@ -458,6 +464,7 @@ local function __InitBorders()
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 1.000, 0.965, 0.494, 1 },
+        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
       },
     },
   })
@@ -500,6 +507,7 @@ local function __InitBorders()
       divider = {
         gripColor = { 0.388, 0.361, 0.329, 0.9 },
         gripHoverColor = { 0.588, 0.561, 0.529, 1 },
+        arrowColor = { 0.388, 0.361, 0.329, 0.9 },
       },
     },
   })
@@ -545,6 +553,7 @@ local function __InitBorders()
       divider = {
         gripColor = { 1.000, 0.820, 0.000, 0.7 },
         gripHoverColor = { 1.000, 0.820, 0.000, 1.0 },
+        arrowColor = { 1.000, 0.820, 0.000, 0.7 },
       },
     },
   })
@@ -577,6 +586,7 @@ local function __InitBorders()
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
+        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
       },
     },
   })
@@ -610,6 +620,7 @@ local function __InitBorders()
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
+        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
       },
     },
   })
