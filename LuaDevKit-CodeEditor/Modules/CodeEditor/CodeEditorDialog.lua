@@ -33,75 +33,56 @@ local GUTTER = {
 
 local HEADER_HEIGHT = 28
 
--- Height StatusBar opens at, and the floors the divider drag clamps between.
--- MIN_CODE_HEIGHT is what stops a downward drag from squeezing the code area
--- out of existence; the max output height is derived from it, not fixed.
+-- StatusBar's initial height; clamped via MIN_CODE_HEIGHT.
 local STATUS_BAR_HEIGHT = 100
 local MIN_STATUS_HEIGHT = 40
 local MIN_CODE_HEIGHT = 60
 
--- Matches StatusDivider's Size y in XML. The divider sits between the code area
--- and StatusBar, so its height comes out of the space they share.
+-- Matches StatusDivider's Size y in XML.
 local STATUS_DIVIDER_HEIGHT = 10
 
--- Matches CommandBar's Size y in XML. Fixed, unlike StatusBar: it holds one
--- line of input and never resizes, but its height still comes out of the same
--- shared space MaxStatusHeight measures.
+-- Matches CommandBar's Size y in XML; fixed, never resizes.
 local COMMAND_BAR_HEIGHT = 22
 
--- Alpha for the output arrows; dimming reads as disabled on every theme background.
+-- Alpha for disabled-looking output arrows.
 local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = 1.0, 0.2
 
--- Output lines kept before the oldest are dropped. Same reasoning as MAX_LINES:
--- an unbounded EditBox truncates mid-text at its letters cap and takes every
--- line below the cut with it.
+-- Output lines kept; same truncation reasoning as MAX_LINES.
 local MAX_OUTPUT_LINES = 500
 
--- Fewest digits the gutter is sized for, so a short file's gutter doesn't
--- widen again the moment it reaches line 10.
+-- Fewest digits the gutter is sized for.
 local MIN_GUTTER_DIGITS = 2
 
--- Longest snippet this editor holds. It is a scratchpad for prototyping code
--- in-game, not a file editor; text past this is dropped on the way in.
+-- Longest snippet this scratchpad editor holds.
 local MAX_LINES = 3000
 
--- Shared by both viewports: unequal top insets drift the gutter's rows out of
--- step with the code's.
+-- Shared by both viewports to keep gutter/code rows aligned.
 local VIEWPORT_TOP_BOTTOM_INSET = 3
 
--- Space between the last digit and the code panel (visible gap is this plus 4).
+-- Space between the last digit and the code panel (plus 4 visible).
 local GUTTER_TEXT_RIGHT_INSET = 10
 
--- Gutter width beyond the digits: XML insets (left, right) plus text inset and left margin.
+-- Gutter width beyond digits: XML insets plus text inset and margin.
 local GUTTER_PADDING = 5 + 4 + GUTTER_TEXT_RIGHT_INSET + 4
 
--- Extra room beyond the measured digit width, since an EditBox needs more than
--- its text area's arithmetic suggests before it will render a line.
+-- Extra room an EditBox needs beyond the measured digit width.
 local GUTTER_SLACK = 0
 
--- OptionsButton's arrow glyph. Its template sizes the arrow from the atlas,
--- so the button's own Size never reaches it.
+-- OptionsButton arrow glyph; sized by the atlas, not the button.
 local OPTIONS_ARROW_SIZE = 18
 
 -- Horizontal text padding inside CodeEditBox (left, right).
 local CODE_TEXT_INSET_LEFT = 0
 local CODE_TEXT_INSET_RIGHT = 6
 
--- Breathing room left when the dialog is clamped to the screen, on whichever
--- axis had to shrink: total, so the usable extent is the screen's minus this.
+-- Breathing room on whichever axis shrinks when clamped to screen.
 local SCREEN_MARGIN = 100
 
 local fontChoices, defaultFontChoice = fut:GetFontChoices(), fut:GetDefaultFontChoice()
 
--- Configure() defaults, and the shape of the snapshot passed to the
--- OnConfigChanged callback.
+-- Configure() defaults; shape of the OnConfigChanged snapshot.
 local DEFAULTS = {
-  -- A literal key, not cns:GetFonts()[1].key: that call builds every font
-  -- object via CreateFont/SetFont, and doing that this early (this table is
-  -- built as soon as this file's top-level code runs, well before the
-  -- client's asset system is ready for custom font files) makes SetFont
-  -- fail with "file not found" even though the same path works fine once the
-  -- dialog is actually opened later in the session.
+  -- Literal key; cns:GetFonts() here fails SetFont too early.
   fontFamily = defaultFontChoice and defaultFontChoice.key,
   fontSize = 14,
   wrapText = false,
@@ -190,10 +171,7 @@ local o = LDK_CodeEditorDialogMixin
 --[[-----------------------------------------------------------------------------
 Support Functions
 -------------------------------------------------------------------------------]]
---- Sub-pixel differences are noise; only treat a real change as a change. WoW
---- re-fires OnSizeChanged/OnTextChanged even when nothing actually changed, so
---- every resize and every refresh is gated on this to keep those events from
---- feeding each other every frame.
+--- Gates resize/refresh so no-op WoW size/text events don't self-feed.
 --- @param current number|nil
 --- @param wanted number
 --- @return boolean
@@ -251,10 +229,7 @@ local function PageMoveCursor(self, direction, lines)
       end
       pos = nl
     else
-      -- Same landing convention as the forward branch (on the '\n'
-      -- itself, not one character before it): landing short drifted
-      -- the search window by one character each iteration, compounding
-      -- into visibly wrong lines over several Page Up presses.
+      -- Land on '\n' itself, like the forward branch.
       local nl
       for p in text:sub(1, pos - 1):gmatch('()\n') do
         nl = p
@@ -270,12 +245,7 @@ local function PageMoveCursor(self, direction, lines)
 
   editBox:SetCursorPosition(pos)
 
-  -- Scroll by the same number of lines the cursor moved, so the cursor's
-  -- row position within the viewport (e.g. 5 lines down from the top)
-  -- stays the same after the jump -- not "snap to nearer edge" (the
-  -- generic scroll-to-caret) and not "always land at the top." `crossed`
-  -- (not `lines`) since a jump near the document's start/end moves fewer
-  -- lines than requested.
+  -- Scroll by `crossed` lines to keep the caret's viewport row unchanged.
   local scrollFrame = self.ScrollFrame
   local lineHeight = self.WrapMeasure.Text:GetLineHeight()
   local target = scrollFrame:GetVerticalScroll() + direction * crossed * lineHeight
@@ -334,8 +304,7 @@ local function LineNumbersText(numLines, digits)
   return table.concat(parts, '\n'), numLines
 end
 
---- Wrap mode: each logical line gets its number followed by (rows - 1) blank
---- lines, so the gutter's rows mirror the code's wrapped visual rows.
+--- Wrap mode: pads each number with blank lines to mirror wrapped rows.
 --- @param self LDK_CodeEditorDialog
 --- @param digits number Width each number is padded to (see GutterDigits)
 --- @return string text
@@ -358,28 +327,18 @@ local function WrappedLineNumbersText(self, digits)
   return table.concat(parts, '\n'), #parts
 end
 
---- GutterBackdrop width that fits the highest line number in the current font.
---- Measured on WrapMeasure's FontString (same font as the gutter); every
---- catalog font is monospace, so a run of zeros is as wide as any number with
---- that many digits.
+--- GutterBackdrop width that fits the highest line number.
 --- @param self LDK_CodeEditorDialog
 --- @param lastLine number Highest line number the gutter shows
 --- @return number
 local function GutterWidth(self, lastLine)
   local measure = self.WrapMeasure.Text
   measure:SetText(string.rep('0', GutterDigits(lastLine)))
-  -- Measured width plus GUTTER_SLACK: an EditBox needs more room for a line
-  -- than its width minus text insets suggests (at size 10, a 26px 4-digit
-  -- number still wrapped in a 31px text area), and a line that doesn't fit
-  -- ends that EditBox's rendering at "..." -- taking every line below it with
-  -- it. The slack is deliberately generous; too wide only costs a little
-  -- unused column, too narrow breaks the whole gutter.
+  -- Generous slack: too narrow truncates the EditBox at "...".
   return math.ceil(measure:GetStringWidth()) + GUTTER_SLACK + GUTTER_PADDING
 end
 
 --- Tallest StatusBar that still leaves MIN_CODE_HEIGHT for the code area.
---- Measured off the live frames (TopBar's bottom to BottomBar's top) rather
---- than summing row heights, so it stays right as the header and bars change.
 --- @param self LDK_CodeEditorDialog
 --- @return number
 local function MaxStatusHeight(self)
@@ -391,11 +350,7 @@ local function MaxStatusHeight(self)
   )
 end
 
---- Blizzard-standard hover tooltip: the label as title, its '::Desc' entry as
---- a wrapped description. GameTooltip_SetDefaultAnchor places it where every
---- Blizzard tooltip goes (UIParent's bottom right on Classic, the Edit Mode
---- tooltip position on Retail). Hooked, not set, so a frame's own OnEnter/
---- OnLeave (e.g. the divider's grip highlight) keeps running alongside it.
+--- Standard hover tooltip; hooked so it composes with a frame's own OnEnter.
 --- @param frame Frame
 --- @param key string Locale key of the label; the description is key .. '::Desc'
 local function AddTooltip(frame, key)
@@ -408,9 +363,7 @@ local function AddTooltip(frame, key)
   frame:HookScript('OnLeave', function() GameTooltip:Hide() end)
 end
 
---- Rotates every state texture of an arrow button, so hover and press keep
---- the direction. Radians, counter-clockwise; bag-arrow's art points left, so
---- math.pi / 2 = down, -math.pi / 2 = up.
+--- CCW radians; bag-arrow art points left, so pi/2 = down, -pi/2 = up.
 --- @param button Button
 --- @param radians number
 local function RotateArrow(button, radians)
@@ -440,10 +393,7 @@ end
 Methods
 -------------------------------------------------------------------------------]]
 function o:OnLoad()
-  -- parentKey resolves onto the immediate XML parent (the ScrollFrame, the
-  -- StatusBar), not this dialog frame -- alias both here so the rest of this
-  -- file can address them directly. Hoisted above OnLoad_Viewports because that
-  -- is what anchors EvalStatus.
+  -- Alias onto this dialog frame; hoisted for OnLoad_Viewports.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
   self.EvalStatus = self.StatusBar.EvalStatus
   self.CommandEditBox = self.CommandBar.CommandEditBox
@@ -453,11 +403,7 @@ function o:OnLoad()
 
   cns:EnableLuaFormatter(self.CodeEditBox)
 
-  -- UIPanelScrollFrameTemplate's ScrollBar anchors at y=-16/16 (SecureScrollTemplates.xml),
-  -- leaving a gap above/below the up/down arrow buttons at this frame's height.
-  -- Re-anchoring in XML would need the whole ScrollBar (and its ScrollUpButton/
-  -- ScrollDownButton/ThumbTexture children) redeclared with matching $parent names to
-  -- merge instead of duplicating, so adjust the existing scrollbar here instead.
+  -- Re-anchor scrollbar here; XML would need the whole template redeclared.
   local scrollBar = self.ScrollFrame.ScrollBar
   scrollBar:ClearAllPoints()
   scrollBar:SetPoint('TOPLEFT', self.ScrollFrame, 'TOPRIGHT', 6, -11)
@@ -465,9 +411,7 @@ function o:OnLoad()
 
   local numbers = self.Gutter.ScrollChild.Numbers
 
-  -- enableKeyboard="false" (XML) only blocks the box from acquiring focus on
-  -- its own; it does not refuse input once focused some other way. SetEnabled
-  -- is the actual read-only switch.
+  -- SetEnabled is the real read-only switch, not enableKeyboard.
   numbers:SetEnabled(false)
   -- LEFT, not RIGHT: the numbers are padded to a common width (see GutterDigits).
   numbers:SetJustifyH('LEFT')
@@ -489,20 +433,13 @@ function o:OnLoad()
 
   self:OnLoad_ScaleWatcher()
 
-  -- Header children: parentKey resolves onto the immediate XML parent (Title /
-  -- CloseFrame), not this dialog frame -- alias them, same as CodeEditBox above.
   self.HeaderTitle = self.Header.Title.Text
   self.CloseButton = self.Header.CloseFrame.CloseButton
-  -- Wired here rather than in XML: UIPanelCloseButton inherits an OnClick that
-  -- hides GetParent(), which is now CloseFrame, not the dialog.
+  -- Wired in Lua: inherited OnClick hides CloseFrame, not the dialog.
   self.CloseButton:SetScript('OnClick', function() self:OnClickClose() end)
 
   self.HeaderTitle:SetText('Code Editor (Prototype)')
 
-  -- parentKey="OptionsButton"/"ThemeButton"/"FontButton"/"FontSizeButton"/
-  -- "FontSizeUpButton"/"FontSizeDownButton" resolve onto TopBar (their
-  -- immediate XML parent), not this dialog frame -- alias them here, same as
-  -- CodeEditBox above.
   self.OptionsButton = self.TopBar.OptionsButton
 
   --- @type DropdownButton
@@ -525,8 +462,7 @@ function o:OnLoad()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
 
-  -- Prototype-only: pre-fill with sample code long enough to force scrolling,
-  -- so gutter/scroll sync can be tested immediately on open.
+  -- Prototype-only: pre-fill to test gutter/scroll sync on open.
   if ns.EXAMPLE_CODE then self:SetText(ns.EXAMPLE_CODE) end
 
   self:RefreshGutter()
@@ -592,16 +528,12 @@ function o:OnLoad_Viewports()
   -- EvalStatus is anchored in XML instead, not here -- see its own XML comment.
 end
 
---- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
---- viewport, so lines never reach a wrap boundary and logical line count
---- (\n-based) always equals visual line count. Start at the viewport's
---- height (not 1px) so there's a clickable/visible area before any text
---- is typed; RefreshGutter grows it from here as needed.
+--- Starts at viewport height for a clickable area; RefreshGutter grows it.
 function o:OnLoad_CodeEditBox()
   self.CodeEditBox:SetHeight(self.ScrollFrame:GetHeight())
   self.CodeEditBox:SetAutoFocus(false)
   self:SetWrapText(DEFAULTS.wrapText)
-  -- Insets, not anchors, pad the text; top/bottom stay 0 or line 1 desyncs from the gutter.
+  -- Insets pad text; top/bottom must stay 0 or line 1 desyncs from gutter.
   self.CodeEditBox:SetTextInsets(CODE_TEXT_INSET_LEFT, CODE_TEXT_INSET_RIGHT, 0, 0)
 end
 
@@ -611,8 +543,7 @@ function o:OnLoad_WrapCheckButton()
   AddTooltip(button, 'Wrap Text')
 end
 
---- Read-only output log. Fading/justify are set on EvalStatus itself, in its
---- own XML OnLoad (see CodeEditorDialog.xml), not here.
+--- Fading/justify live in EvalStatus's own XML OnLoad, not here.
 function o:OnLoad_StatusBar()
   self.StatusBar:SetHeight(STATUS_BAR_HEIGHT)
   local divider = self.StatusDivider
@@ -626,17 +557,14 @@ function o:OnLoad_StatusBar()
   self:ClearOutput()
 end
 
---- Single-line eval prompt. Interactive, unlike EvalStatus/Numbers, so it
---- keeps its native EditBox focus/keyboard behavior instead of being disabled.
+--- Interactive, unlike EvalStatus/Numbers; keeps native focus/keyboard.
 function o:OnLoad_CommandBar()
   self.CommandBar.Prompt:SetText('> ')
   self.CommandEditBox:SetAutoFocus(false)
   AddTooltip(self.CommandEditBox, 'Command Line')
 end
 
---- clampedToScreen only constrains position, so a dialog left wider than the
---- screen (sized at a high UI scale, then scaled down) can't be nudged back
---- into view by moving alone -- it has to shrink.
+--- A too-wide dialog must shrink to fit; clampedToScreen can't move it in.
 function o:OnLoad_ScaleWatcher()
   self.ScaleWatcher = CreateFrame('Frame')
   self.ScaleWatcher:RegisterEvent('UI_SCALE_CHANGED')
@@ -644,10 +572,7 @@ function o:OnLoad_ScaleWatcher()
   self.ScaleWatcher:SetScript('OnEvent', function() self:ClampToScreen(true) end)
 end
 
---- Enlarges the dropdown arrow. WowStyle1ArrowDropdownTemplate anchors the
---- Arrow at CENTER with useAtlasSize, and its mixin re-applies SetAtlas with
---- UseAtlasSize on every state change, so the size has to be re-asserted after
---- each of those rather than set once.
+--- Re-asserted on every SetAtlas call, which resets size via useAtlasSize.
 function o:OnLoad_OptionsButton()
   local arrow = self.OptionsButton.Arrow
   if not arrow then return end
@@ -656,9 +581,6 @@ function o:OnLoad_OptionsButton()
   hooksecurefunc(arrow, 'SetAtlas', SizeArrow)
 end
 
---- Icon-only: hide WowStyle1DropdownTemplate's own text-button chrome so
---- just this frame's own NormalTexture (set in XML) shows, matching
---- FontSizeButton's look.
 function o:OnLoad_ThemeButton()
   self.ThemeButton.Background:Hide()
   self.ThemeButton.Arrow:Hide()
@@ -675,8 +597,7 @@ function o:OnLoad_ThemeButton()
     end
     bdrops:EachTheme(addRadio, function(name) return name and name:lower() ~= 'none' end)
   end)
-  -- Theme names are registry keys (ApplyTheme/str_eq look them up), so the
-  -- menu entries stay untranslated; only the button label is localized.
+  -- Theme names are registry keys, so menu entries stay untranslated.
   AddTooltip(self.ThemeButton, 'Theme')
 end
 
@@ -749,20 +670,12 @@ function o:OnLoad_GripLines()
   )
 end
 
---- Raise on every Show, not just on click: toplevel="true" only re-raises on
---- a mouse-down inside the frame, so without this the dialog could still open
---- underneath another DIALOG-strata toplevel frame (e.g. Blizzard_EventTrace)
---- until the user's first click on it.
+--- toplevel="true" only re-raises on click; this covers open-underneath too.
 function o:OnShow()
   self:Raise()
-  -- Scale can change while the dialog is hidden, and the watcher's clamp only
-  -- fixes the frame's numbers, not what the user sees -- re-clamp on the way in.
+  -- Scale may change while hidden; re-clamp visibly on the way in.
   self:ClampToScreen(true)
-  -- Testing whether SetFocus() only takes effect once the dialog is actually
-  -- visible: OnLoad's SetText ran while this frame was still hidden
-  -- (hidden="true" in the template), and SetFocus()/SetCursorPosition(0)
-  -- called there did not produce a visible caret. Guarded to first Show only,
-  -- so reopening the dialog later doesn't reset wherever the user left off.
+  -- SetFocus() needs the frame visible; OnLoad ran while still hidden.
   if not self.initialFocusApplied then
     self.initialFocusApplied = true
     -- todo: SetFocus() puts the cursor in the editbox
@@ -772,19 +685,13 @@ function o:OnShow()
   end
 end
 
---- Shrinks the dialog to fit the usable screen area and pulls it back inside
---- the edges. Both are needed after a UI scale drop: the frame keeps its size
---- in UI units, so a smaller UIParent leaves it overhanging or larger than the
---- screen entirely.
+--- Shrinks and repositions the dialog to fit after a UI scale change.
 --- @param withMargin boolean|nil Leave SCREEN_MARGIN of room on an axis that has to shrink; omit for a bare screen-edge clamp
 function o:ClampToScreen(withMargin)
   local screenWidth, screenHeight = UIParent:GetWidth(), UIParent:GetHeight()
   local maxWidth, maxHeight = screenWidth, screenHeight
   local width, height = self:GetWidth(), self:GetHeight()
-  -- An axis that no longer fits loses SCREEN_MARGIN and is then centred in
-  -- what's left, so the dialog sits with half the margin clear on each side
-  -- rather than flush against an edge. Only on this path: a resize grip drag
-  -- clamps to the bare screen, since that size is the one the user just chose.
+  -- withMargin centers a shrunk axis with room on each side, not flush.
   local insetX, insetY = 0, 0
   if withMargin then
     if width > maxWidth then
@@ -796,19 +703,15 @@ function o:ClampToScreen(withMargin)
       insetY = SCREEN_MARGIN / 2
     end
   end
-  -- Floors are the resize minimums: a screen smaller than those is not worth
-  -- distorting the layout for.
+  -- Floors are the resize minimums; smaller isn't worth distorting for.
   local fitWidth = math.max(400, math.min(width, maxWidth))
   local fitHeight = math.max(250, math.min(height, maxHeight))
   if fitWidth ~= width or fitHeight ~= height then self:SetSize(fitWidth, fitHeight) end
 
-  -- Re-anchor from the measured rect rather than nudging the existing anchor:
-  -- the dialog is moved by StartMoving, so its point is whatever the drag left.
+  -- Re-anchor from the measured rect; StartMoving leaves an arbitrary point.
   local left, bottom = self:GetLeft(), self:GetBottom()
   if not left or not bottom then return end
-  -- Bounds run against the full screen with the half-margin held back on each
-  -- side, so an axis that shrank keeps its gap top and bottom (or left and
-  -- right) instead of being pinned to the edge.
+  -- Half-margin held back so a shrunk axis keeps its gap, not pinned edge.
   local clampedLeft = math.max(insetX, math.min(left, screenWidth - fitWidth - insetX))
   local clampedBottom = math.max(insetY, math.min(bottom, screenHeight - fitHeight - insetY))
   if clampedLeft ~= left or clampedBottom ~= bottom then
@@ -817,24 +720,15 @@ function o:ClampToScreen(withMargin)
   end
 end
 
---- The dialog itself was resized (SizerSE drag, or a clamp after a scale
---- change). StatusBar keeps whatever height it had, so the code area absorbs
---- the difference -- re-clamp in case that pushed it under MIN_CODE_HEIGHT.
---- Safe to react to here, unlike the child size events: nothing in this file
---- resizes the dialog frame, so this cannot feed itself.
+--- Dialog resized; re-clamp status height in case it's now under the min.
 function o:OnSizeChanged()
-  -- OnSizeChanged fires while the frame is still being built, before its XML
-  -- children (and the OnLoad aliases) exist -- StatusDivider is declared
-  -- after StatusBar, so a flush that fires this before the tree finishes
-  -- building can see one exist without the other yet.
+  -- Can fire mid-construction, before StatusBar/StatusDivider are aliased.
   if not self.StatusBar or not self.StatusDivider then return end
   self:SetStatusHeight(self.StatusBar:GetHeight())
 end
 
 function o:OnClickClose() self:Hide() end
 
---- Escape while the dialog itself has keyboard focus (e.g. after the
---- EditBox cleared its own focus on a first Escape) closes the dialog.
 --- @param key string
 function o:OnKeyDown(key)
   if key == 'ESCAPE' then
@@ -845,21 +739,15 @@ function o:OnKeyDown(key)
   end
 end
 
---- Vertical scroll of the code ScrollFrame moves the gutter's own scroll in
---- lockstep, via the real ScrollFrame API (not a manual re-anchor) so the
---- gutter's content clips to its viewport exactly like the code area's does.
+--- Syncs gutter scroll via the real API, not a manual re-anchor.
 --- @param offset number
 function o:OnCodeEditBoxScroll(offset) self.Gutter:SetVerticalScroll(offset) end
 
 function o:OnCodeEditBoxTextChanged()
-  -- CodeEditBox's own OnLoad wires this script and can fire it during
-  -- construction, before this dialog's OnLoad has aliased self.CodeEditBox.
+  -- Can fire during construction, before self.CodeEditBox is aliased.
   if not self.CodeEditBox then return end
 
-  -- Skip gutter/wrap work while the dialog is hidden (e.g. a future
-  -- programmatic SetText call) -- nothing is visible to refresh. OnLoad's own
-  -- RefreshGutter() call runs unconditionally before first Show regardless of
-  -- what text (if any) was set, so this guard doesn't skip the initial sync.
+  -- Skip while hidden; OnLoad's RefreshGutter already did the initial sync.
   if not self:IsShown() then return end
 
   -- WoW re-fires OnTextChanged even when the contents did not actually change,
@@ -907,10 +795,7 @@ function o:OnCodeEditBoxCursorChanged(x, y, w, h)
 
   if target and SizeDiffers(scroll, target) then scrollFrame:SetVerticalScroll(target) end
 
-  -- Shift+click selection: the anchor is the fixed starting point of the
-  -- selection, so it must only move on a plain (non-shift) cursor change --
-  -- overwriting it on every change (including shift+clicks) lost the true
-  -- start once a second shift+click landed on the opposite side of it.
+  -- Selection anchor only moves on a plain (non-shift) cursor change.
   local editBox = self.CodeEditBox
   local current = editBox:GetCursorPosition()
   if IsShiftKeyDown() and self.cursorAnchor then
@@ -924,10 +809,7 @@ function o:OnCodeEditBoxCursorChanged(x, y, w, h)
   end
 end
 
---- PAGEUP/PAGEDOWN: moves the caret one viewport's worth of lines up/down
---- (two with Cmd held). PageMoveCursor scrolls the view by the same line
---- count, so the caret keeps its row position within the viewport instead of
---- just being nudged back into view.
+--- PAGEUP/PAGEDOWN: moves the caret one viewport (two with Cmd) up/down.
 --- @param key "PAGEUP"|"PAGEDOWN"
 function o:OnCodeEditBoxPageKey(key)
   local lines = ViewportLines(self)
@@ -935,9 +817,7 @@ function o:OnCodeEditBoxPageKey(key)
   PageMoveCursor(self, key == 'PAGEUP' and -1 or 1, lines)
 end
 
---- Cmd+Home / Cmd+End: jumps the caret to the very start/end of the document.
---- SetCursorPosition fires OnCodeEditBoxCursorChanged, which already scrolls
---- the view to keep the caret visible -- no scroll logic needed here.
+--- Cmd+Home/End: jumps the caret to document start/end.
 --- @param key "HOME"|"END"
 function o:OnCodeEditBoxDocumentJumpKey(key)
   local editBox = self.CodeEditBox
@@ -957,12 +837,7 @@ function o:OnCodeEditBoxDocumentJumpKey(key)
   editBox:SetCursorPosition(#rawText)
 end
 
---- The ScrollFrame (viewport) resized -- e.g. a SizerSE drag. This is the only
---- size event worth reacting to: RefreshGutter never resizes the ScrollFrame, so
---- it cannot feed itself here, and in wrap mode the viewport's new width is
---- exactly what has to be re-wrapped against. (The EditBox's own OnSizeChanged
---- is intentionally not wired -- RefreshGutter is the only thing that resizes
---- it, so that handler only ever reacted to our own writes and looped.)
+--- ScrollFrame resized (e.g. SizerSE drag); re-wrap against the new width.
 function o:OnCodeViewportSizeChanged()
   if not self.CodeEditBox then return end
   self:RefreshGutter()
@@ -1014,10 +889,7 @@ function o:ApplyTheme(name)
     end
     if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
   end
-  -- The output panel borrows the code panel's backdrop (above), but its own
-  -- colors are the theme's: the grip is a handle, not a hairline border, so it
-  -- is tuned per theme rather than taken from code.backdrop.borderColor, whose
-  -- alpha is far too low to see at this size.
+  -- Grip color is tuned per theme; code.backdrop.borderColor alpha is too low here.
   local status = bs.status
   local divider = status.divider
   -- Both remembered so OnStatusDividerHover can swap between them.
@@ -1060,10 +932,7 @@ function o:_SetHeaderBorderStyle(bs)
   self.Header:SetHeight(height)
 end
 
---- Applies a font (by FontUtil font-choice key, at the current fontSize) to
---- the code box, the gutter numbers, and the hidden wrap measuring string
---- together -- inherits="..." in XML only binds once at load, so switching
---- fonts at runtime needs SetFontObject on all three.
+--- Applies a font to the code box, gutter numbers, and wrap measuring string.
 --- @param fontFamily string Key into FontUtil:GetFontChoices()
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetCodeFont(fontFamily, notify)
@@ -1073,36 +942,32 @@ function o:SetCodeFont(fontFamily, notify)
   self:ApplyCodeFont(notify)
 end
 
---- Re-resolves and applies the font object for the current fontFamily +
---- fontSize pair. Shared by SetCodeFont and SetFontSize -- both change one
---- half of the same (family, size) lookup into FontUtil:GetFontChoices()[].bySize.
+--- Re-resolves and applies the font for the current fontFamily/fontSize.
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:ApplyCodeFont(notify)
   local choice = fut:FindFontChoice(self.fontFamily)
   if not choice then return end
   local font = choice.bySize[self.fontSize] or choice.bySize[DEFAULTS.fontSize]
   self.codeFont = font
-  -- EditBox:GetFontString() does not exist -- EditBox has its own direct
-  -- SetFontObject/SetFont/GetFont API (confirmed against Blizzard's real
-  -- EditBox API docs), no need to reach into a child FontString for this.
+
+  -- EditBox has its own SetFontObject/SetFont/GetFont, no GetFontString().
   self.CodeEditBox:SetFontObject(font)
   self.Gutter.ScrollChild.Numbers:SetFontObject(font)
   self.WrapMeasure.Text:SetFontObject(font)
+
+  -- Must set justify here: SetFontObject resets it, undoing EvalStatus's own OnLoad.
   self.EvalStatus:SetFontObject(font)
-  -- Right after SetFontObject, not in EvalStatus's own XML OnLoad: SetFontObject
-  -- resets justification to the font object's own template default, so setting
-  -- justify anywhere it runs before this (including EvalStatus's own OnLoad,
-  -- which fires long before this dialog-level function ever does) just gets
-  -- silently undone the moment the real font is applied here.
   self.EvalStatus:SetJustifyH('LEFT')
   self.EvalStatus:SetJustifyV('BOTTOM')
+
   self.CommandBar.Prompt:SetFontObject(font)
   self.CommandEditBox:SetFontObject(font)
-  -- Disable the step buttons at the ends of FontUtil:GetFontSizes() -- both
-  -- templates ship a DisabledTexture for exactly this state.
+
+  -- Disable step buttons at the size list ends; templates have a DisabledTexture.
   local sizes = fut:GetFontSizes()
   self.FontSizeDownButton:SetEnabled(self.fontSize ~= sizes[1])
   self.FontSizeUpButton:SetEnabled(self.fontSize ~= sizes[#sizes])
+
   -- RefreshGutter re-sizes the gutter for the new font's digit width.
   self:RefreshGutter()
   if notify then self:FireConfigChanged() end
@@ -1117,9 +982,7 @@ function o:SetFontSize(fontSize, notify)
   self:ApplyCodeFont(notify)
 end
 
---- Moves to the next/previous entry in FontUtil:GetFontSizes(), clamped at
---- the ends. No-ops at a boundary (the step buttons are disabled there too,
---- but this guards against any other caller). User-driven, so notifies.
+--- Steps the font size, clamped at the ends. Always user-driven; notifies.
 --- @param delta number 1 to step up, -1 to step down
 function o:StepFontSize(delta)
   local sizes = fut:GetFontSizes()
@@ -1135,9 +998,7 @@ function o:StepFontSize(delta)
   self:SetFontSize(sizes[newIndex], true)
 end
 
---- Toggles wrap mode. In no-wrap mode the EditBox is oversized (4000px) so
---- lines never wrap; in wrap mode it is pinned to the viewport width so the
---- text engine wraps at the visible edge.
+--- Toggles wrap mode: oversized EditBox vs. pinned to viewport width.
 --- @param enabled boolean
 --- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
 function o:SetWrapText(enabled, notify)
@@ -1163,11 +1024,7 @@ function o:GetOptions()
   }
 end
 
---- Registers the callback fired after any user-driven config change (font
---- dropdown pick, wrap checkbox click). Called with a full snapshot of
---- current options every time, not just the changed field -- callers that
---- want to persist can just do `DB.profile.codeEditor = options` with no
---- merge logic of their own.
+--- Callback after user config changes; always gets a full options snapshot.
 --- @param callback fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
 function o:SetOnConfigChanged(callback) self.onConfigChanged = callback end
 
@@ -1175,17 +1032,11 @@ function o:FireConfigChanged()
   if self.onConfigChanged then self.onConfigChanged(self, self:GetOptions()) end
 end
 
---- Applies initial/programmatic settings, merged over current values (so a
---- partial table only touches the fields it names). Does not fire
---- OnConfigChanged -- the caller already knows what it just configured.
---- fontSize snaps to the nearest supported size (10/12/14/16/18/20/24/28).
+--- Merges partial settings over current; does not fire OnConfigChanged.
 --- @param options LDK_CodeEditorOptions|table|nil Partial table; omitted fields keep their current value
 function o:Configure(options)
   options = options or {}
-  -- Falls back to DEFAULTS.fontFamily if the requested key doesn't resolve to
-  -- a real font choice -- e.g. persisted config referencing a family that was
-  -- since removed. Without this, ApplyCodeFont's own nil-guard would silently
-  -- no-op and leave whatever font was previously applied.
+  -- Falls back if the key no longer resolves (e.g. a removed font family).
   local fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
   if not fut:FindFontChoice(fontFamily) then fontFamily = DEFAULTS.fontFamily end
   self.fontFamily = fontFamily
@@ -1202,10 +1053,7 @@ end
 function o:RefreshGutter()
   if not self.CodeEditBox then return end -- not constructed yet (see OnCodeEditBoxTextChanged)
 
-  -- Reentrancy guard, for the synchronous path: SetText fires OnTextChanged
-  -- inline, which lands back here. (Resizes are handled separately below --
-  -- OnSizeChanged is dispatched asynchronously, so this flag is already back
-  -- to false by the time it arrives and cannot catch that case.)
+  -- Reentrancy guard: SetText fires OnTextChanged inline, landing back here.
   if self.refreshingGutter then return end
   self.refreshingGutter = true
 
@@ -1219,25 +1067,19 @@ function o:RefreshGutter()
   -- every frame forever -- the size never changed, but the events never stopped,
   -- and the constant caret recalculation kept the cursor from ever rendering.
 
-  -- Size the gutter to the highest line number's digit count first: the code
-  -- viewport is anchored to GutterBackdrop's right edge, so every width read
-  -- below (including wrap mode's measuring width) depends on this one.
+  -- Must size first: the code viewport anchors off GutterBackdrop's edge.
   local lastLine = CountLines(self)
   local backdropWidth = GutterWidth(self, lastLine)
   if SizeDiffers(self.GutterBackdrop:GetWidth(), backdropWidth) then
     self.GutterBackdrop:SetWidth(backdropWidth)
   end
 
-  -- Width must be set explicitly (scroll children ignore right-side anchors).
-  -- Matched to the Gutter: the numbers EditBox fills this child, and
-  -- GutterWidth above already sized the Gutter to hold the widest line number
-  -- plus GUTTER_PADDING, so the digits fit without clipping.
+  -- Scroll children ignore right-side anchors; width must be set explicitly.
   local gutterWidth = gutter:GetWidth()
   if SizeDiffers(child:GetWidth(), gutterWidth) then child:SetWidth(gutterWidth) end
 
   if self.wrapText then
-    -- Keep the EditBox and the measuring string wrapping at the same width;
-    -- wrap points move with the viewport, so this must track resizes too.
+    -- Keep EditBox and measuring string wrapping at the same width.
     local textWidth = CodeTextWidth(self)
     local viewportWidth = self.ScrollFrame:GetWidth()
     if SizeDiffers(self.CodeEditBox:GetWidth(), viewportWidth) then
@@ -1257,10 +1099,7 @@ function o:RefreshGutter()
   end
 
   -- Both columns render the same row count in the same font, so rows times the
-  -- font's line height IS the code's content height. Taken from WrapMeasure's
-  -- FontString (same font) because an EditBox has no GetStringHeight. Sizing
-  -- both columns to it gives the two ScrollFrames an identical scroll range,
-  -- keeping SetVerticalScroll in sync down to the last line.
+  -- Sizes both columns identically so their scroll ranges stay in sync.
   local lineHeight = self.WrapMeasure.Text:GetLineHeight()
   local contentHeight = math.max(rows * lineHeight, self.ScrollFrame:GetHeight())
   if SizeDiffers(child:GetHeight(), contentHeight) then child:SetHeight(contentHeight) end
@@ -1281,8 +1120,7 @@ function o:RefreshGutter()
   -- value for ASCII digits, correct everywhere else.
   numbers:SetMaxLetters(strlenutf8(text))
   numbers:SetText(text)
-  -- SetText leaves the caret at the end; reset it so the gutter EditBox has no
-  -- reason to scroll its own text toward the caret and out of line with the code.
+  -- Reset caret; else the gutter scrolls toward it, out of line with code.
   numbers:SetCursorPosition(0)
 
   self.refreshingGutter = false
@@ -1314,9 +1152,7 @@ function o:MaximizeStatus() self:SetStatusHeight(MaxStatusHeight(self)) end
 --- Shrinks the output panel to MIN_STATUS_HEIGHT (the down arrow).
 function o:MinimizeStatus() self:SetStatusHeight(MIN_STATUS_HEIGHT) end
 
---- Divider drag, the same OnUpdate-while-held approach WowLua's resize bar
---- uses. StartSizing is not an option here: this resizes a child, not the
---- dialog, so the offset is tracked by hand.
+--- Tracked by hand; StartSizing only resizes the dialog, not a child.
 function o:OnStatusDividerMouseDown()
   local divider = self.StatusDivider
   divider.cursorStart = select(2, GetCursorPosition())
@@ -1326,10 +1162,7 @@ end
 
 function o:OnStatusDividerMouseUp() self.StatusDivider:SetScript('OnUpdate', nil) end
 
---- StatusBar is anchored by its bottom, so its top edge is what the drag moves:
---- cursor up (rising Y) grows it, cursor down shrinks it. GetCursorPosition
---- reports screen pixels while frame heights are UI units, hence the scale
---- division.
+--- Drag moves StatusBar's top edge; divides by scale (pixels vs UI units).
 function o:OnStatusDividerUpdate()
   local divider = self.StatusDivider
   if not divider.cursorStart then return end
@@ -1368,10 +1201,7 @@ function o:AppendOutput(text)
   end
   local excess = #lines - MAX_OUTPUT_LINES
   if excess > 0 then
-    -- Shift the survivors down rather than rebuilding the table, so the oldest
-    -- lines fall off the front without reallocating on every append. This
-    -- only trims GetOutput()'s own record -- EvalStatus's own display cap
-    -- (SetMaxLines, in its XML OnLoad) trims what's rendered, independently.
+    -- Shift survivors down instead of rebuilding the table each append.
     for i = 1, #lines - excess do
       lines[i] = lines[i + excess]
     end
@@ -1386,10 +1216,7 @@ end
 function o:GetOutput() return table.concat(self.outputLines or {}, '\n') end
 
 --[[-----------------------------------------------------------------------------
-Command line: single-shot eval, mirroring WowLua's own prompt
-(third-party/wowlua/WowLua.lua ProcessLine/RunScript). No multi-line
-continuation: an unfinished block just reports its compile error, rather than
-switching the prompt to wait for more input the way WowLua's does.
+Command line: single-shot eval; no multi-line continuation
 -------------------------------------------------------------------------------]]
 --- Grey, comma-joined print output, matching WowLua's own wowpad_print.
 --- @param self LDK_CodeEditorDialog
@@ -1438,9 +1265,7 @@ end
 --- @return string
 function o:GetText() return self.CodeEditBox:GetText() end
 
---- Text past MAX_LINES is dropped: this is a scratchpad for prototyping code
---- in-game, not a file editor, and an unbounded EditBox is what made the
---- gutter truncate mid-number in the first place.
+--- Text past MAX_LINES is dropped; unbounded truncated the gutter before.
 --- @param text string
 function o:SetText(text)
   self.CodeEditBox:SetText(TrimToMaxLines(text or ''))
