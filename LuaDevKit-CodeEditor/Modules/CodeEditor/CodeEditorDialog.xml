@@ -11,6 +11,7 @@
     <Font name="LDK_CodeEditorFont" inherits="SharedMediaFontsMono_DefaultFont"/>
     <Script file="ExampleCode.lua"/>
     <Script file="CodeEditBoxMixin.lua"/>
+    <Script file="MinimalScrollBarStyle.lua"/>
     <Script file="CodeEditorDialog.lua"/>
 
     <Frame name="LDK_CodeEditorDialogTemplate" virtual="true"
