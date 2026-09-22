@@ -7,28 +7,39 @@ the DevSuite namespace/module registry -- see [issue #90](https://github.com/kap
 
 | File | Role |
 |---|---|
-| `CodeEditorDialog.xml` | Frame layout (`LDK_CodeEditorDialogTemplate`) |
-| `CodeEditorDialog.lua` | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, font switching |
-| `CodeEditBoxMixin.lua` | Mixin for the `CodeEditBox` EditBox |
-| `Fonts.xml` | Font definitions -- Ubuntu Mono, JetBrains Mono, Source Code Pro, each at sizes 10/12/14 |
+| [`CodeEditorDialog.xml`](Modules/CodeEditor/CodeEditorDialog.xml) | Frame layout (`LDK_CodeEditorDialogTemplate`) |
+| [`CodeEditorDialog.lua`](Modules/CodeEditor/CodeEditorDialog.lua) | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, font switching, eval |
+| [`CodeEditBoxMixin.lua`](Modules/CodeEditor/CodeEditBoxMixin.lua) | Mixin for the `CodeEditBox` EditBox |
 
-Bundled monospace font files live in the shared `../LuaDevKit` directory, not under this library.
+Fonts are not declared in this library.
+[`FontUtil`](../LuaDevKit/Libs/Modules/FontUtil.lua) builds them at runtime with
+`CreateFont`/`SetFont` from the `SharedMediaFontsMono` catalog -- one font object
+per face per size in `FONT_SIZES` (10/12/14/16/18/20/24/28) -- and offers a face
+only when it covers the client's locale, so a CJK client sees just its Noto Sans
+Mono variant. `CodeEditorDialog.xml` declares one `LDK_CodeEditorFont` placeholder
+so its FontStrings have a valid font at load time; `ApplyCodeFont()` replaces it
+as soon as the dialog configures. The font files themselves are vendored under
+`../LuaDevKit/ThirdParty/Libs/SharedMediaFontsMono/` (gitignored, so it is not
+linked here), not under this library.
 
 ## Visual layout
 
-The dialog is a fixed-header/footer frame with a scrollable body row in between.
-Row order, top to bottom:
+The dialog is a fixed-header/footer frame with a scrollable body row in between,
+and an output/eval stack sitting above the footer. Row order, top to bottom:
 
 ```mermaid
 block-beta
 columns 1
-  Header["Header — full-width bar (drag-to-move)\nTitle (fluid) · CloseFrame (32px, pinned right)"]
-  TopBar["TopBar — row 1\n(reserved toolbar) · FontSizeDropdown · FontDropdown"]
+  Header["Header — full-width bar (drag-to-move)\nTitle (fluid) · CloseFrame (28px, pinned right)"]
+  TopBar["TopBar — toolbar (right-aligned)\nFontSizeDown/Up · FontSizeButton · FontButton · ThemeButton · OptionsButton"]
   block:body
     Gutter["GutterBackdrop → Gutter\n(line #s)"]
     Code["CodeBackdrop → ScrollFrame\nCodeEditBox (EditBox)"]
   end
-  BottomBar["BottomBar — row 3\n(status/action bar) · WrapCheckButton"]
+  Divider["StatusDivider — drag handle\nGrip · MaximizeButton · MinimizeButton"]
+  Status["StatusBar — output panel\nEvalStatus (ScrollingMessageFrame)"]
+  Command["CommandBar — single-line eval prompt\nPrompt · CommandEditBox"]
+  BottomBar["BottomBar — status/action bar\nWrapCheckButton"]
   Sizer["SizerSE (resize grip, bottom-right corner)"]
 ```
 
@@ -37,66 +48,43 @@ columns 1
 
 ```
 +-----------------------------------------------------------+
-|            Code Editor (Prototype)                    [X]  |  <- Header: Title (fluid) + CloseFrame (32px)
+|            Code Editor (Prototype)                   [X]  |  <- Header: Title (fluid) + CloseFrame (28px)
 +-----------------------------------------------------------+
-| TopBar                       [FontSizeDropdown][FontDropdown]| <- row 1: reserved toolbar
+| TopBar                    [v][^][Size][Font][Theme][Opts] |  <- TopBar: font size/family, theme, options
 +-----------------------------------------------------------+
-| GutterBackdrop | CodeBackdrop                              |
-|  +-----------+ |  +-------------------------------+        |
-|  | Gutter    | |  | ScrollFrame                    |       |  <- row 2: gutter + code
-|  | (line #s) | |  |  CodeEditBox (EditBox)          |       |
-|  +-----------+ |  +-------------------------------+        |
+| Gutter |  ScrollFrame                                     |
+| (line  |  CodeEditBox (EditBox)                           |  <- body: gutter + code area
+|  #s)   |  (vertical scrollbar at right edge)              |
 +-----------------------------------------------------------+
-| BottomBar   [WrapCheckButton]                              |  <- row 3: status/action bar
+|                        ==========               [^][v]    |  <- StatusDivider: drag grip + max/min
 +-----------------------------------------------------------+
-                                            [SizerSE resize] ->
+| EvalStatus (output, appended run after run)               |  <- StatusBar: output panel
++-----------------------------------------------------------+
+| > CommandEditBox                                          |  <- CommandBar: single-line eval prompt
++-----------------------------------------------------------+
+| [x] Wrap                                                  |  <- BottomBar: status/action bar
++-----------------------------------------------------------+
+                                          [SizerSE resize] ->
 ```
 
 </details>
 
 `Header` splits its width by anchoring rather than arithmetic: `CloseFrame` is a
-fixed 32px pinned to the right, and `Title`'s `BOTTOMRIGHT` anchors to
+fixed 28px pinned to the right, and `Title`'s `BOTTOMRIGHT` anchors to
 `CloseFrame`'s `BOTTOMLEFT`, so the title absorbs whatever width is left at any
 dialog size. `TopBar` anchors to `Header`'s bottom, making the header's height
 the only place the header size is expressed. Only `Header` sets `enableMouse`
 (for drag-to-move) -- `Title`/`CloseFrame` leave it off so a drag started
 anywhere but the close button still reaches `Header`.
 
-## Frame hierarchy
-
-```mermaid
-graph TD
-    Dialog["LDK_CodeEditorDialog"]
-
-    Dialog --> Header["Header (full-width bar)\ndrag-to-move + backdrop"]
-    Header --> Title["Title (fluid width)"]
-    Title --> TitleText["Text (FontString)\ncentered"]
-    Header --> CloseFrame["CloseFrame (32px, pinned right)"]
-    CloseFrame --> CloseButton["CloseButton"]
-
-    Dialog --> SizerSE["SizerSE\n(resize grip)"]
-
-    Dialog --> TopBar["TopBar (row 1)"]
-    TopBar --> FontDropdown["FontDropdown\n(UIDropDownMenu)"]
-    TopBar --> FontSizeDropdown["FontSizeDropdown\n(UIDropDownMenu)"]
-
-    Dialog --> GutterBackdrop["GutterBackdrop (row 2, left)"]
-    GutterBackdrop --> Gutter["Gutter (ScrollFrame)"]
-    Gutter --> GutterScrollChild["ScrollChild"]
-    GutterScrollChild --> Numbers["Numbers (FontString)\n'1\\n2\\n...\\nN'"]
-
-    Dialog --> CodeBackdrop["CodeBackdrop (row 2, right)"]
-    CodeBackdrop --> ScrollFrame["ScrollFrame\n(UIPanelScrollFrameTemplate)"]
-    ScrollFrame --> CodeEditBox["CodeEditBox (EditBox)"]
-
-    Dialog --> BottomBar["BottomBar (row 3)"]
-    BottomBar --> WrapCheckButton["WrapCheckButton"]
-
-    Dialog --> WrapMeasure["WrapMeasure (hidden)\nText (FontString)"]
-```
-
-`WrapMeasure` is an offscreen helper: it mirrors `CodeEditBox`'s font/width so
-`GetNumLines()` can tell wrap mode how many visual rows a logical line occupies.
+The bottom stack chains the same way, bottom-up: `BottomBar` pins to the dialog's
+bottom edge, then `CommandBar`, `StatusBar`, and `StatusDivider` each anchor to
+the top of the one below it. `GutterBackdrop`/`CodeBackdrop` then span from
+`TopBar`'s bottom down to `StatusDivider`'s top, which leaves the code area as
+the only row with no height of its own -- it absorbs whatever the fixed rows and
+the user's chosen `StatusBar` height leave behind. `SetStatusHeight` clamps a
+divider drag between `MIN_STATUS_HEIGHT` and `MaxStatusHeight()` (derived from
+`MIN_CODE_HEIGHT`), so neither panel can be squeezed out of existence.
 
 ## Gutter / EditBox sync
 
@@ -104,22 +92,27 @@ The gutter (`Gutter`) and the code area (`ScrollFrame`) are two independent
 `ScrollFrame`s. Three separate mechanisms keep their rows pixel-aligned,
 all in `RefreshGutter()` and its scroll/size hooks:
 
-1. **Same font, same pitch.** `Numbers` (the gutter's FontString) and
-   `CodeEditBox` always share one font object (`ApplyCodeFont` -- called by
-   both `SetCodeFont` and `SetFontSize` -- calls `SetFontObject` on both
-   together). Since line height comes entirely from the font/text engine,
-   rendering both columns' text in the identical font guarantees identical
-   line pitch -- no per-line Y math is needed. This holds across font-size
-   changes too: family and size together resolve to one font object via
-   `FONT_CHOICES[family].bySize[size]`, so a size change is the same
-   single-object swap as a family change.
+1. **Same font, same pitch.** `Numbers` (the gutter's EditBox) and
+   `CodeEditBox` always share one font object. `ApplyCodeFont()` is the only
+   place either is set, and it calls `SetFontObject` on both -- plus the
+   `WrapMeasure` string, the output panel, and the command bar -- in one pass.
+   Since line height comes entirely from the font/text engine, rendering both
+   columns' text in the identical font guarantees identical line pitch -- no
+   per-line Y math is needed. This holds across font-size changes too: family
+   and size together resolve to one font object via
+   `FontUtil:FindFontChoice(family).bySize[size]`, so a size change is the
+   same single-object swap as a family change.
 
-2. **Same content height.** `RefreshGutter()` measures
-   `numbers:GetStringHeight()` after setting the gutter text, then applies
-   that height to *both* `child` (the gutter's ScrollChild) and
-   `CodeEditBox`. Sizing both scroll children to the same content height
-   gives their `ScrollFrame`s an identical scroll range, so a given scroll
-   offset always corresponds to the same line in both.
+2. **Same content height.** `RefreshGutter()` multiplies the rendered row
+   count by `WrapMeasure.Text:GetLineHeight()` (an EditBox has no
+   `GetStringHeight`), floors that at the viewport height, and applies it to
+   *both* `child` (the gutter's ScrollChild) and `CodeEditBox`. Sizing both
+   scroll children to the same content height gives their `ScrollFrame`s an
+   identical scroll range, so a given scroll offset always corresponds to the
+   same line in both. The gutter text is set *after* this, not before: the
+   numbers EditBox lays out against whatever height it has at `SetText` time,
+   so a layout committed against the old, shorter height stayed truncated even
+   once the child grew underneath it.
 
 3. **Locked scroll position.** The code `ScrollFrame`'s `OnVerticalScroll`
    handler (`OnCodeEditBoxScroll`) calls `self.Gutter:SetVerticalScroll(offset)`
@@ -127,10 +120,11 @@ all in `RefreshGutter()` and its scroll/size hooks:
    code area's real `ScrollFrame` API, the same mechanism WoW uses for any
    scroll frame, so clipping behaves identically for both.
 
-`RefreshGutter()` re-runs on every text change, viewport resize, wrap toggle, and
-font change (`OnCodeEditBoxTextChanged`, `OnCodeViewportSizeChanged`,
-`SetWrapText`, `SetCodeFont`), so the three invariants above are re-established
-any time something could have invalidated them.
+`RefreshGutter()` re-runs on every text change, viewport resize, wrap toggle,
+font change, and programmatic `SetText` (`OnCodeEditBoxTextChanged`,
+`OnCodeViewportSizeChanged`, `SetWrapText`, `ApplyCodeFont`, `SetText`), so the
+three invariants above are re-established any time something could have
+invalidated them.
 
 Note the asymmetry in what triggers it. `RefreshGutter()` *writes* `CodeEditBox`'s
 size, so reacting to that same box's `OnSizeChanged` would only ever be reacting
@@ -169,12 +163,14 @@ just calls into these two methods:
   the user actually changed. Callers that persist settings can just do
   `DB.profile.codeEditor = options` with no merge logic of their own.
 
-`fontFamily` is a stable key into `FONT_CHOICES` (e.g. `'UbuntuMono'`),
+`fontFamily` is a stable key into `FontUtil:GetFontChoices()` (e.g.
+`'UbuntuMono'`, the catalog face name with spaces and parens stripped),
 independent of the dropdown's display label so relabeling a font later won't
-break persisted config. `fontSize` is one of `FONT_SIZES` (`10`/`12`/`14`) --
-`Fonts.xml` declares one font object per family *per size* rather than
-resizing at runtime, so any other value passed to `Configure`/`SetFontSize`
-snaps to the nearest supported size (`NearestFontSize`).
+break persisted config. `fontSize` is one of `FONT_SIZES`
+(10/12/14/16/18/20/24/28) -- `FontUtil` builds one font object per family *per
+size* rather than resizing at runtime, so any other value passed to
+`Configure`/`SetFontSize` snaps to the nearest supported size
+(`NearestFontSize`).
 
 ## Behavior notes
 
@@ -182,14 +178,15 @@ snaps to the nearest supported size (`NearestFontSize`).
   the viewport, so lines never reach a wrap boundary.
 - **Wrap mode**: `CodeEditBox` is pinned to the `ScrollFrame` width; the gutter
   emits a blank line per extra wrapped row so numbering stays visually aligned.
-- **Fonts**: switching either dropdown (family or size) calls `SetFontObject`
-  on `CodeEditBox`, `Gutter.ScrollChild.Numbers`, and `WrapMeasure.Text`
-  together, since `inherits="..."` in XML only binds once at load.
-- **Font sizes**: `Fonts.xml` declares each family at 10/12/14 as separate
-  virtual font objects (e.g. `LDK_CodeEditorFont_UbuntuMono_12`) rather
-  than resizing one object at runtime -- no `CreateFont`/`SetFont` or
-  font-file-path bookkeeping needed in Lua, at the cost of only supporting
-  those three fixed sizes.
+- **Fonts**: changing family or size routes through `ApplyCodeFont()`, which
+  calls `SetFontObject` on `CodeEditBox`, `Gutter.ScrollChild.Numbers`,
+  `WrapMeasure.Text`, `EvalStatus`, `CommandBar.Prompt`, and `CommandEditBox`
+  together, since `inherits="..."` in XML only binds once at load. It also
+  re-applies `EvalStatus`'s justification, which `SetFontObject` resets.
+- **Font sizes**: `FontUtil` creates each catalog face at every size in
+  `FONT_SIZES` (`CreateFont`/`SetFont`, named e.g.
+  `LDK_CodeEditorFont_UbuntuMono_12`) and memoizes the set, so a size change is
+  a font-object swap rather than a runtime resize.
 - **Notify flag**: `SetCodeFont`/`SetFontSize`/`SetWrapText` take an optional
   `notify` argument -- `true` fires `OnConfigChanged` (used by the
   dropdown/checkbox handlers), omitted for internal/initial sets (`OnLoad`,

@@ -2,16 +2,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
 
-    <!-- Each family is declared once per supported size (10/12/14) rather than
-         resized at runtime, so switching fontSize is a plain SetFontObject
-         swap, same mechanism as switching family, with no CreateFont or
-         font-file-path bookkeeping in Lua. 14 is the default/base size.
-
-         Names follow LDK_CodeEditorFont_[CatalogName]_[size], where CatalogName
-         is the SharedMediaFontsMono catalog name with spaces and parentheses
-         stripped ("Noto Sans Mono (Korean)" becomes NotoSansMonoKorean).
-         FontUtil.lua builds these names to find the objects, so a font renamed
-         here or in the catalog must be renamed in both places. -->
+    <!--
     <Font name="LDK_CodeEditorFont_JetBrainsMono_10" font="Interface/AddOns/LuaDevKit/Assets/Fonts/JetBrainsMono-Regular.ttf"
           height="10" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
@@ -24,74 +15,5 @@
           height="14" virtual="true">
         <Color color="WHITE_FONT_COLOR"/>
     </Font>
-
-    <Font name="LDK_CodeEditorFont_UbuntuMono_10" font="Interface/AddOns/LuaDevKit/Assets/Fonts/UbuntuMono-Regular.ttf"
-          height="10" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_UbuntuMono_12" font="Interface/AddOns/LuaDevKit/Assets/Fonts/UbuntuMono-Regular.ttf"
-          height="12" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_UbuntuMono_14" font="Interface/AddOns/LuaDevKit/Assets/Fonts/UbuntuMono-Regular.ttf"
-          height="14" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-
-    <Font name="LDK_CodeEditorFont_PTMono_10" font="Interface/AddOns/LuaDevKit/Assets/Fonts/PTMono-Regular.ttf"
-          height="10" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_PTMono_12" font="Interface/AddOns/LuaDevKit/Assets/Fonts/PTMono-Regular.ttf"
-          height="12" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_PTMono_14" font="Interface/AddOns/LuaDevKit/Assets/Fonts/PTMono-Regular.ttf"
-          height="14" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-
-    <!-- CJK monospace (Noto Sans Mono CJK), covering WoW's official CJK
-         client locales: zhCN, zhTW, koKR. (No jaJP entry; WoW has no
-         Japanese client locale.) -->
-    <Font name="LDK_CodeEditorFont_NotoSansMonoSimplifiedChinese_10" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKsc-Regular.otf"
-          height="10" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoSimplifiedChinese_12" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKsc-Regular.otf"
-          height="12" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoSimplifiedChinese_14" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKsc-Regular.otf"
-          height="14" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-
-    <Font name="LDK_CodeEditorFont_NotoSansMonoTraditionalChinese_10" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKtc-Regular.otf"
-          height="10" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoTraditionalChinese_12" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKtc-Regular.otf"
-          height="12" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoTraditionalChinese_14" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKtc-Regular.otf"
-          height="14" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-
-    <Font name="LDK_CodeEditorFont_NotoSansMonoKorean_10" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKkr-Regular.otf"
-          height="10" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoKorean_12" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKkr-Regular.otf"
-          height="12" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-    <Font name="LDK_CodeEditorFont_NotoSansMonoKorean_14" font="Interface/AddOns/LuaDevKit/Assets/Fonts/NotoSansMonoCJKkr-Regular.otf"
-          height="14" virtual="true">
-        <Color color="WHITE_FONT_COLOR"/>
-    </Font>
-
-
+    -->
 </Ui>

@@ -5,7 +5,7 @@
 
     <!-- Placeholder base: the two FontStrings below inherit this only so they
          have a valid font at XML-load time. FontUtil builds the real, catalog-
-         driven font objects at runtime (see Libs/Fonts/FontUtil.lua), and
+         driven font objects at runtime (see Libs/Modules/FontUtil.lua), and
          ApplyCodeFont() overrides both FontStrings via SetFontObject as soon
          as the dialog configures, so this definition's own look never shows. -->
     <Font name="LDK_CodeEditorFont" inherits="SharedMediaFontsMono_DefaultFont"/>
