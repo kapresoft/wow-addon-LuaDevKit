@@ -53,6 +53,23 @@ local MAX_OUTPUT_LINES = 500
 -- Rows per wheel notch; 1 matches the old ScrollUp/ScrollDown.
 local OUTPUT_SCROLL_LINES = 1
 
+-- Gap between each stepper and the track the thumb runs in.
+local ARROW_GAP = 4
+
+-- Steppers, shrunk from the template's 18x16.
+local ARROW_SCALE, ARROW_HEIGHT = 0.65, 11
+
+-- Scrollbar thumb: three-slice art, sized by its own atlas.
+local THUMB_ATLAS = 'minimal-scrollbar-small-thumb-'
+local THUMB_SLICES = { 'top', 'middle', 'bottom' }
+
+-- Track under the thumb; '!' tiles the middle.
+local TRACK_ATLAS = {
+  top = 'minimal-scrollbar-track-top',
+  middle = '!minimal-scrollbar-track-middle',
+  bottom = 'minimal-scrollbar-track-bottom',
+}
+
 -- Fewest digits the gutter is sized for.
 local MIN_GUTTER_DIGITS = 2
 
@@ -267,6 +284,93 @@ local function PageMoveCursor(self, direction, lines)
   end
 end
 
+--- Groove the thumb runs in; spans the whole bar.
+--- @param scrollBar Slider
+local function StyleScrollTrack(scrollBar)
+  local slices = {}
+  for _, slice in ipairs(THUMB_SLICES) do
+    -- BACKGROUND: the thumb's ARTWORK slices draw over it.
+    slices[slice] = scrollBar:CreateTexture(nil, 'BACKGROUND')
+    slices[slice]:SetAtlas(TRACK_ATLAS[slice], true)
+  end
+  slices.top:SetPoint('TOP', scrollBar, 'TOP')
+  slices.bottom:SetPoint('BOTTOM', scrollBar, 'BOTTOM')
+  slices.middle:SetPoint('TOP', slices.top, 'BOTTOM')
+  slices.middle:SetPoint('BOTTOM', slices.bottom, 'TOP')
+end
+
+--- Thumb art; a Slider thumb is one texture, so use three.
+--- @param scrollBar Slider
+local function StyleScrollThumb(scrollBar)
+  local thumb = scrollBar:GetThumbTexture()
+  -- Art lives in the slices; the thumb only positions them.
+  thumb:SetTexture(nil)
+
+  local slices = {}
+  for _, slice in ipairs(THUMB_SLICES) do
+    slices[slice] = scrollBar:CreateTexture(nil, 'ARTWORK')
+  end
+  -- Centre: a Slider centres its thumb on the cross axis.
+  slices.top:SetPoint('TOP', thumb, 'TOP')
+  slices.bottom:SetPoint('BOTTOM', thumb, 'BOTTOM')
+  slices.middle:SetPoint('TOP', slices.top, 'BOTTOM')
+  slices.middle:SetPoint('BOTTOM', slices.bottom, 'TOP')
+
+  local function SetState(suffix)
+    for _, slice in ipairs(THUMB_SLICES) do
+      slices[slice]:SetAtlas(THUMB_ATLAS .. slice .. suffix, true)
+    end
+  end
+  SetState('')
+
+  scrollBar:HookScript('OnEnter', function() SetState('-over') end)
+  scrollBar:HookScript('OnLeave', function() SetState('') end)
+  scrollBar:HookScript('OnMouseDown', function() SetState('-down') end)
+  scrollBar:HookScript('OnMouseUp', function() SetState('') end)
+end
+
+--- Clear the template crop first; SetAtlas writes its own.
+--- @param texture Texture|nil
+--- @param atlas string
+--- @param blendMode string|nil Template highlights are ADD; pass BLEND
+local function SetArrowAtlas(texture, atlas, blendMode)
+  if not texture then return end
+  texture:SetTexCoord(0, 1, 0, 1)
+  texture:SetAtlas(atlas, true)
+  if blendMode then texture:SetBlendMode(blendMode) end
+end
+
+--- Pins a stepper just past its end of the track.
+--- @param button Button
+--- @param edge string 'top' or 'bottom'
+local function AnchorScrollArrow(button, edge)
+  local point, relPoint, sign = 'BOTTOM', 'TOP', 1
+  if edge == 'bottom' then point, relPoint, sign = 'TOP', 'BOTTOM', -1 end
+  button:ClearAllPoints()
+  -- Offsets are in button units; divide to hold the gap.
+  button:SetPoint(point, button:GetParent(), relPoint, 0, sign * ARROW_GAP / button:GetScale())
+end
+
+--- Retextures a stepper with MinimalScrollBar atlases.
+--- @param button Button
+--- @param edge string 'top' or 'bottom'
+--- @return number @Its footprint past the track end, in parent units
+local function StyleScrollArrow(button, edge)
+  local atlas = 'minimal-scrollbar-arrow-' .. edge
+  SetArrowAtlas(button:GetNormalTexture(), atlas)
+  SetArrowAtlas(button:GetPushedTexture(), atlas .. '-down')
+  SetArrowAtlas(button:GetHighlightTexture(), atlas .. '-over', 'BLEND')
+  -- No disabled art; desaturate normal, as Blizzard does.
+  SetArrowAtlas(button:GetDisabledTexture(), atlas)
+  button:GetDisabledTexture():SetDesaturated(true)
+
+  button:SetScale(ARROW_SCALE)
+  button:SetHeight(ARROW_HEIGHT)
+  AnchorScrollArrow(button, edge)
+
+  return button:GetHeight() * button:GetScale() + ARROW_GAP
+end
+
 --- First MAX_LINES lines of text, or all of it when already shorter.
 --- @param text string
 --- @return string
@@ -297,9 +401,7 @@ end
 --- cannot arise in any font at any size.
 --- @param lastLine number Highest line number the gutter shows
 --- @return number
-local function GutterDigits(lastLine)
-  return math.max(#tostring(lastLine), MIN_GUTTER_DIGITS)
-end
+local function GutterDigits(lastLine) return math.max(#tostring(lastLine), MIN_GUTTER_DIGITS) end
 
 --- @param numLines number
 --- @param digits number Width each number is padded to (see GutterDigits)
@@ -411,14 +513,9 @@ function o:OnLoad()
 
   self:OnLoad_Viewports()
   self:OnLoad_GripLines()
+  self:OnLoad_EditBoxScrollBar()
 
   cns:EnableLuaFormatter(self.CodeEditBox)
-
-  -- Re-anchor scrollbar here; XML would need the whole template redeclared.
-  local scrollBar = self.ScrollFrame.ScrollBar
-  scrollBar:ClearAllPoints()
-  scrollBar:SetPoint('TOPLEFT', self.ScrollFrame, 'TOPRIGHT', 6, -11)
-  scrollBar:SetPoint('BOTTOMLEFT', self.ScrollFrame, 'BOTTOMRIGHT', 6, 10)
 
   local numbers = self.Gutter.ScrollChild.Numbers
 
@@ -575,12 +672,14 @@ function o:OnLoad_EvalStatus()
   scrollFrame:EnableMouseWheel(true)
   scrollFrame:SetScript('OnMouseWheel', function(_, delta) self:ScrollOutput(delta) end)
   scrollFrame:SetScript('OnSizeChanged', function() self:RefreshOutput() end)
-  scrollFrame:SetScript('OnScrollRangeChanged', function(_, _, yRange)
-    self:OnOutputScrollRangeChanged(yRange)
-  end)
-  self.EvalStatus:SetScript('OnTextChanged', function(_, userInput)
-    self:OnEvalStatusTextChanged(userInput)
-  end)
+  scrollFrame:SetScript(
+    'OnScrollRangeChanged',
+    function(_, _, yRange) self:OnOutputScrollRangeChanged(yRange) end
+  )
+  self.EvalStatus:SetScript(
+    'OnTextChanged',
+    function(_, userInput) self:OnEvalStatusTextChanged(userInput) end
+  )
   -- The box grows a frame after SetText; resize the child when it does.
   -- Safe to wire: this writes the child's height, never the box's.
   self.EvalStatus:SetScript('OnSizeChanged', function() self:SyncOutputHeight() end)
@@ -715,6 +814,22 @@ function o:OnLoad_GripLines()
     line2Center + x2,
     line2Center
   )
+end
+
+function o:OnLoad_EditBoxScrollBar()
+  local scrollBar = self.ScrollFrame.ScrollBar
+  StyleScrollTrack(scrollBar)
+  StyleScrollThumb(scrollBar)
+
+  -- Steppers sit outside the ends; style before anchoring.
+  local up = StyleScrollArrow(scrollBar.ScrollUpButton, 'top')
+  local down = StyleScrollArrow(scrollBar.ScrollDownButton, 'bottom')
+
+  -- Re-anchor scrollbar here; XML would need the whole template redeclared.
+  -- Inset by stepper height, else it clips outside.
+  scrollBar:ClearAllPoints()
+  scrollBar:SetPoint('TOPLEFT', self.ScrollFrame, 'TOPRIGHT', 6, -up)
+  scrollBar:SetPoint('BOTTOMLEFT', self.ScrollFrame, 'BOTTOMRIGHT', 6, down)
 end
 
 --- toplevel="true" only re-raises on click; this covers open-underneath too.
