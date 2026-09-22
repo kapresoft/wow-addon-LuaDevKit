@@ -50,6 +50,9 @@ local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = 1.0, 0.2
 -- Output lines kept; same truncation reasoning as MAX_LINES.
 local MAX_OUTPUT_LINES = 500
 
+-- Rows per wheel notch; 1 matches the old ScrollUp/ScrollDown.
+local OUTPUT_SCROLL_LINES = 1
+
 -- Fewest digits the gutter is sized for.
 local MIN_GUTTER_DIGITS = 2
 
@@ -104,8 +107,14 @@ Types
 --- @field Prompt FontString Static "> " glyph, left of the input
 --- @field CommandEditBox EditBox Single-line quick-eval input, historyLines=100
 
+--- @class LDK_CodeEditorOutputScrollChild : Frame
+--- @field EvalStatus EditBox Read-only output log; an EditBox so text can be selected and copied
+
+--- @class LDK_CodeEditorOutputScrollFrame : ScrollFrame
+--- @field ScrollChild LDK_CodeEditorOutputScrollChild Floored at viewport height to keep output bottom-aligned
+
 --- @class LDK_CodeEditorStatusBar : Frame, BackdropTemplate
---- @field EvalStatus ScrollingMessageFrame Read-only output log; clips and auto-scrolls natively
+--- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame Clips the output box; wheel-scrolled, no scrollbar
 
 --- @class LDK_CodeEditorStatusDivider : Button
 --- @field Grip Texture The draggable handle, colored by ApplyTheme
@@ -145,7 +154,8 @@ Types
 --- @field CommandEditBox EditBox Alias of CommandBar.CommandEditBox
 --- @field StatusBar LDK_CodeEditorStatusBar Output panel between the code area and BottomBar
 --- @field StatusDivider LDK_CodeEditorStatusDivider Drag handle that sets StatusBar's height
---- @field EvalStatus ScrollingMessageFrame Alias of StatusBar.EvalStatus
+--- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame Alias of StatusBar.OutputScrollFrame
+--- @field EvalStatus EditBox Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
 --- @field outputLines string[] Appended evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean Current wrap-mode state
@@ -395,7 +405,8 @@ Methods
 function o:OnLoad()
   -- Alias onto this dialog frame; hoisted for OnLoad_Viewports.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
-  self.EvalStatus = self.StatusBar.EvalStatus
+  self.OutputScrollFrame = self.StatusBar.OutputScrollFrame
+  self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
   self.CommandEditBox = self.CommandBar.CommandEditBox
 
   self:OnLoad_Viewports()
@@ -525,7 +536,7 @@ function o:OnLoad_Viewports()
   self.Gutter:SetPoint('BOTTOMRIGHT', self.GutterBackdrop, 'BOTTOMRIGHT', -4, v)
   self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -v)
   self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, v)
-  -- EvalStatus is anchored in XML instead, not here -- see its own XML comment.
+  -- OutputScrollFrame is anchored in XML; see its comment.
 end
 
 --- Starts at viewport height for a clickable area; RefreshGutter grows it.
@@ -543,7 +554,6 @@ function o:OnLoad_WrapCheckButton()
   AddTooltip(button, 'Wrap Text')
 end
 
---- Fading/justify live in EvalStatus's own XML OnLoad, not here.
 function o:OnLoad_StatusBar()
   self.StatusBar:SetHeight(STATUS_BAR_HEIGHT)
   local divider = self.StatusDivider
@@ -554,10 +564,47 @@ function o:OnLoad_StatusBar()
   AddTooltip(divider, 'Resize Output')
   AddTooltip(divider.MaximizeButton, 'Maximize Output')
   AddTooltip(divider.MinimizeButton, 'Minimize Output')
+  self:OnLoad_EvalStatus()
   self:ClearOutput()
 end
 
---- Interactive, unlike EvalStatus/Numbers; keeps native focus/keyboard.
+--- Wires the output box; RefreshOutput fills it.
+function o:OnLoad_EvalStatus()
+  local scrollFrame = self.OutputScrollFrame
+  -- No enableMouseWheel attribute exists; UI.xsd has mouse only.
+  scrollFrame:EnableMouseWheel(true)
+  scrollFrame:SetScript('OnMouseWheel', function(_, delta) self:ScrollOutput(delta) end)
+  scrollFrame:SetScript('OnSizeChanged', function() self:RefreshOutput() end)
+  scrollFrame:SetScript('OnScrollRangeChanged', function(_, _, yRange)
+    self:OnOutputScrollRangeChanged(yRange)
+  end)
+  self.EvalStatus:SetScript('OnTextChanged', function(_, userInput)
+    self:OnEvalStatusTextChanged(userInput)
+  end)
+  -- The box grows a frame after SetText; resize the child when it does.
+  -- Safe to wire: this writes the child's height, never the box's.
+  self.EvalStatus:SetScript('OnSizeChanged', function() self:SyncOutputHeight() end)
+end
+
+--- Append or resize; both should show the newest line.
+--- @param yRange number
+function o:OnOutputScrollRangeChanged(yRange) self.OutputScrollFrame:SetVerticalScroll(yRange) end
+
+--- Read-only: outputLines is the only text source.
+--- @param userInput boolean
+function o:OnEvalStatusTextChanged(userInput)
+  if userInput then self:RefreshOutput() end
+end
+
+--- @param delta number Wheel direction, positive up
+function o:ScrollOutput(delta)
+  local scrollFrame = self.OutputScrollFrame
+  local step = self.WrapMeasure.Text:GetLineHeight() * OUTPUT_SCROLL_LINES
+  local target = scrollFrame:GetVerticalScroll() - delta * step
+  scrollFrame:SetVerticalScroll(Clamp(target, 0, scrollFrame:GetVerticalScrollRange()))
+end
+
+--- Editable, unlike EvalStatus; native focus/keyboard.
 function o:OnLoad_CommandBar()
   self.CommandBar.Prompt:SetText('> ')
   self.CommandEditBox:SetAutoFocus(false)
@@ -955,10 +1002,9 @@ function o:ApplyCodeFont(notify)
   self.Gutter.ScrollChild.Numbers:SetFontObject(font)
   self.WrapMeasure.Text:SetFontObject(font)
 
-  -- Must set justify here: SetFontObject resets it, undoing EvalStatus's own OnLoad.
+  -- Must set justify here: SetFontObject resets it.
   self.EvalStatus:SetFontObject(font)
   self.EvalStatus:SetJustifyH('LEFT')
-  self.EvalStatus:SetJustifyV('BOTTOM')
 
   self.CommandBar.Prompt:SetFontObject(font)
   self.CommandEditBox:SetFontObject(font)
@@ -1179,25 +1225,41 @@ end
 --- Drops every line of output collected so far.
 function o:ClearOutput()
   self.outputLines = {}
-  self.EvalStatus:Clear()
+  self:RefreshOutput()
 end
 
---- Appends one evaluation's output, keeping the previous runs above it. New
---- lines go straight to EvalStatus via AddMessage as they arrive -- like
---- WowLua's own console, which never clears and rebuilds, only ever appends.
---- A Clear()-then-replay on every single append (the previous approach) was
---- what broke EvalStatus's bottom-anchoring: an isolated test frame that only
---- ever called AddMessage, never Clear(), didn't have the problem.
---- Embedded newlines are split out so the line cap counts what is actually
---- rendered, not how many calls were made.
+--- Rewrites the output box from outputLines.
+function o:RefreshOutput()
+  local box = self.EvalStatus
+  local child = self.OutputScrollFrame.ScrollChild
+  -- Scroll children ignore right anchors; set width here.
+  local width = self.OutputScrollFrame:GetWidth()
+  -- Zero until the first layout pass; OnSizeChanged retries.
+  if width > 0 and SizeDiffers(child:GetWidth(), width) then child:SetWidth(width) end
+  self:SyncOutputHeight()
+
+  -- A divider drag re-enters this every frame.
+  local text = table.concat(self.outputLines or {}, '\n')
+  if box:GetText() == text then return end
+  -- Raised before every SetText; see RefreshGutter for why.
+  box:SetMaxLetters(strlenutf8(text))
+  box:SetText(text)
+end
+
+--- Floors the child at viewport height so short output stays bottom-aligned.
+function o:SyncOutputHeight()
+  local child = self.OutputScrollFrame.ScrollChild
+  local height = math.max(self.EvalStatus:GetHeight(), self.OutputScrollFrame:GetHeight())
+  if SizeDiffers(child:GetHeight(), height) then child:SetHeight(height) end
+end
+
+--- Appends output; embedded newlines count toward the cap.
 --- @param text string
 function o:AppendOutput(text)
   local lines = self.outputLines or {}
-  local box = self.EvalStatus
   -- Trailing '\n' keeps a final empty line, matching CountLines().
   for line in (tostring(text or '') .. '\n'):gmatch('(.-)\n') do
     lines[#lines + 1] = line
-    box:AddMessage(line)
   end
   local excess = #lines - MAX_OUTPUT_LINES
   if excess > 0 then
@@ -1210,6 +1272,7 @@ function o:AppendOutput(text)
     end
   end
   self.outputLines = lines
+  self:RefreshOutput()
 end
 
 --- @return string Everything currently shown in the output panel

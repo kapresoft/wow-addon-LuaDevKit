@@ -37,7 +37,7 @@ columns 1
     Code["CodeBackdrop → ScrollFrame\nCodeEditBox (EditBox)"]
   end
   Divider["StatusDivider — drag handle\nGrip · MaximizeButton · MinimizeButton"]
-  Status["StatusBar — output panel\nEvalStatus (ScrollingMessageFrame)"]
+  Status["StatusBar — output panel\nOutputScrollFrame → ScrollChild → EvalStatus (EditBox, read-only)"]
   Command["CommandBar — single-line eval prompt\nPrompt · CommandEditBox"]
   BottomBar["BottomBar — status/action bar\nWrapCheckButton"]
   Sizer["SizerSE (resize grip, bottom-right corner)"]
@@ -58,7 +58,7 @@ columns 1
 +-----------------------------------------------------------+
 |                        ==========               [^][v]    |  <- StatusDivider: drag grip + max/min
 +-----------------------------------------------------------+
-| EvalStatus (output, appended run after run)               |  <- StatusBar: output panel
+| EvalStatus (output, selectable; appended run after run)   |  <- StatusBar: output panel
 +-----------------------------------------------------------+
 | > CommandEditBox                                          |  <- CommandBar: single-line eval prompt
 +-----------------------------------------------------------+
@@ -183,6 +183,23 @@ size* rather than resizing at runtime, so any other value passed to
   `WrapMeasure.Text`, `EvalStatus`, `CommandBar.Prompt`, and `CommandEditBox`
   together, since `inherits="..."` in XML only binds once at load. It also
   re-applies `EvalStatus`'s justification, which `SetFontObject` resets.
+- **Output panel**: `EvalStatus` is a read-only multi-line `EditBox` in a plain
+  `ScrollFrame` (`OutputScrollFrame`), not a `ScrollingMessageFrame`, since a
+  `ScrollingMessageFrame` offers no way to select text. `RefreshOutput()`
+  rewrites it from `outputLines` on every append, resize, and stray keystroke
+  (the read-only guard in `OnEvalStatusTextChanged`). The panel has no
+  scrollbar: the wheel scrolls it by `OUTPUT_SCROLL_LINES` rows, and
+  `OnScrollRangeChanged` snaps back to the newest line whenever content or
+  size changes.
+- **Output panel, bottom alignment**: the box hangs off the bottom of
+  `OutputScrollFrame.ScrollChild`, which `SyncOutputHeight()` floors at the
+  viewport height, so short output still sits on the panel's bottom edge the
+  way the old frame's `SetJustifyV('BOTTOM')` put it there. An `EditBox` sizes
+  itself to its own text, so without that floor there is no blank space for
+  vertical justification to act in.
+- **Output panel, colors**: output keeps its `|cRRGGBBAA`/`|r` coloring, and a
+  selection still pastes as plain text -- the client strips escape sequences
+  when copying out of an `EditBox`, so the panel does not have to choose.
 - **Font sizes**: `FontUtil` creates each catalog face at every size in
   `FONT_SIZES` (`CreateFont`/`SetFont`, named e.g.
   `LDK_CodeEditorFont_UbuntuMono_12`) and memoizes the set, so a size change is

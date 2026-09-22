@@ -36,9 +36,11 @@
                  drag-to-move lives here. CloseFrame declared before Title so
                  Title's right edge can anchor to it (fixed close, fluid
                  title).
+
                  Header.CloseFrame: no enableMouse, so drags over its empty
                  margin fall through to Header; the button still takes its
                  own clicks.
+
                  Header.CloseFrame.CloseButton: OnClick wired in Lua OnLoad,
                  not here, since the inherited UIPanelCloseButton_OnClick
                  hides GetParent() (CloseFrame at this depth). -->
@@ -95,6 +97,7 @@
 
             <!-- SizerSE: bottom-right resize grip, styled like AceGUI's Frame
                  widget sizer_se.
+
                  SizerSE.Line1/Line2: diagonal tex-coords set in Lua OnLoad
                  (SetTexCoord's 8-value quad form isn't expressible in XML). -->
             <Frame parentKey="SizerSE" enableMouse="true">
@@ -131,8 +134,10 @@
 
             <!-- TopBar: reserved space for future toolbar/controls (e.g.
                  Accept/Run buttons).
+
                  TopBar.OptionsButton: plain arrow-only template (no natural
                  per-item icon, so no chrome to hide).
+
                  TopBar.FontSizeUpButton/FontSizeDownButton: chat-frame scroll
                  icons (same art Blizzard uses on LootFrame's page buttons),
                  not a scrollbar template. -->
@@ -228,6 +233,7 @@
             <!-- CommandBar: single-line quick-eval input, mirroring WowLua's
                  own prompt (third-party/wowlua/WowLua.lua); sits on
                  BottomBar, below the output panel.
+
                  CommandBar.CommandEditBox: plain EditBox, not
                  LDK_CodeEditBoxMixin, wired straight to the dialog like
                  WrapCheckButton; historyLines gives native Up/Down history. -->
@@ -270,11 +276,22 @@
 
             <!-- StatusBar: output panel, results appended run after run;
                  StatusDivider sets its height.
-                 StatusBar.EvalStatus: justify is set in Lua's ApplyCodeFont,
-                 after SetFontObject (which resets justify); SetMaxLines
-                 matches MAX_OUTPUT_LINES since AppendOutput no longer
-                 Clear()s and replays; OnMouseWheel uses the frame's own
-                 ScrollUp/ScrollDown methods. -->
+
+                 StatusBar.OutputScrollFrame: plain ScrollFrame, no template,
+                 so the panel keeps its scrollbar-free look; wheel, sizing and
+                 auto scroll to bottom are wired in Lua's OnLoad_StatusBar.
+
+                 OutputScrollFrame OnMouseDown: clicks that miss EvalStatus
+                 forward focus to it.
+
+                 OutputScrollFrame.ScrollChild: sized in Lua's RefreshOutput
+                 and floored at the viewport height, so short output still
+                 sits on the panel's bottom edge.
+
+                 OutputScrollFrame.ScrollChild.EvalStatus: EditBox, not a
+                 ScrollingMessageFrame, which has no way to select text; hangs
+                 off the child's bottom and grows upward with its own text;
+                 kept read-only in Lua's OnEvalStatusTextChanged. -->
             <Frame parentKey="StatusBar" inherits="BackdropTemplate">
                 <Size y="100"/>
                 <Anchors>
@@ -282,32 +299,47 @@
                     <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CommandBar" relativePoint="TOPRIGHT" x="0" y="0"/>
                 </Anchors>
                 <Frames>
-                    <ScrollingMessageFrame parentKey="EvalStatus" enableMouse="true">
+                    <ScrollFrame parentKey="OutputScrollFrame" enableMouse="true">
                         <Anchors>
                             <Anchor point="TOPLEFT" x="6" y="-4"/>
                             <Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
                         </Anchors>
                         <Scripts>
-                            <OnLoad>
-                                self:SetFading(false)
-                                self:SetMaxLines(500)
-                            </OnLoad>
-                            <OnMouseWheel>
-                                if delta > 0 then
-                                    self:ScrollUp()
-                                else
-                                    self:ScrollDown()
-                                end
-                            </OnMouseWheel>
+                            <OnMouseDown>
+                                self.ScrollChild.EvalStatus:SetFocus()
+                            </OnMouseDown>
                         </Scripts>
-                    </ScrollingMessageFrame>
+                        <ScrollChild>
+                            <Frame parentKey="ScrollChild">
+                                <Size x="1" y="1"/>
+                                <Anchors>
+                                    <Anchor point="TOPLEFT"/>
+                                </Anchors>
+                                <Frames>
+                                    <EditBox parentKey="EvalStatus" multiLine="true" autoFocus="false">
+                                        <Anchors>
+                                            <Anchor point="BOTTOMLEFT"/>
+                                            <Anchor point="BOTTOMRIGHT"/>
+                                        </Anchors>
+                                        <Scripts>
+                                            <OnEscapePressed>
+                                                self:ClearFocus()
+                                            </OnEscapePressed>
+                                        </Scripts>
+                                    </EditBox>
+                                </Frames>
+                            </Frame>
+                        </ScrollChild>
+                    </ScrollFrame>
                 </Frames>
             </Frame>
 
             <!-- StatusDivider: drag handle, resizes StatusBar;
                  GutterBackdrop/CodeBackdrop anchor to its top.
+
                  StatusDivider.Grip: colored in Lua's ApplyTheme, like every
                  other border here.
+
                  StatusDivider.MinimizeButton/MaximizeButton: jump the output
                  panel to its max/min height; rotated and wired in Lua's
                  OnLoad_StatusBar. -->
@@ -393,8 +425,10 @@
 
             <!-- Gutter: real ScrollFrame, clips and stays locked to the code
                  area's scroll; anchored/inset in Lua's OnLoad_Viewports.
+
                  Gutter.ScrollChild: sized in Lua's RefreshGutter, so TOPLEFT
                  is its only anchor (a second would fight that sizing).
+
                  Gutter.ScrollChild.Numbers: EditBox, not FontString (those
                  truncate past ~30k chars); font matches CodeEditBox for
                  identical line pitch. -->
@@ -420,15 +454,22 @@
             </ScrollFrame>
 
             <!-- CodeBackdrop: x=-1 overlaps the gutter's border (avoids a
-                 double border). ScrollBarGap: widening its Size x opens a
-                 real gap before the scrollbar.
+                 double border).
+
+                 ScrollBarGap: widening its Size x opens a real gap before
+                 the scrollbar.
+
                  ScrollFrame: code area, no-wrap EditBox in a scroll frame
                  (vertical scrollbar via UIPanelScrollFrameTemplate);
-                 anchored/inset in Lua's OnLoad_Viewports. OnMouseDown: clicks
-                 that miss CodeEditBox forward focus to it. OnLoad: chains
-                 OnVerticalScroll (replacing it outright desynced the
-                 scrollbar) and OnSizeChanged (a SizerSE drag moves wrap
-                 points in wrap mode).
+                 anchored/inset in Lua's OnLoad_Viewports.
+
+                 ScrollFrame OnMouseDown: clicks that miss CodeEditBox
+                 forward focus to it.
+
+                 ScrollFrame OnLoad: chains OnVerticalScroll (replacing it
+                 outright desynced the scrollbar) and OnSizeChanged (a SizerSE
+                 drag moves wrap points in wrap mode).
+
                  ScrollFrame.CodeEditBox: has its own font (SetFontObject/
                  GetFont), no nested FontString needed; no OnSizeChanged
                  wired since RefreshGutter is the only resizer and wiring it
