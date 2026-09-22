@@ -44,6 +44,11 @@ local MIN_CODE_HEIGHT = 60
 -- and StatusBar, so its height comes out of the space they share.
 local STATUS_DIVIDER_HEIGHT = 10
 
+-- Matches CommandBar's Size y in XML. Fixed, unlike StatusBar: it holds one
+-- line of input and never resizes, but its height still comes out of the same
+-- shared space MaxStatusHeight measures.
+local COMMAND_BAR_HEIGHT = 22
+
 -- Alpha for the output arrows; dimming reads as disabled on every theme background.
 local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = 1.0, 0.2
 
@@ -114,8 +119,12 @@ Types
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
 
+--- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
+--- @field Prompt FontString Static "> " glyph, left of the input
+--- @field CommandEditBox EditBox Single-line quick-eval input, historyLines=100
+
 --- @class LDK_CodeEditorStatusBar : Frame, BackdropTemplate
---- @field EvalStatus EditBox Read-only output box, no ScrollFrame around it
+--- @field EvalStatus ScrollingMessageFrame Read-only output log; clips and auto-scrolls natively
 
 --- @class LDK_CodeEditorStatusDivider : Button
 --- @field Grip Texture The draggable handle, colored by ApplyTheme
@@ -151,9 +160,11 @@ Types
 --- @field fontFamily string Key of the currently applied font (see FontUtil:GetFontChoices())
 --- @field fontSize number Current fontSize option, applied to rendering (snapped to FontUtil:GetFontSizes())
 --- @field BottomBar LDK_CodeEditorBottomBar
+--- @field CommandBar LDK_CodeEditorCommandBar Single-line eval prompt between StatusBar and BottomBar
+--- @field CommandEditBox EditBox Alias of CommandBar.CommandEditBox
 --- @field StatusBar LDK_CodeEditorStatusBar Output panel between the code area and BottomBar
 --- @field StatusDivider LDK_CodeEditorStatusDivider Drag handle that sets StatusBar's height
---- @field EvalStatus EditBox Alias of StatusBar.EvalStatus
+--- @field EvalStatus ScrollingMessageFrame Alias of StatusBar.EvalStatus
 --- @field outputLines string[] Appended evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean Current wrap-mode state
@@ -374,7 +385,10 @@ end
 local function MaxStatusHeight(self)
   local top, bottom = self.TopBar:GetBottom(), self.BottomBar:GetTop()
   if not top or not bottom then return STATUS_BAR_HEIGHT end
-  return math.max(MIN_STATUS_HEIGHT, top - bottom - STATUS_DIVIDER_HEIGHT - MIN_CODE_HEIGHT)
+  return math.max(
+    MIN_STATUS_HEIGHT,
+    top - bottom - STATUS_DIVIDER_HEIGHT - COMMAND_BAR_HEIGHT - MIN_CODE_HEIGHT
+  )
 end
 
 --- Blizzard-standard hover tooltip: the label as title, its '::Desc' entry as
@@ -432,6 +446,7 @@ function o:OnLoad()
   -- is what anchors EvalStatus.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
   self.EvalStatus = self.StatusBar.EvalStatus
+  self.CommandEditBox = self.CommandBar.CommandEditBox
 
   self:OnLoad_Viewports()
   self:OnLoad_GripLines()
@@ -508,6 +523,7 @@ function o:OnLoad()
   self:OnLoad_WrapCheckButton()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
+  self:OnLoad_CommandBar()
 
   -- Prototype-only: pre-fill with sample code long enough to force scrolling,
   -- so gutter/scroll sync can be tested immediately on open.
@@ -573,8 +589,7 @@ function o:OnLoad_Viewports()
   self.Gutter:SetPoint('BOTTOMRIGHT', self.GutterBackdrop, 'BOTTOMRIGHT', -4, v)
   self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -v)
   self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, v)
-  self.EvalStatus:SetPoint('TOPLEFT', self.StatusBar, 'TOPLEFT', 2, -v)
-  self.EvalStatus:SetPoint('BOTTOMRIGHT', self.StatusBar, 'BOTTOMRIGHT', -2, v)
+  -- EvalStatus is anchored in XML instead, not here -- see its own XML comment.
 end
 
 --- Default is no-wrap: the EditBox is fixed-width and wider than the scroll
@@ -596,16 +611,9 @@ function o:OnLoad_WrapCheckButton()
   AddTooltip(button, 'Wrap Text')
 end
 
---- Read-only output box: same treatment as the gutter's Numbers box, for the
---- same reason. enableKeyboard="false" (XML) only stops it acquiring focus on
---- its own; SetEnabled is the actual read-only switch.
+--- Read-only output log. Fading/justify are set on EvalStatus itself, in its
+--- own XML OnLoad (see CodeEditorDialog.xml), not here.
 function o:OnLoad_StatusBar()
-  local box = self.EvalStatus
-  box:SetEnabled(false)
-  box:SetJustifyH('LEFT')
-  -- TOP keeps the first line at the top when the box is taller than its text.
-  box:SetJustifyV('TOP')
-  box:SetTextInsets(2, 2, 0, 0)
   self.StatusBar:SetHeight(STATUS_BAR_HEIGHT)
   local divider = self.StatusDivider
   divider.MaximizeButton:SetScript('OnClick', function() self:MaximizeStatus() end)
@@ -616,6 +624,14 @@ function o:OnLoad_StatusBar()
   AddTooltip(divider.MaximizeButton, 'Maximize Output')
   AddTooltip(divider.MinimizeButton, 'Minimize Output')
   self:ClearOutput()
+end
+
+--- Single-line eval prompt. Interactive, unlike EvalStatus/Numbers, so it
+--- keeps its native EditBox focus/keyboard behavior instead of being disabled.
+function o:OnLoad_CommandBar()
+  self.CommandBar.Prompt:SetText('> ')
+  self.CommandEditBox:SetAutoFocus(false)
+  AddTooltip(self.CommandEditBox, 'Command Line')
 end
 
 --- clampedToScreen only constrains position, so a dialog left wider than the
@@ -808,8 +824,10 @@ end
 --- resizes the dialog frame, so this cannot feed itself.
 function o:OnSizeChanged()
   -- OnSizeChanged fires while the frame is still being built, before its XML
-  -- children (and the OnLoad aliases) exist.
-  if not self.StatusBar then return end
+  -- children (and the OnLoad aliases) exist -- StatusDivider is declared
+  -- after StatusBar, so a flush that fires this before the tree finishes
+  -- building can see one exist without the other yet.
+  if not self.StatusBar or not self.StatusDivider then return end
   self:SetStatusHeight(self.StatusBar:GetHeight())
 end
 
@@ -981,14 +999,17 @@ function o:ApplyTheme(name)
     self.GutterBackdrop:SetBackdrop(cbd)
     self.CodeBackdrop:SetBackdrop(cbd)
     self.StatusBar:SetBackdrop(cbd)
+    self.CommandBar:SetBackdrop(cbd)
 
     if bgColor then
       self.CodeBackdrop:SetBackdropColor(upk(bgColor))
       self.StatusBar:SetBackdropColor(upk(bgColor))
+      self.CommandBar:SetBackdropColor(upk(bgColor))
     end
     if borderColor then
       self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
       self.StatusBar:SetBackdropBorderColor(upk(borderColor))
+      self.CommandBar:SetBackdropBorderColor(upk(borderColor))
       if GUTTER.useCodeBorderColor then gutterBorderColor = borderColor end
     end
     if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
@@ -1006,6 +1027,8 @@ function o:ApplyTheme(name)
   self.StatusDivider.MaximizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self.StatusDivider.MinimizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self.EvalStatus:SetTextColor(upk(status.textColor))
+  self.CommandBar.Prompt:SetTextColor(upk(status.textColor))
+  self.CommandEditBox:SetTextColor(upk(status.textColor))
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
@@ -1066,6 +1089,15 @@ function o:ApplyCodeFont(notify)
   self.Gutter.ScrollChild.Numbers:SetFontObject(font)
   self.WrapMeasure.Text:SetFontObject(font)
   self.EvalStatus:SetFontObject(font)
+  -- Right after SetFontObject, not in EvalStatus's own XML OnLoad: SetFontObject
+  -- resets justification to the font object's own template default, so setting
+  -- justify anywhere it runs before this (including EvalStatus's own OnLoad,
+  -- which fires long before this dialog-level function ever does) just gets
+  -- silently undone the moment the real font is applied here.
+  self.EvalStatus:SetJustifyH('LEFT')
+  self.EvalStatus:SetJustifyV('BOTTOM')
+  self.CommandBar.Prompt:SetFontObject(font)
+  self.CommandEditBox:SetFontObject(font)
   -- Disable the step buttons at the ends of FontUtil:GetFontSizes() -- both
   -- templates ship a DisabledTexture for exactly this state.
   local sizes = fut:GetFontSizes()
@@ -1314,23 +1346,32 @@ end
 --- Drops every line of output collected so far.
 function o:ClearOutput()
   self.outputLines = {}
-  self:RefreshOutput()
+  self.EvalStatus:Clear()
 end
 
---- Appends one evaluation's output, keeping the previous runs above it.
+--- Appends one evaluation's output, keeping the previous runs above it. New
+--- lines go straight to EvalStatus via AddMessage as they arrive -- like
+--- WowLua's own console, which never clears and rebuilds, only ever appends.
+--- A Clear()-then-replay on every single append (the previous approach) was
+--- what broke EvalStatus's bottom-anchoring: an isolated test frame that only
+--- ever called AddMessage, never Clear(), didn't have the problem.
 --- Embedded newlines are split out so the line cap counts what is actually
 --- rendered, not how many calls were made.
 --- @param text string
 function o:AppendOutput(text)
   local lines = self.outputLines or {}
+  local box = self.EvalStatus
   -- Trailing '\n' keeps a final empty line, matching CountLines().
   for line in (tostring(text or '') .. '\n'):gmatch('(.-)\n') do
     lines[#lines + 1] = line
+    box:AddMessage(line)
   end
   local excess = #lines - MAX_OUTPUT_LINES
   if excess > 0 then
     -- Shift the survivors down rather than rebuilding the table, so the oldest
-    -- lines fall off the front without reallocating on every append.
+    -- lines fall off the front without reallocating on every append. This
+    -- only trims GetOutput()'s own record -- EvalStatus's own display cap
+    -- (SetMaxLines, in its XML OnLoad) trims what's rendered, independently.
     for i = 1, #lines - excess do
       lines[i] = lines[i + excess]
     end
@@ -1339,24 +1380,59 @@ function o:AppendOutput(text)
     end
   end
   self.outputLines = lines
-  self:RefreshOutput()
 end
 
 --- @return string Everything currently shown in the output panel
 function o:GetOutput() return table.concat(self.outputLines or {}, '\n') end
 
---- Pushes the collected lines into the output box. SetMaxLetters is raised
---- first for the same reason the gutter does it: an EditBox truncates at its
---- letters cap, ending mid-text and dropping every line below the cut.
---- strlenutf8, not #text -- SetMaxLetters counts characters, # counts bytes.
-function o:RefreshOutput()
-  local text = self:GetOutput()
-  local box = self.EvalStatus
-  box:SetMaxLetters(strlenutf8(text))
-  box:SetText(text)
-  -- SetText leaves the caret at the end; reset it so the box has no reason to
-  -- scroll its own text toward the caret.
-  box:SetCursorPosition(0)
+--[[-----------------------------------------------------------------------------
+Command line: single-shot eval, mirroring WowLua's own prompt
+(third-party/wowlua/WowLua.lua ProcessLine/RunScript). No multi-line
+continuation: an unfinished block just reports its compile error, rather than
+switching the prompt to wait for more input the way WowLua's does.
+-------------------------------------------------------------------------------]]
+--- Grey, comma-joined print output, matching WowLua's own wowpad_print.
+--- @param self LDK_CodeEditorDialog
+local function CommandPrint(self, ...)
+  local parts = {}
+  for i = 1, select('#', ...) do
+    parts[i] = tostring(select(i, ...))
+  end
+  self:AppendOutput('|cff999999' .. table.concat(parts, ', ') .. '|r')
+end
+
+--- Runs one line from the command bar and appends every outcome -- the echoed
+--- input, a compile error, a runtime error, or printed output -- to the same
+--- output panel a full Run uses.
+--- @param text string
+function o:OnCommandEnterPressed(text)
+  if str_isBlank(text) then return end
+
+  -- Escape literal '|' so the echoed input can't be read as a color/texture code.
+  self:AppendOutput(self.CommandBar.Prompt:GetText() .. text:gsub('|', '||'))
+
+  -- '= expr' shorthand, same as WowLua's console.
+  local expr = text:match('^%s*=%s*(.+)$')
+  local func, err = loadstring(expr and ('print(' .. expr .. ')') or text)
+
+  -- Not '= expr' syntax, but maybe still a bare expression -- retry the same
+  -- way WowLua's console does, so e.g. typing "5 + 5" alone still prints.
+  if not func and not expr then
+    local retryFunc = loadstring('print(' .. text .. ')')
+    if retryFunc then func, err = retryFunc, nil end
+  end
+
+  if not func then
+    self:AppendOutput('|cffff0000' .. err .. '|r')
+    return
+  end
+
+  local oldPrint = print
+  print = function(...) CommandPrint(self, ...) end
+  local ok, runErr = pcall(func)
+  print = oldPrint
+
+  if not ok then self:AppendOutput('|cffff0000' .. runErr .. '|r') end
 end
 
 --- @return string

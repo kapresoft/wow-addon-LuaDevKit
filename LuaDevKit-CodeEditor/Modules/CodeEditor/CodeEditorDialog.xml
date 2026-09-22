@@ -32,11 +32,16 @@
         </Scripts>
 
         <Frames>
-            <!-- Header row: full-width bar owning the title and the close button.
-                 Drag-to-move lives here (it was on the old header Texture).
-                 CloseFrame is declared before Title so Title's right edge can
-                 anchor to it: fixed-width close + fluid title means the title
-                 absorbs all remaining width. -->
+            <!-- Header: full-width bar owning the title and close button;
+                 drag-to-move lives here. CloseFrame declared before Title so
+                 Title's right edge can anchor to it (fixed close, fluid
+                 title).
+                 Header.CloseFrame: no enableMouse, so drags over its empty
+                 margin fall through to Header; the button still takes its
+                 own clicks.
+                 Header.CloseFrame.CloseButton: OnClick wired in Lua OnLoad,
+                 not here, since the inherited UIPanelCloseButton_OnClick
+                 hides GetParent() (CloseFrame at this depth). -->
             <Frame parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
                 <Size y="28"/>
                 <Anchors>
@@ -44,8 +49,6 @@
                     <Anchor point="TOPRIGHT" relativeTo="$parent" x="2" y="-1"/>
                 </Anchors>
                 <Frames>
-                    <!-- No enableMouse: drags over its empty margin fall through
-                         to Header; the Button still takes its own clicks. -->
                     <Frame parentKey="CloseFrame" inherits="BackdropTemplate">
                         <Size x="28" />
                         <Anchors>
@@ -53,9 +56,6 @@
                             <Anchor point="BOTTOMRIGHT"/>
                         </Anchors>
                         <Frames>
-                            <!-- OnClick is wired in Lua OnLoad, not here: the
-                                 inherited UIPanelCloseButton_OnClick hides
-                                 GetParent(), which at this depth is CloseFrame. -->
                             <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
                                 <Anchors>
                                     <Anchor point="CENTER" x="-1" y="0"/>
@@ -93,7 +93,10 @@
                 </Scripts>
             </Frame>
 
-            <!-- Bottom-right resize grip, styled like AceGUI's Frame widget sizer_se -->
+            <!-- SizerSE: bottom-right resize grip, styled like AceGUI's Frame
+                 widget sizer_se.
+                 SizerSE.Line1/Line2: diagonal tex-coords set in Lua OnLoad
+                 (SetTexCoord's 8-value quad form isn't expressible in XML). -->
             <Frame parentKey="SizerSE" enableMouse="true">
                 <Size x="25" y="25"/>
                 <Anchors>
@@ -101,7 +104,6 @@
                 </Anchors>
                 <Layers>
                     <Layer level="BACKGROUND">
-                        <!-- Diagonal tex-coords set in Lua OnLoad (SetTexCoord's 8-value quad form isn't expressible in XML) -->
                         <Texture hidden="false" parentKey="Line1" file="Interface\Tooltips\UI-Tooltip-Border">
                             <Size x="14" y="14"/>
                             <Anchors>
@@ -127,7 +129,13 @@
                 </Scripts>
             </Frame>
 
-            <!-- Reserved space for future toolbar/controls (e.g. Accept/Run buttons) -->
+            <!-- TopBar: reserved space for future toolbar/controls (e.g.
+                 Accept/Run buttons).
+                 TopBar.OptionsButton: plain arrow-only template (no natural
+                 per-item icon, so no chrome to hide).
+                 TopBar.FontSizeUpButton/FontSizeDownButton: chat-frame scroll
+                 icons (same art Blizzard uses on LootFrame's page buttons),
+                 not a scrollbar template. -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Size y="28"/>
                 <Anchors>
@@ -135,8 +143,6 @@
                     <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
                 </Anchors>
                 <Frames>
-                    <!-- Options/tools menu: no natural per-item icon, so the
-                         plain arrow-only template fits (no chrome to hide). -->
                     <DropdownButton parentKey="OptionsButton" inherits="WowStyle1ArrowDropdownTemplate">
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
@@ -174,9 +180,6 @@
                         <NormalTexture file="interface\addons\luadevkit\assets\font-size-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\font-size-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
-                    <!-- Step font size up/down, left of the size dropdown trigger.
-                         Chat-frame scroll icons (same art Blizzard uses on
-                         LootFrame's page buttons), not a scrollbar template. -->
                     <Button parentKey="FontSizeUpButton">
                         <Size x="20" y="26"/>
                         <Anchors>
@@ -200,7 +203,7 @@
                 </Frames>
             </Frame>
 
-            <!-- Status/action bar -->
+            <!-- BottomBar: status/action bar. -->
             <Frame parentKey="BottomBar" inherits="BackdropTemplate">
                 <Size y="30"/>
                 <Anchors>
@@ -222,33 +225,92 @@
                 </Frames>
             </Frame>
 
-            <!-- Output panel: evaluation results, appended run after run. Full
-                 width like BottomBar, which it sits directly on top of. Its
-                 height is the split point between the code area and this panel;
-                 StatusDivider is what writes that height. -->
-            <Frame parentKey="StatusBar" inherits="BackdropTemplate">
-                <Size y="100"/>
+            <!-- CommandBar: single-line quick-eval input, mirroring WowLua's
+                 own prompt (third-party/wowlua/WowLua.lua); sits on
+                 BottomBar, below the output panel.
+                 CommandBar.CommandEditBox: plain EditBox, not
+                 LDK_CodeEditBoxMixin, wired straight to the dialog like
+                 WrapCheckButton; historyLines gives native Up/Down history. -->
+            <Frame parentKey="CommandBar" inherits="BackdropTemplate">
+                <Size y="22"/>
                 <Anchors>
                     <Anchor point="BOTTOMLEFT" relativeKey="$parent.BottomBar" relativePoint="TOPLEFT" x="0" y="0"/>
                     <Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomBar" relativePoint="TOPRIGHT" x="0" y="0"/>
                 </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString parentKey="Prompt" inherits="LDK_CodeEditorFont" justifyH="LEFT">
+                            <Anchors>
+                                <Anchor point="LEFT" x="6" y="0"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
                 <Frames>
-                    <!-- Read-only output box; no ScrollFrame around it, so it
-                         shows whatever fits its current height. Same treatment
-                         as the gutter's Numbers box: mouse and keyboard off so
-                         it never takes focus or shows a caret. Font,
-                         justification and insets come from Lua
-                         (OnLoad_StatusBar, ApplyCodeFont); it is anchored in
-                         OnLoad_Viewports alongside the other viewports. -->
-                    <EditBox parentKey="EvalStatus" multiLine="true"
-                             enableMouseClicks="false"
-                             autoFocus="false" enableMouse="false" enableKeyboard="false"/>
+                    <EditBox parentKey="CommandEditBox" letters="4096" historyLines="100"
+                             autoFocus="false">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.Prompt" relativePoint="TOPRIGHT" x="4" y="4"/>
+                            <Anchor point="BOTTOMRIGHT" x="-6" y="0"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnEnterPressed>
+                                local text = self:GetText()
+                                self:AddHistoryLine(text)
+                                self:SetText('')
+                                self:GetParent():GetParent():OnCommandEnterPressed(text)
+                            </OnEnterPressed>
+                            <OnEscapePressed>
+                                self:ClearFocus()
+                            </OnEscapePressed>
+                        </Scripts>
+                    </EditBox>
                 </Frames>
             </Frame>
 
-            <!-- Drag handle between the code area and the output panel. It
-                 resizes StatusBar; the code area follows because GutterBackdrop
-                 and CodeBackdrop anchor their bottoms to this frame's top. -->
+            <!-- StatusBar: output panel, results appended run after run;
+                 StatusDivider sets its height.
+                 StatusBar.EvalStatus: justify is set in Lua's ApplyCodeFont,
+                 after SetFontObject (which resets justify); SetMaxLines
+                 matches MAX_OUTPUT_LINES since AppendOutput no longer
+                 Clear()s and replays; OnMouseWheel uses the frame's own
+                 ScrollUp/ScrollDown methods. -->
+            <Frame parentKey="StatusBar" inherits="BackdropTemplate">
+                <Size y="100"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.CommandBar" relativePoint="TOPLEFT" x="0" y="0"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CommandBar" relativePoint="TOPRIGHT" x="0" y="0"/>
+                </Anchors>
+                <Frames>
+                    <ScrollingMessageFrame parentKey="EvalStatus" enableMouse="true">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="6" y="-4"/>
+                            <Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
+                        </Anchors>
+                        <Scripts>
+                            <OnLoad>
+                                self:SetFading(false)
+                                self:SetMaxLines(500)
+                            </OnLoad>
+                            <OnMouseWheel>
+                                if delta > 0 then
+                                    self:ScrollUp()
+                                else
+                                    self:ScrollDown()
+                                end
+                            </OnMouseWheel>
+                        </Scripts>
+                    </ScrollingMessageFrame>
+                </Frames>
+            </Frame>
+
+            <!-- StatusDivider: drag handle, resizes StatusBar;
+                 GutterBackdrop/CodeBackdrop anchor to its top.
+                 StatusDivider.Grip: colored in Lua's ApplyTheme, like every
+                 other border here.
+                 StatusDivider.MinimizeButton/MaximizeButton: jump the output
+                 panel to its max/min height; rotated and wired in Lua's
+                 OnLoad_StatusBar. -->
             <Button parentKey="StatusDivider" enableMouse="true">
                 <Size y="10"/>
                 <Anchors>
@@ -257,7 +319,6 @@
                 </Anchors>
                 <Layers>
                     <Layer level="ARTWORK">
-                        <!-- Colored in Lua (ApplyTheme), like every other border here. -->
                         <Texture parentKey="Grip">
                             <Size x="80" y="4"/>
                             <Anchors>
@@ -267,7 +328,6 @@
                     </Layer>
                 </Layers>
                 <Frames>
-                    <!-- Jump the output panel to its max/min height; rotated and wired in Lua (OnLoad_StatusBar). -->
                     <Button parentKey="MinimizeButton">
                         <Size x="14" y="14"/>
                         <Anchors>
@@ -307,9 +367,7 @@
                 </Scripts>
             </Button>
 
-            <!-- Hidden measuring string for wrap mode: same font and wrap settings as
-                 CodeEditBox, width matched to its text area, so GetNumLines() reports
-                 how many visual rows a given logical line will occupy. -->
+            <!-- Hidden measuring string: same font/wrap as CodeEditBox, for GetNumLines(). -->
             <Frame parentKey="WrapMeasure" hidden="true">
                 <Size x="1" y="1"/>
                 <Layers>
@@ -324,10 +382,7 @@
                 </Layers>
             </Frame>
 
-            <!-- Borders live on separate backing frames: a ScrollFrame clips at its
-                 outer rect, but a backdrop edge is drawn *inside* that rect, so
-                 content scrolled under the border band. Gutter and code must keep
-                 the same top inset or their line rows drift apart. -->
+            <!-- Border backing frame: keep its top inset equal to code's or rows drift. -->
             <Frame parentKey="GutterBackdrop" inherits="BackdropTemplate">
                 <Size x="34" y="1"/>
                 <Anchors>
@@ -336,34 +391,21 @@
                 </Anchors>
             </Frame>
 
-            <!-- Gutter: line-number column, a real ScrollFrame so its content clips like
-                 the code area does; vertical scroll is driven in lockstep with it (see
-                 OnCodeEditBoxScroll) rather than by direct user interaction. -->
+            <!-- Gutter: real ScrollFrame, clips and stays locked to the code
+                 area's scroll; anchored/inset in Lua's OnLoad_Viewports.
+                 Gutter.ScrollChild: sized in Lua's RefreshGutter, so TOPLEFT
+                 is its only anchor (a second would fight that sizing).
+                 Gutter.ScrollChild.Numbers: EditBox, not FontString (those
+                 truncate past ~30k chars); font matches CodeEditBox for
+                 identical line pitch. -->
             <ScrollFrame parentKey="Gutter">
-                <!-- Anchored in Lua (OnLoad_Viewports): its inset must track the code viewport's. -->
                 <ScrollChild>
-                    <!-- Size is set from Lua (RefreshGutter): scroll children keep their
-                         explicit size over right-side anchors, so a fixed width here
-                         would not follow the Gutter's inset width. -->
                     <Frame parentKey="ScrollChild">
                         <Size x="1" y="1"/>
                         <Anchors>
-                            <!-- One corner only. RefreshGutter gives this frame its
-                                 width and height; a second anchor would fight that. -->
                             <Anchor point="TOPLEFT"/>
                         </Anchors>
                         <Frames>
-                            <!-- Read-only EditBox holding "1\n2\n...\nN" in the SAME font as
-                                 CodeEditBox, so both columns get identical line pitch from
-                                 the text engine: no per-line positioning math. Not a
-                                 FontString: those truncate past ~30,000 characters or
-                                 ~65,536 rendered height, which a long file reaches.
-                                 Mouse and keyboard are off so it never takes focus or shows
-                                 a caret. Font, justification and text insets are all set in
-                                 Lua (OnLoad and ApplyCodeFont), so there is no nested
-                                 FontString here; CodeEditBox has none either. The numbers
-                                 are padded to a common digit width and LEFT justified, which
-                                 is what lines the column up. See GutterDigits. -->
                             <EditBox parentKey="Numbers" multiLine="true"
                                      enableMouseClicks="false"
                                      autoFocus="false" enableMouse="false" enableKeyboard="false">
@@ -377,17 +419,27 @@
                 </ScrollChild>
             </ScrollFrame>
 
+            <!-- CodeBackdrop: x=-1 overlaps the gutter's border (avoids a
+                 double border). ScrollBarGap: widening its Size x opens a
+                 real gap before the scrollbar.
+                 ScrollFrame: code area, no-wrap EditBox in a scroll frame
+                 (vertical scrollbar via UIPanelScrollFrameTemplate);
+                 anchored/inset in Lua's OnLoad_Viewports. OnMouseDown: clicks
+                 that miss CodeEditBox forward focus to it. OnLoad: chains
+                 OnVerticalScroll (replacing it outright desynced the
+                 scrollbar) and OnSizeChanged (a SizerSE drag moves wrap
+                 points in wrap mode).
+                 ScrollFrame.CodeEditBox: has its own font (SetFontObject/
+                 GetFont), no nested FontString needed; no OnSizeChanged
+                 wired since RefreshGutter is the only resizer and wiring it
+                 here would self-loop. -->
             <Frame parentKey="CodeBackdrop" inherits="BackdropTemplate">
                 <Anchors>
-                    <!-- x="-1" overlaps the gutter's border; a gap would show two borders. -->
                     <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="-1" y="0"/>
                     <Anchor point="BOTTOMRIGHT" relativeKey="$parent.StatusDivider" relativePoint="TOPRIGHT" x="-29" y="0"/>
                 </Anchors>
             </Frame>
 
-            <!-- Gap between CodeBackdrop's right edge and the scrollbar: ScrollFrame
-                 anchors to this instead of CodeBackdrop directly, so widening its
-                 Size x here opens a real visible gap. -->
             <Frame parentKey="ScrollBarGap">
                 <Size x="3"/>
                 <Anchors>
@@ -396,38 +448,22 @@
                 </Anchors>
             </Frame>
 
-            <!-- Code area: no-wrap EditBox inside a scroll frame (vertical scrollbar via UIPanelScrollFrameTemplate) -->
             <ScrollFrame parentKey="ScrollFrame" inherits="UIPanelScrollFrameTemplate">
-                <!-- Anchored in Lua (OnLoad_Viewports): its inset must track the gutter's. -->
                 <Scripts>
-                    <!-- Focus fallback, mirroring Blizzard's InputScrollFrame_OnMouseDown
-                         on UIPanelInputScrollFrameTemplate. The ScrollFrame sits below
-                         CodeEditBox (its ScrollChild, so a higher frame level), which
-                         means clicks landing on the text still reach the EditBox and
-                         position the caret natively; only clicks that miss it land
-                         here and get focus forwarded. -->
                     <OnMouseDown>
                         self.CodeEditBox:SetFocus()
                     </OnMouseDown>
                     <OnLoad>
-                        -- Chain, don't clobber: UIPanelScrollFrameCodeTemplate wires
-                        -- OnVerticalScroll to ScrollFrame_OnVerticalScroll, which syncs
-                        -- the scrollbar's value and its up/down button states. Replacing
-                        -- it outright left the scrollbar desynced from the real scroll
-                        -- offset (WowLua's own handler does this same sync by hand).
                         self:SetScript("OnVerticalScroll", function(sf, offset)
                             ScrollFrame_OnVerticalScroll(sf, offset)
                             self:GetParent():OnCodeEditBoxScroll(offset)
                         end)
-                        -- viewport resize (SizerSE drag) moves wrap points in wrap mode
                         self:SetScript("OnSizeChanged", function(sf)
                             self:GetParent():OnCodeViewportSizeChanged()
                         end)
                     </OnLoad>
                 </Scripts>
                 <ScrollChild>
-                    <!-- EditBox has its own font (SetFontObject/GetFont), set from Lua
-                         OnLoad  no nested FontString element needed. -->
                     <EditBox parentKey="CodeEditBox" mixin="LDK_CodeEditBoxMixin"
                              frameBuffer="true" countInvisibleLetters="true" multiLine="true">
                         <Size x="4000" y="1"/>
@@ -441,15 +477,6 @@
                             <OnTextChanged method="OnTextChanged"/>
                             <OnCursorChanged method="OnCursorChanged"/>
                             <OnKeyDown method="OnKeyDown"/>
-                            <!-- Deliberately NO OnSizeChanged here. RefreshGutter is
-                                 the only thing that ever resizes this EditBox, so an
-                                 OnSizeChanged handler would only ever react to our own
-                                 writes and call RefreshGutter again; a pure feedback
-                                 edge that looped every frame and kept the caret from
-                                 rendering. Real refresh triggers are covered by
-                                 OnTextChanged, the ScrollFrame's OnSizeChanged
-                                 (OnCodeViewportSizeChanged), SetWrapText and
-                                 ApplyCodeFont. -->
                         </Scripts>
                     </EditBox>
                 </ScrollChild>

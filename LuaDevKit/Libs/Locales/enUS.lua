@@ -28,3 +28,5 @@ L['Increase Font Size'] = true
 L['Increase Font Size::Desc'] = 'Step the editor font up to the next size.'
 L['Decrease Font Size'] = true
 L['Decrease Font Size::Desc'] = 'Step the editor font down to the previous size.'
+L['Command Line'] = true
+L['Command Line::Desc'] = 'Run a single line of Lua and print its result to the output panel.'

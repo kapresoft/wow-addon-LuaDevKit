@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 
 -- Sample text long enough to force scrolling, for testing gutter/scroll sync.
-local example = [==[
+local ex1 = [==[
 -- Example code
 local args = ...
 
@@ -52,30 +52,37 @@ end
 print('Sum of squares:', sum(t))
 
 ]==]
-example = example .. "\n" .. example .. "\n" .. example
-example = example
+ex1 = ex1 .. "\n" .. ex1 .. "\n" .. ex1
+ex1 = ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
+	.. ex1
 	.. "\n"
-	.. example
-example = example .. "\n" .. example
-example = example .. "\n" .. example
+	.. ex1
+ex1 = ex1 .. "\n" .. ex1
+ex1 = ex1 .. "\n" .. ex1
 
+local ex2 = [==[
+-- Example code
+function()
+  print('hello')
+  return { 1, 2, 3}
+end
+]==]
 
-ns.EXAMPLE_CODE = example
+ns.EXAMPLE_CODE = ex2
