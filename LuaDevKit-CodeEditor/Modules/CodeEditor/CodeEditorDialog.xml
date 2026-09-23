@@ -523,6 +523,11 @@
                     </EditBox>
                 </ScrollChild>
             </ScrollFrame>
+
+            <!-- Border: the main edge art, split off the dialog's own
+                 backdrop in ApplyTheme so it draws over StatusBar and
+                 CommandBar; raised in Lua's OnLoad_Border. -->
+            <Frame parentKey="Border" inherits="BackdropTemplate" setAllPoints="true"/>
         </Frames>
     </Frame>
 

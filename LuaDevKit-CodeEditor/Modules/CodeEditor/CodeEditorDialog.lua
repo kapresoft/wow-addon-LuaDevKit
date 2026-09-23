@@ -167,6 +167,7 @@ Types
 --- @field CodeEditBox LDK_CodeEditBox
 --- @field CloseButton Button
 --- @field SizerSE Frame Bottom-right resize grip
+--- @field Border Frame|BackdropTemplate Main edge art; draws over StatusBar and CommandBar
 --- @field HeaderTitle FontString
 --- @field borderStyle Name
 --- @field statusGripColor RGBA Resting divider grip color, from the active theme
@@ -181,6 +182,16 @@ local o = LDK_CodeEditorDialogMixin
 --[[-----------------------------------------------------------------------------
 Support Functions
 -------------------------------------------------------------------------------]]
+--- Copy of a backdrop without one of its pieces.
+--- @param bd LDK_Backdrop
+--- @param key string 'bgFile' or 'edgeFile'
+--- @return LDK_Backdrop
+local function Omit(bd, key)
+  local copy = CopyTable(bd) --[[@as LDK_Backdrop ]]
+  copy[key] = nil
+  return copy
+end
+
 --- Gates resize/refresh so no-op WoW size/text events don't self-feed.
 --- @param current number|nil
 --- @param wanted number
@@ -423,10 +434,12 @@ function o:OnLoad()
   numbers:SetJustifyV('TOP')
   numbers:SetTextInsets(0, GUTTER_TEXT_RIGHT_INSET, 0, 0)
 
+  self:OnLoad_Border()
+
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local th = bdrops.theme
-  local name = th.DarkKnight
+  local name = th.Gilded
   self:ApplyTheme(name)
 
   if self.SetResizeBounds then -- WoW 10.0+
@@ -597,6 +610,32 @@ function o:ScrollOutput(delta)
   local step = self.WrapMeasure.Text:GetLineHeight() * OUTPUT_SCROLL_LINES
   local target = scrollFrame:GetVerticalScroll() - delta * step
   scrollFrame:SetVerticalScroll(Clamp(target, 0, scrollFrame:GetVerticalScrollRange()))
+end
+
+--- Border over the panels; Header, TopBar, grip stay on top.
+function o:OnLoad_Border()
+  local level = self.StatusBar:GetFrameLevel() + 1
+  self.Border:SetFrameLevel(level)
+  self.Header:SetFrameLevel(level + 1)
+  self.TopBar:SetFrameLevel(level + 1)
+  self.SizerSE:SetFrameLevel(level + 1)
+end
+
+--- Panels start where the main bg does; Border hides their sides.
+--- @param insets LDK_Insets|nil Main backdrop insets
+function o:InsetPanels(insets)
+  local left = insets and insets.left or 0
+  local right = insets and insets.right or 0
+  local bar = self.CommandBar
+  bar:ClearAllPoints()
+  bar:SetPoint('BOTTOMLEFT', self.BottomBar, 'TOPLEFT', left, 0)
+  bar:SetPoint('BOTTOMRIGHT', self.BottomBar, 'TOPRIGHT', -right, 0)
+
+  -- Divider stays full width; the code area anchors to it.
+  local divider = self.StatusDivider
+  divider:ClearAllPoints()
+  divider:SetPoint('BOTTOMLEFT', self.StatusBar, 'TOPLEFT', -left, 0)
+  divider:SetPoint('BOTTOMRIGHT', self.StatusBar, 'TOPRIGHT', right, 0)
 end
 
 --- Editable, unlike EvalStatus; native focus/keyboard.
@@ -909,9 +948,11 @@ function o:ApplyTheme(name)
   self.borderStyle = bs.name
   local bd = main.backdrop
   if bd then
-    self:SetBackdrop(bd)
-    if bd.borderColor then self:SetBackdropBorderColor(unpack(bd.borderColor)) end
+    self:SetBackdrop(Omit(bd, 'edgeFile'))
+    self.Border:SetBackdrop(Omit(bd, 'bgFile'))
+    if bd.borderColor then self.Border:SetBackdropBorderColor(unpack(bd.borderColor)) end
     if bd.bgColor then self:SetBackdropColor(unpack(bd.bgColor)) end
+    self:InsetPanels(bd.insets)
   end
 
   local gutterTextColor = GUTTER.textColor
