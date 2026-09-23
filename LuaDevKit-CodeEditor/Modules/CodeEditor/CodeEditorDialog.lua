@@ -44,8 +44,11 @@ local STATUS_DIVIDER_HEIGHT = 10
 -- Matches CommandBar's Size y in XML; fixed, never resizes.
 local COMMAND_BAR_HEIGHT = 22
 
+-- Resting alpha for the code area's floating buttons.
+local OVERLAY_ALPHA = 0.53
+
 -- Alpha for disabled-looking output arrows.
-local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = 1.0, 0.2
+local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = OVERLAY_ALPHA, 0.2
 
 -- Output lines kept; same truncation reasoning as MAX_LINES.
 local MAX_OUTPUT_LINES = 500
@@ -77,6 +80,9 @@ local OPTIONS_ARROW_SIZE = 18
 -- Horizontal text padding inside CodeEditBox (left, right).
 local CODE_TEXT_INSET_LEFT = 0
 local CODE_TEXT_INSET_RIGHT = 6
+
+-- Shared inset so the code area's corner buttons line up.
+local OVERLAY_INSET = 4
 
 -- Breathing room on whichever axis shrinks when clamped to screen.
 local SCREEN_MARGIN = 100
@@ -424,6 +430,7 @@ function o:OnLoad()
   self.CommandEditBox = self.CommandBar.CommandEditBox
 
   self:OnLoad_Viewports()
+  self:OnLoad_Overlays()
   self:OnLoad_GripLines()
   self:OnLoad_EditBoxScrollBar()
 
@@ -547,6 +554,14 @@ function o:OnLoad_Viewports()
   self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -v)
   self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, v)
   -- OutputScrollFrame is anchored in XML; see its comment.
+end
+
+--- Pins the floating buttons to the code area's right corners.
+function o:OnLoad_Overlays()
+  local i = OVERLAY_INSET
+  self.FontSteppers:SetPoint('TOPRIGHT', self.ScrollFrame, 'TOPRIGHT', -(i - 2), -i)
+  self.FontSteppers:SetAlpha(OVERLAY_ALPHA)
+  self.StatusDivider.MinimizeButton:SetPoint('BOTTOMRIGHT', self.ScrollFrame, 'BOTTOMRIGHT', -(i - 3.3), i)
 end
 
 --- Starts at viewport height for a clickable area; RefreshGutter grows it.

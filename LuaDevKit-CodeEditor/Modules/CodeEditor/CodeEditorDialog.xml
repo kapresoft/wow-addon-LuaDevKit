@@ -319,7 +319,8 @@
 
                  StatusDivider.MinimizeButton/MaximizeButton: jump the output
                  panel to its max/min height; rotated and wired in Lua's
-                 OnLoad_StatusBar. -->
+                 OnLoad_StatusBar. MinimizeButton is anchored in
+                 OnLoad_Overlays. -->
             <Button parentKey="StatusDivider" enableMouse="true">
                 <Size y="10"/>
                 <Anchors>
@@ -338,17 +339,14 @@
                 </Layers>
                 <Frames>
                     <Button parentKey="MinimizeButton">
-                        <Size x="14" y="14"/>
-                        <Anchors>
-                            <Anchor point="BOTTOMRIGHT" relativePoint="RIGHT" x="-32" y="8"/>
-                        </Anchors>
+                        <Size x="14" y="12"/>
                         <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
                         <PushedTexture atlas="bag-arrow"/>
                         <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>
                         <HighlightTexture atlas="bag-arrow" alpha="0.9" alphaMode="ADD"/>
                     </Button>
                     <Button parentKey="MaximizeButton">
-                        <Size x="14" y="14"/>
+                        <Size x="14" y="12"/>
                         <Anchors>
                             <Anchor point="RIGHT" relativeKey="$parent.MinimizeButton" relativePoint="LEFT" x="0" y="0"/>
                         </Anchors>
@@ -503,26 +501,24 @@
             <!-- FontSteppers: floating font size buttons over the code
                  area's top right.
                  FontSteppers.MinusButton/PlusButton: Assets plus/minus art;
-                 wired and raised in Lua's OnLoad_FontSteppers. -->
+                 wired and raised in Lua's OnLoad_FontSteppers; anchored in
+                 OnLoad_Overlays. -->
             <Frame parentKey="FontSteppers">
-                <Size x="32" y="16"/>
-                <Anchors>
-                    <Anchor point="TOPRIGHT" relativeKey="$parent.CodeBackdrop" relativePoint="TOPRIGHT" x="-4" y="-4"/>
-                </Anchors>
+                <Size x="32" y="10"/>
                 <Frames>
                     <Button parentKey="PlusButton">
                         <Size x="12" y="12"/>
                         <Anchors>
-                            <Anchor point="RIGHT" x="1" y="0"/>
+                            <Anchor point="RIGHT" x="0" y="0"/>
                         </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\plus-btn" alpha="0.7"/>
                         <DisabledTexture file="interface\addons\luadevkit\assets\plus-btn-disabled"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\plus-btn" alphaMode="ADD"/>
                     </Button>
                     <Button parentKey="MinusButton">
-                        <Size x="12" y="12"/>
+                        <Size x="10" y="12"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.PlusButton" relativePoint="LEFT" x="-3" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.PlusButton" relativePoint="LEFT" x="-2.6" y="0"/>
                         </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\minus-btn" alpha="0.7"/>
                         <DisabledTexture file="interface\addons\luadevkit\assets\minus-btn-disabled"/>
