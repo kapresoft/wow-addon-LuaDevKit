@@ -137,11 +137,7 @@
                  Accept/Run buttons).
 
                  TopBar.OptionsButton: plain arrow-only template (no natural
-                 per-item icon, so no chrome to hide).
-
-                 TopBar.FontSizeUpButton/FontSizeDownButton: chat-frame scroll
-                 icons (same art Blizzard uses on LootFrame's page buttons),
-                 not a scrollbar template. -->
+                 per-item icon, so no chrome to hide). -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Size y="28"/>
                 <Anchors>
@@ -170,7 +166,7 @@
                         </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.ThemeButton" relativePoint="LEFT" x="-2" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.ThemeButton" relativePoint="LEFT" x="-1.35" y="0"/>
                         </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\font-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\font-btn.tga" alphaMode="ADD"/>
@@ -181,31 +177,11 @@
                         </KeyValues>
                         <Size x="20" y="20"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontButton" relativePoint="LEFT" x="-2" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.FontButton" relativePoint="LEFT" x="-1" y="0"/>
                         </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\font-size-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\font-size-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
-                    <Button parentKey="FontSizeUpButton">
-                        <Size x="20" y="26"/>
-                        <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontSizeButton" relativePoint="LEFT" x="-2" y="0"/>
-                        </Anchors>
-                        <NormalTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollUp-Up"/>
-                        <PushedTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollUp-Down"/>
-                        <DisabledTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollUp-Disabled"/>
-                        <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
-                    </Button>
-                    <Button parentKey="FontSizeDownButton">
-                        <Size x="20" y="26"/>
-                        <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontSizeUpButton" relativePoint="LEFT" x="3" y="0"/>
-                        </Anchors>
-                        <NormalTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Up"/>
-                        <PushedTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Down"/>
-                        <DisabledTexture file="Interface\ChatFrame\UI-ChatIcon-ScrollDown-Disabled"/>
-                        <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
-                    </Button>
                 </Frames>
             </Frame>
 
@@ -368,7 +344,7 @@
                         </Anchors>
                         <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
                         <PushedTexture atlas="bag-arrow"/>
-                        <DisabledTexture atlas="bag-arrow" desaturated="true"/>
+                        <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>
                         <HighlightTexture atlas="bag-arrow" alpha="0.9" alphaMode="ADD"/>
                     </Button>
                     <Button parentKey="MaximizeButton">
@@ -378,7 +354,7 @@
                         </Anchors>
                         <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
                         <PushedTexture atlas="bag-arrow"/>
-                        <DisabledTexture atlas="bag-arrow" desaturated="true"/>
+                        <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>
                         <HighlightTexture atlas="bag-arrow" alpha="0.9" alphaMode="ADD"/>
                     </Button>
                 </Frames>
@@ -523,6 +499,37 @@
                     </EditBox>
                 </ScrollChild>
             </ScrollFrame>
+
+            <!-- FontSteppers: floating font size buttons over the code
+                 area's top right.
+                 FontSteppers.MinusButton/PlusButton: Assets plus/minus art;
+                 wired and raised in Lua's OnLoad_FontSteppers. -->
+            <Frame parentKey="FontSteppers">
+                <Size x="32" y="16"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" relativeKey="$parent.CodeBackdrop" relativePoint="TOPRIGHT" x="-4" y="-4"/>
+                </Anchors>
+                <Frames>
+                    <Button parentKey="PlusButton">
+                        <Size x="12" y="12"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" x="1" y="0"/>
+                        </Anchors>
+                        <NormalTexture file="interface\addons\luadevkit\assets\plus-btn" alpha="0.7"/>
+                        <DisabledTexture file="interface\addons\luadevkit\assets\plus-btn-disabled"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\plus-btn" alphaMode="ADD"/>
+                    </Button>
+                    <Button parentKey="MinusButton">
+                        <Size x="12" y="12"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.PlusButton" relativePoint="LEFT" x="-3" y="0"/>
+                        </Anchors>
+                        <NormalTexture file="interface\addons\luadevkit\assets\minus-btn" alpha="0.7"/>
+                        <DisabledTexture file="interface\addons\luadevkit\assets\minus-btn-disabled"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\minus-btn" alphaMode="ADD"/>
+                    </Button>
+                </Frames>
+            </Frame>
 
             <!-- Border: the main edge art, split off the dialog's own
                  backdrop in ApplyTheme so it draws over StatusBar and

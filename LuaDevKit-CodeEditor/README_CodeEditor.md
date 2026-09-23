@@ -32,10 +32,10 @@ and an output/eval stack sitting above the footer. Row order, top to bottom:
 block-beta
 columns 1
   Header["Header — full-width bar (drag-to-move)\nTitle (fluid) · CloseFrame (28px, pinned right)"]
-  TopBar["TopBar — toolbar (right-aligned)\nFontSizeDown/Up · FontSizeButton · FontButton · ThemeButton · OptionsButton"]
+  TopBar["TopBar — toolbar (right-aligned)\nFontSizeButton · FontButton · ThemeButton · OptionsButton"]
   block:body
     Gutter["GutterBackdrop → Gutter\n(line #s)"]
-    Code["CodeBackdrop → ScrollFrame\nCodeEditBox (EditBox)"]
+    Code["CodeBackdrop → ScrollFrame\nCodeEditBox (EditBox) · FontSteppers (+/−, top right)"]
   end
   Divider["StatusDivider — drag handle\nGrip · MaximizeButton · MinimizeButton"]
   Status["StatusBar — output panel\nOutputScrollFrame → ScrollChild → EvalStatus (EditBox, read-only)"]
@@ -51,9 +51,9 @@ columns 1
 +-----------------------------------------------------------+
 |            Code Editor (Prototype)                   [X]  |  <- Header: Title (fluid) + CloseFrame (28px)
 +-----------------------------------------------------------+
-| TopBar                    [v][^][Size][Font][Theme][Opts] |  <- TopBar: font size/family, theme, options
+| TopBar                          [Size][Font][Theme][Opts] |  <- TopBar: font size/family, theme, options
 +-----------------------------------------------------------+
-| Gutter |  ScrollFrame                                     |
+| Gutter |  ScrollFrame                           [-][+]    |
 | (line  |  CodeEditBox (EditBox)                           |  <- body: gutter + code area
 |  #s)   |  (vertical scrollbar at right edge)              |
 +-----------------------------------------------------------+

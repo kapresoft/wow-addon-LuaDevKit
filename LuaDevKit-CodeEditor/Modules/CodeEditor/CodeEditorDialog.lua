@@ -133,6 +133,10 @@ Types
 --- @field Title LDK_CodeEditorHeaderTitle Fluid: absorbs all width left by CloseFrame
 --- @field CloseFrame LDK_CodeEditorHeaderCloseFrame Fixed 32px, pinned right
 
+--- @class LDK_CodeEditorFontSteppers : Frame
+--- @field MinusButton Button Steps the font size down
+--- @field PlusButton Button Steps the font size up
+
 --- @class LDK_CodeEditorWrapMeasure : Frame
 --- @field Text FontString Hidden; same font/wrap as CodeEditBox, used to count wrapped rows
 
@@ -167,6 +171,7 @@ Types
 --- @field CodeEditBox LDK_CodeEditBox
 --- @field CloseButton Button
 --- @field SizerSE Frame Bottom-right resize grip
+--- @field FontSteppers LDK_CodeEditorFontSteppers Floating +/- over the code area's top right
 --- @field Border Frame|BackdropTemplate Main edge art; draws over StatusBar and CommandBar
 --- @field HeaderTitle FontString
 --- @field borderStyle Name
@@ -463,8 +468,6 @@ function o:OnLoad()
   self.ThemeButton = self.TopBar.ThemeButton
   self.FontButton = self.TopBar.FontButton
   self.FontSizeButton = self.TopBar.FontSizeButton
-  self.FontSizeUpButton = self.TopBar.FontSizeUpButton
-  self.FontSizeDownButton = self.TopBar.FontSizeDownButton
   -- Static placeholder items, no action wired yet.
   self.OptionsButton:SetupMenu(function(_, rootDescription)
     rootDescription:CreateButton('Options', function() end)
@@ -473,6 +476,7 @@ function o:OnLoad()
 
   self:OnLoad_OptionsButton()
   self:OnLoad_ThemeButton()
+  self:OnLoad_FontSteppers()
   self:OnLoad_Fonts()
   self:OnLoad_WrapCheckButton()
   self:OnLoad_CodeEditBox()
@@ -612,6 +616,16 @@ function o:ScrollOutput(delta)
   scrollFrame:SetVerticalScroll(Clamp(target, 0, scrollFrame:GetVerticalScrollRange()))
 end
 
+--- Floating +/- over the code area; steps the font size.
+function o:OnLoad_FontSteppers()
+  local steppers = self.FontSteppers
+  steppers:SetFrameLevel(self.CodeEditBox:GetFrameLevel() + 1)
+  steppers.PlusButton:SetScript('OnClick', function() self:StepFontSize(1) end)
+  steppers.MinusButton:SetScript('OnClick', function() self:StepFontSize(-1) end)
+  AddTooltip(steppers.PlusButton, 'Increase Font Size')
+  AddTooltip(steppers.MinusButton, 'Decrease Font Size')
+end
+
 --- Border over the panels; Header, TopBar, grip stay on top.
 function o:OnLoad_Border()
   local level = self.StatusBar:GetFrameLevel() + 1
@@ -709,10 +723,6 @@ function o:OnLoad_Fonts()
       )
     end
   end)
-  self.FontSizeUpButton:SetScript('OnClick', function() self:StepFontSize(1) end)
-  self.FontSizeDownButton:SetScript('OnClick', function() self:StepFontSize(-1) end)
-  AddTooltip(self.FontSizeUpButton, 'Increase Font Size')
-  AddTooltip(self.FontSizeDownButton, 'Decrease Font Size')
   AddTooltip(self.FontButton, 'Font Family')
   AddTooltip(self.FontSizeButton, 'Font Size')
   self.fontSize = DEFAULTS.fontSize
@@ -1056,10 +1066,13 @@ function o:ApplyCodeFont(notify)
   self.CommandBar.Prompt:SetFontObject(font)
   self.CommandEditBox:SetFontObject(font)
 
-  -- Disable step buttons at the size list ends; templates have a DisabledTexture.
+  -- Gray out the steppers at the size list ends.
   local sizes = fut:GetFontSizes()
-  self.FontSizeDownButton:SetEnabled(self.fontSize ~= sizes[1])
-  self.FontSizeUpButton:SetEnabled(self.fontSize ~= sizes[#sizes])
+  local canShrink, canGrow = self.fontSize ~= sizes[1], self.fontSize ~= sizes[#sizes]
+  C_Timer.After(0.1, function()
+    self.FontSteppers.MinusButton:SetEnabled(canShrink)
+    self.FontSteppers.PlusButton:SetEnabled(canGrow)
+  end)
 
   -- RefreshGutter re-sizes the gutter for the new font's digit width.
   self:RefreshGutter()
