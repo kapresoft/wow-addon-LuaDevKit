@@ -29,7 +29,8 @@ local TRACK_ATLAS = {
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_MinimalScrollBarStyle
-local o = {}; ns.O.MinimalScrollBarStyle = o
+local o = {}
+ns.O.MinimalScrollBarStyle = o
 
 --[[-----------------------------------------------------------------------------
 Support Functions
@@ -79,10 +80,10 @@ local function StyleThumb(scrollBar)
   scrollBar:HookScript('OnMouseUp', function() SetState('') end)
 end
 
---- Clear the template crop first; SetAtlas writes its own.
+--- Clears the template's TexCoords crop; SetAtlas inherits it.
 --- @param texture Texture|nil
 --- @param atlas string
---- @param blendMode string|nil Template highlights are ADD; pass BLEND
+--- @param blendMode string|nil @Template highlights are ADD; pass BLEND
 local function SetArrowAtlas(texture, atlas, blendMode)
   if not texture then return end
   texture:SetTexCoord(0, 1, 0, 1)
@@ -92,10 +93,12 @@ end
 
 --- Pins a stepper just past its end of the track.
 --- @param button Button
---- @param edge string 'top' or 'bottom'
+--- @param edge 'top'|'bottom'
 local function AnchorArrow(button, edge)
   local point, relPoint, sign = 'BOTTOM', 'TOP', 1
-  if edge == 'bottom' then point, relPoint, sign = 'TOP', 'BOTTOM', -1 end
+  if edge == 'bottom' then
+    point, relPoint, sign = 'TOP', 'BOTTOM', -1
+  end
   button:ClearAllPoints()
   -- Offsets are in button units; divide to hold the gap.
   button:SetPoint(point, button:GetParent(), relPoint, 0, sign * ARROW_GAP / button:GetScale())
@@ -103,8 +106,8 @@ end
 
 --- Retextures a stepper with MinimalScrollBar atlases.
 --- @param button Button
---- @param edge string 'top' or 'bottom'
---- @return number @Its footprint past the track end, in parent units
+--- @param edge 'top'|'bottom'
+--- @return number @Its footprint past the track end, in bar units
 local function StyleArrow(button, edge)
   local atlas = 'minimal-scrollbar-arrow-' .. edge
   SetArrowAtlas(button:GetNormalTexture(), atlas)
@@ -126,12 +129,11 @@ Methods
 -------------------------------------------------------------------------------]]
 --- Styles track, thumb and steppers of a UIPanelScrollBar.
 --- @param scrollBar Slider
---- @return number up Top stepper footprint, in bar units
---- @return number down Bottom stepper footprint, in bar units
+--- @return number @Top stepper footprint, in bar units
+--- @return number @Bottom stepper footprint, in bar units
 function o.Apply(scrollBar)
   StyleTrack(scrollBar)
   StyleThumb(scrollBar)
-  -- Steppers sit outside the ends; style before anchoring.
   local up = StyleArrow(scrollBar.ScrollUpButton, 'top')
   local down = StyleArrow(scrollBar.ScrollDownButton, 'bottom')
   return up, down
