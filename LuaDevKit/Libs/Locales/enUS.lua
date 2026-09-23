@@ -14,6 +14,8 @@ L['Wrap Text::Desc'] = 'Wrap long lines to fit the editor width instead of scrol
 L['Resize Output'] = true
 L['Resize Output::Desc'] =
   'Drag to resize the output panel. Use the arrows to maximize or minimize it.'
+L['Double-click to maximize'] = true
+L['Double-click to minimize'] = true
 L['Maximize Output'] = true
 L['Maximize Output::Desc'] = 'Expand the output panel to its largest size.'
 L['Minimize Output'] = true

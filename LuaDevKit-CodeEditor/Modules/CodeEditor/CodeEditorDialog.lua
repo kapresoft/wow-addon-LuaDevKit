@@ -380,17 +380,27 @@ local function MaxStatusHeight(self)
   )
 end
 
+--- @param frame Frame
+--- @param key string                    @Locale key of the label; the description is key .. '::Desc'
+--- @param hintKey (fun(): string) | nil @Returns a locale key for a green instruction line
+local function ShowTooltip(frame, key, hintKey)
+  GameTooltip_SetDefaultAnchor(GameTooltip, frame)
+  GameTooltip_SetTitle(GameTooltip, L[key])
+  GameTooltip_AddNormalLine(GameTooltip, L[key .. '::Desc'])
+  if hintKey then GameTooltip_AddInstructionLine(GameTooltip, L[hintKey()]) end
+  GameTooltip:Show()
+end
+
 --- Standard hover tooltip; hooked so it composes with a frame's own OnEnter.
 --- @param frame Frame
---- @param key string Locale key of the label; the description is key .. '::Desc'
-local function AddTooltip(frame, key)
-  frame:HookScript('OnEnter', function(f)
-    GameTooltip_SetDefaultAnchor(GameTooltip, f)
-    GameTooltip_SetTitle(GameTooltip, L[key])
-    GameTooltip_AddNormalLine(GameTooltip, L[key .. '::Desc'])
-    GameTooltip:Show()
-  end)
+--- @param key string                    @Locale key of the label; the description is key .. '::Desc'
+--- @param hintKey (fun(): string) | nil @Re-evaluated on every show; see ShowTooltip
+--- @return fun()                        @Redraws the tooltip if it is showing for frame
+local function AddTooltip(frame, key, hintKey)
+  local function show() ShowTooltip(frame, key, hintKey) end
+  frame:HookScript('OnEnter', show)
   frame:HookScript('OnLeave', function() GameTooltip:Hide() end)
+  return function() if GameTooltip:IsOwned(frame) then show() end end
 end
 
 --- CCW radians; bag-arrow art points left, so pi/2 = down, -pi/2 = up.
@@ -451,7 +461,7 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local th = bdrops.theme
-  local name = th.Gilded
+  local name = th.Oakframe
   self:ApplyTheme(name)
 
   if self.SetResizeBounds then -- WoW 10.0+
@@ -586,11 +596,19 @@ function o:OnLoad_StatusBar()
   divider.MinimizeButton:SetScript('OnClick', function() self:MinimizeStatus() end)
   RotateArrow(divider.MinimizeButton, math.pi / 2)
   RotateArrow(divider.MaximizeButton, -math.pi / 2)
-  AddTooltip(divider, 'Resize Output')
   AddTooltip(divider.MaximizeButton, 'Maximize Output')
   AddTooltip(divider.MinimizeButton, 'Minimize Output')
+  self:OnLoad_DividerTooltip()
   self:OnLoad_EvalStatus()
   self:ClearOutput()
+end
+
+--- Hint names what a double-click does next; refreshed while hovered.
+function o:OnLoad_DividerTooltip()
+  local divider = self.StatusDivider
+  local refresh = AddTooltip(divider, 'Resize Output', function() return self:DividerHintKey() end)
+  divider:HookScript('OnMouseUp', refresh)
+  divider:HookScript('OnDoubleClick', refresh)
 end
 
 --- Wires the output box; RefreshOutput fills it.
@@ -1272,6 +1290,23 @@ function o:MaximizeStatus() self:SetStatusHeight(MaxStatusHeight(self)) end
 
 --- Shrinks the output panel to MIN_STATUS_HEIGHT (the down arrow).
 function o:MinimizeStatus() self:SetStatusHeight(MIN_STATUS_HEIGHT) end
+
+--- @return boolean
+function o:IsStatusMax() return not SizeDiffers(self:GetStatusHeight(), MaxStatusHeight(self)) end
+
+--- @return string @Locale key for what a double-click does next
+function o:DividerHintKey()
+  return self:IsStatusMax() and 'Double-click to minimize' or 'Double-click to maximize'
+end
+
+--- Double-clicking the divider: maximizes, or minimizes if already max.
+function o:ToggleStatus()
+  if self:IsStatusMax() then
+    self:MinimizeStatus()
+  else
+    self:MaximizeStatus()
+  end
+end
 
 --- Tracked by hand; StartSizing only resizes the dialog, not a child.
 function o:OnStatusDividerMouseDown()

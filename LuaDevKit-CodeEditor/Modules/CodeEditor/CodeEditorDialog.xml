@@ -312,6 +312,7 @@
             </Frame>
 
             <!-- StatusDivider: drag handle, resizes StatusBar;
+                 double-click toggles it between max and min.
                  GutterBackdrop/CodeBackdrop anchor to its top.
 
                  StatusDivider.Grip: colored in Lua's ApplyTheme, like every
@@ -365,6 +366,9 @@
                     <OnMouseUp>
                         self:GetParent():OnStatusDividerMouseUp()
                     </OnMouseUp>
+                    <OnDoubleClick>
+                        self:GetParent():ToggleStatus()
+                    </OnDoubleClick>
                     <OnEnter>
                         self:GetParent():OnStatusDividerHover(true)
                     </OnEnter>
