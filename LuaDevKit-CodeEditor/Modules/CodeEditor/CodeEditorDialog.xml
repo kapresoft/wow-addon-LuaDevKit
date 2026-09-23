@@ -358,22 +358,25 @@
                     </Button>
                 </Frames>
                 <Scripts>
+                    <OnLoad>
+                        self.owner = self:GetParent()
+                    </OnLoad>
                     <OnMouseDown>
                         if button == "LeftButton" then
-                        self:GetParent():OnStatusDividerMouseDown()
+                          self.owner:OnStatusDividerMouseDown()
                         end
                     </OnMouseDown>
                     <OnMouseUp>
-                        self:GetParent():OnStatusDividerMouseUp()
+                        self.owner:OnStatusDividerMouseUp()
                     </OnMouseUp>
                     <OnDoubleClick>
-                        self:GetParent():ToggleStatus()
+                        self.owner:ToggleStatus()
                     </OnDoubleClick>
                     <OnEnter>
-                        self:GetParent():OnStatusDividerHover(true)
+                        self.owner:OnStatusDividerHover(true)
                     </OnEnter>
                     <OnLeave>
-                        self:GetParent():OnStatusDividerHover(false)
+                        self.owner:OnStatusDividerHover(false)
                     </OnLeave>
                 </Scripts>
             </Button>

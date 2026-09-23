@@ -101,7 +101,7 @@ local DEFAULTS = {
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_CodeEditorGutterChild : Frame
---- @field Numbers EditBox Read-only "1\n2\n...\nN" in the code font, padded to a common digit width
+--- @field Numbers EditBox @Read-only "1\n2\n...\nN" in the code font, padded to a common digit width
 
 --- @class LDK_CodeEditorGutter : ScrollFrame
 --- @field ScrollChild LDK_CodeEditorGutterChild
@@ -110,79 +110,82 @@ Types
 --- @field WrapCheckButton CheckButton
 
 --- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
---- @field Prompt FontString Static "> " glyph, left of the input
---- @field CommandEditBox EditBox Single-line quick-eval input, historyLines=100
+--- @field Prompt FontString
+--- @field CommandEditBox EditBox @Single-line quick-eval input with Up/Down history
 
 --- @class LDK_CodeEditorOutputScrollChild : Frame
---- @field EvalStatus EditBox Read-only output log; an EditBox so text can be selected and copied
+--- @field EvalStatus EditBox @Read-only output log; an EditBox so text can be selected and copied
 
 --- @class LDK_CodeEditorOutputScrollFrame : ScrollFrame
---- @field ScrollChild LDK_CodeEditorOutputScrollChild Floored at viewport height to keep output bottom-aligned
+--- @field ScrollChild LDK_CodeEditorOutputScrollChild @Floored at viewport height to keep output bottom-aligned
 
 --- @class LDK_CodeEditorStatusBar : Frame, BackdropTemplate
---- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame Clips the output box; wheel-scrolled, no scrollbar
+--- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Clips the output box; wheel-scrolled, no scrollbar
 
 --- @class LDK_CodeEditorStatusDivider : Button
---- @field Grip Texture The draggable handle, colored by ApplyTheme
---- @field MaximizeButton Button Up arrow above the divider's right end; grows StatusBar to its max
---- @field MinimizeButton Button Down arrow right of MaximizeButton; shrinks StatusBar to its min
---- @field cursorStart number|nil Screen Y at drag start
---- @field heightStart number|nil StatusBar height at drag start
+--- @field owner LDK_CodeEditorDialog
+--- @field Grip Texture           @The draggable handle, colored by ApplyTheme
+--- @field MaximizeButton Button
+--- @field MinimizeButton Button
+--- @field cursorStart number|nil @Screen Y at drag start
+--- @field heightStart number|nil @StatusBar height at drag start
 
 --- @class LDK_CodeEditorHeaderTitle : Frame
---- @field Text FontString The dialog title, centered
+--- @field Text FontString
 
 --- @class LDK_CodeEditorHeaderCloseFrame : Frame
 --- @field CloseButton Button
 
 --- @class LDK_CodeEditorHeader : Frame, BackdropTemplate
---- @field Title LDK_CodeEditorHeaderTitle Fluid: absorbs all width left by CloseFrame
---- @field CloseFrame LDK_CodeEditorHeaderCloseFrame Fixed 32px, pinned right
+--- @field Title LDK_CodeEditorHeaderTitle
+--- @field CloseFrame LDK_CodeEditorHeaderCloseFrame
 
 --- @class LDK_CodeEditorFontSteppers : Frame
---- @field MinusButton Button Steps the font size down
---- @field PlusButton Button Steps the font size up
+--- @field MinusButton Button
+--- @field PlusButton Button
 
 --- @class LDK_CodeEditorWrapMeasure : Frame
---- @field Text FontString Hidden; same font/wrap as CodeEditBox, used to count wrapped rows
+--- @field Text FontString @Hidden; same font/wrap as CodeEditBox, used to count wrapped rows
 
 --- @class LDK_CodeEditorOptions
---- @field fontFamily string Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
---- @field fontSize number One of FontUtil:GetFontSizes() (10/12/14/16/18/20/24/28); other values snap to nearest
+--- @field fontFamily string @Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
+--- @field fontSize number   @One of FontUtil:GetFontSizes(); other values snap to nearest
 --- @field wrapText boolean
 
 --- @class LDK_CodeEditorDialogMixin : Frame, BackdropTemplate
---- @field Header LDK_CodeEditorHeader Full-width title bar; carries drag-to-move
---- @field TopBar Frame Reserved space for future toolbar/controls
---- @field FontDropdown Frame The font-choice UIDropDownMenu, anchored inside TopBar
---- @field FontSizeDropdown Frame The font-size UIDropDownMenu, anchored inside TopBar
---- @field codeFont Font Currently applied font object
---- @field fontFamily string Key of the currently applied font (see FontUtil:GetFontChoices())
---- @field fontSize number Current fontSize option, applied to rendering (snapped to FontUtil:GetFontSizes())
+--- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
+--- @field TopBar Frame                                      @Toolbar holding the options, theme and font dropdowns
+--- @field OptionsButton DropdownButton                      @Alias of TopBar.OptionsButton
+--- @field ThemeButton DropdownButton                        @Alias of TopBar.ThemeButton
+--- @field FontButton DropdownButton                         @Alias of TopBar.FontButton
+--- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
+--- @field codeFont Font
+--- @field fontFamily string                                 @Key of the currently applied font (see FontUtil:GetFontChoices())
+--- @field fontSize number                                   @Snapped to FontUtil:GetFontSizes()
 --- @field BottomBar LDK_CodeEditorBottomBar
---- @field CommandBar LDK_CodeEditorCommandBar Single-line eval prompt between StatusBar and BottomBar
---- @field CommandEditBox EditBox Alias of CommandBar.CommandEditBox
---- @field StatusBar LDK_CodeEditorStatusBar Output panel between the code area and BottomBar
---- @field StatusDivider LDK_CodeEditorStatusDivider Drag handle that sets StatusBar's height
---- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame Alias of StatusBar.OutputScrollFrame
---- @field EvalStatus EditBox Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
---- @field outputLines string[] Appended evaluation output, capped at MAX_OUTPUT_LINES
+--- @field CommandBar LDK_CodeEditorCommandBar
+--- @field CommandEditBox EditBox                            @Alias of CommandBar.CommandEditBox
+--- @field StatusBar LDK_CodeEditorStatusBar                 @Output panel
+--- @field StatusDivider LDK_CodeEditorStatusDivider         @Drag handle that sets StatusBar's height
+--- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Alias of StatusBar.OutputScrollFrame
+--- @field EvalStatus EditBox                                @Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
+--- @field outputLines string[]                              @Appended evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
---- @field wrapText boolean Current wrap-mode state
+--- @field wrapText boolean
 --- @field onConfigChanged fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
---- @field GutterBackdrop Frame|BackdropTemplate Draws the gutter's border; Gutter is inset inside it
+--- @field GutterBackdrop Frame|BackdropTemplate             @Draws the gutter's border; Gutter is inset inside it
 --- @field Gutter LDK_CodeEditorGutter
---- @field CodeBackdrop Frame|BackdropTemplate Draws the code area's border; ScrollFrame is inset inside it
+--- @field CodeBackdrop Frame|BackdropTemplate               @Draws the code area's border; ScrollFrame is inset inside it
 --- @field ScrollFrame ScrollFrame
 --- @field CodeEditBox LDK_CodeEditBox
 --- @field CloseButton Button
---- @field SizerSE Frame Bottom-right resize grip
---- @field FontSteppers LDK_CodeEditorFontSteppers Floating +/- over the code area's top right
---- @field Border Frame|BackdropTemplate Main edge art; draws over StatusBar and CommandBar
+--- @field SizerSE Frame                                     @Bottom-right resize grip
+--- @field FontSteppers LDK_CodeEditorFontSteppers           @Floating +/- over the code area's top right
+--- @field Border Frame|BackdropTemplate                     @Main edge art; draws over StatusBar and CommandBar
 --- @field HeaderTitle FontString
 --- @field borderStyle Name
---- @field statusGripColor RGBA Resting divider grip color, from the active theme
---- @field statusGripHoverColor RGBA Hovered divider grip color, from the active theme
+--- @field statusGripColor RGBA                              @Resting divider grip color, from the active theme
+--- @field statusGripHoverColor RGBA                         @Hovered divider grip color, from the active theme
 LDK_CodeEditorDialogMixin = {}
 local o = LDK_CodeEditorDialogMixin
 
@@ -195,7 +198,7 @@ Support Functions
 -------------------------------------------------------------------------------]]
 --- Copy of a backdrop without one of its pieces.
 --- @param bd LDK_Backdrop
---- @param key string 'bgFile' or 'edgeFile'
+--- @param key 'bgFile'|'edgeFile'
 --- @return LDK_Backdrop
 local function Omit(bd, key)
   local copy = CopyTable(bd) --[[@as LDK_Backdrop ]]
@@ -1122,7 +1125,7 @@ function o:SetFontSize(fontSize, notify)
 end
 
 --- Steps the font size, clamped at the ends. Always user-driven; notifies.
---- @param delta number 1 to step up, -1 to step down
+--- @param delta 1|-1
 function o:StepFontSize(delta)
   local sizes = fut:GetFontSizes()
   local index = 1
@@ -1385,7 +1388,7 @@ function o:AppendOutput(text)
   self:RefreshOutput()
 end
 
---- @return string Everything currently shown in the output panel
+--- @return string
 function o:GetOutput() return table.concat(self.outputLines or {}, '\n') end
 
 --[[-----------------------------------------------------------------------------

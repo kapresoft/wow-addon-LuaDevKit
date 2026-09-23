@@ -11,7 +11,7 @@ local libName = 'CodeEditBoxMixin'
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_CodeEditBoxMixin : EditBox
---- @field owner LDK_CodeEditorDialogMixin @The dialog this EditBox belongs to
+--- @field owner LDK_CodeEditorDialog
 LDK_CodeEditBoxMixin = {}
 local o = LDK_CodeEditBoxMixin
 
