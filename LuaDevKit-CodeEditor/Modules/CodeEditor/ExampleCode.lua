@@ -79,10 +79,11 @@ ex1 = ex1 .. "\n" .. ex1
 
 local ex2 = [==[
 -- Example code
-function()
-  print('hello')
-  return { 1, 2, 3}
+local function x()
+  x = { 1, 2, 3, fn=function() print('hi') end }
+  print('x=', fmt(x))
 end
+x()
 ]==]
 
 ns.EXAMPLE_CODE = ex2

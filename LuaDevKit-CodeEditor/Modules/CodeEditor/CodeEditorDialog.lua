@@ -106,8 +106,13 @@ Types
 --- @class LDK_CodeEditorGutter : ScrollFrame
 --- @field ScrollChild LDK_CodeEditorGutterChild
 
+--- @class LDK_MenuButton : Button
+--- @field Label FontString
+--- @field MouseoverOverlay Texture
+
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
+--- @field RunButton LDK_MenuButton
 
 --- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
 --- @field Prompt FontString
@@ -499,6 +504,7 @@ function o:OnLoad()
   self:OnLoad_FontSteppers()
   self:OnLoad_Fonts()
   self:OnLoad_WrapCheckButton()
+  self:OnLoad_RunButton()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
@@ -590,6 +596,13 @@ function o:OnLoad_WrapCheckButton()
   local button = self.BottomBar.WrapCheckButton
   button.text:SetText(L['Wrap Text'])
   AddTooltip(button, 'Wrap Text')
+end
+
+function o:OnLoad_RunButton()
+  local button = self.BottomBar.RunButton
+  button.Label:SetText(L['Run'])
+  button:SetScript('OnClick', function() self:Run() end)
+  AddTooltip(button, 'Run')
 end
 
 function o:OnLoad_StatusBar()
@@ -933,10 +946,11 @@ function o:OnCodeEditBoxCursorChanged(x, y, w, h)
 
   if target and SizeDiffers(scroll, target) then scrollFrame:SetVerticalScroll(target) end
 
-  -- Selection anchor only moves on a plain (non-shift) cursor change.
+  -- Anchor moves unless Shift+click; typing '(' also holds Shift.
   local editBox = self.CodeEditBox
   local current = editBox:GetCursorPosition()
-  if IsShiftKeyDown() and self.cursorAnchor then
+  local shiftClick = IsShiftKeyDown() and IsMouseButtonDown('LeftButton')
+  if shiftClick and self.cursorAnchor then
     if current > self.cursorAnchor then
       editBox:HighlightText(self.cursorAnchor, current)
     else
@@ -1394,26 +1408,19 @@ function o:GetOutput() return table.concat(self.outputLines or {}, '\n') end
 --[[-----------------------------------------------------------------------------
 Command line: single-shot eval; no multi-line continuation
 -------------------------------------------------------------------------------]]
---- Grey, comma-joined print output, matching WowLua's own wowpad_print.
+--- Grey, space-joined print output, matching WoW's own print.
 --- @param self LDK_CodeEditorDialog
 local function CommandPrint(self, ...)
   local parts = {}
   for i = 1, select('#', ...) do
     parts[i] = tostring(select(i, ...))
   end
-  self:AppendOutput('|cff999999' .. table.concat(parts, ', ') .. '|r')
+  self:AppendOutput('|cff999999' .. table.concat(parts, ' ') .. '|r')
 end
 
---- Runs one line from the command bar and appends every outcome -- the echoed
---- input, a compile error, a runtime error, or printed output -- to the same
---- output panel a full Run uses.
+--- @param self LDK_CodeEditorDialog
 --- @param text string
-function o:OnCommandEnterPressed(text)
-  if str_isBlank(text) then return end
-
-  -- Escape literal '|' so the echoed input can't be read as a color/texture code.
-  self:AppendOutput(self.CommandBar.Prompt:GetText() .. text:gsub('|', '||'))
-
+local function EvalCommand(self, text)
   -- '= expr' shorthand, same as WowLua's console.
   local expr = text:match('^%s*=%s*(.+)$')
   local func, err = loadstring(expr and ('print(' .. expr .. ')') or text)
@@ -1436,6 +1443,46 @@ function o:OnCommandEnterPressed(text)
   print = oldPrint
 
   if not ok then self:AppendOutput('|cffff0000' .. runErr .. '|r') end
+end
+
+--- Runs one line from the command bar and appends every outcome -- the echoed
+--- input, a compile error, a runtime error, or printed output -- to the same
+--- output panel a full Run uses.
+--- @param text string
+function o:OnCommandEnterPressed(text)
+  if str_isBlank(text) then return end
+
+  -- Escape literal '|' so the echoed input can't be read as a color/texture code.
+  self:AppendOutput(self.CommandBar.Prompt:GetText() .. text:gsub('|', '||'))
+
+  EvalCommand(self, text)
+end
+
+--[[-----------------------------------------------------------------------------
+Run: evaluates the whole editor buffer
+-------------------------------------------------------------------------------]]
+--- @param self LDK_CodeEditorDialog
+--- @param text string
+local function EvalCode(self, text)
+  local func, err = loadstring(text, 'Code Editor')
+  if not func then
+    self:AppendOutput('|cffff0000' .. err .. '|r')
+    return
+  end
+
+  local oldPrint = print
+  print = function(...) CommandPrint(self, ...) end
+  local ok, runErr = pcall(func)
+  print = oldPrint
+
+  if not ok then self:AppendOutput('|cffff0000' .. runErr .. '|r') end
+end
+
+--- Output goes to the output panel.
+function o:Run()
+  local text = self:GetText()
+  if str_isBlank(text) then return end
+  EvalCode(self, text)
 end
 
 --- @return string

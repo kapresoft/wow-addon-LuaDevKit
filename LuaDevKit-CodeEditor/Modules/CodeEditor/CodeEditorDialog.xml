@@ -14,6 +14,35 @@
     <Script file="MinimalScrollBarStyle.lua"/>
     <Script file="CodeEditorDialog.lua"/>
 
+    <!-- Copy of Blizzard_EventTrace's EventTraceMenuButtonTemplate; that
+         addon is load-on-demand, so its template can't be inherited.
+         MouseoverOverlay: same atlas, additive, shown on hover. -->
+    <Button name="LDK_MenuButtonTemplate" virtual="true">
+        <Size x="80" y="20"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="NormalTexture" atlas="auctionhouse-nav-button" useAtlasSize="false">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="-2" y="0"/>
+                        <Anchor point="BOTTOMRIGHT" x="2" y="-12"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <Texture parentKey="MouseoverOverlay" hidden="true" atlas="auctionhouse-nav-button" useAtlasSize="false" alphaMode="ADD"/>
+                <FontString parentKey="Label" inherits="GameFontHighlight">
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnEnter>self.MouseoverOverlay:Show()</OnEnter>
+            <OnLeave>self.MouseoverOverlay:Hide()</OnLeave>
+        </Scripts>
+    </Button>
+
     <Frame name="LDK_CodeEditorDialogTemplate" virtual="true"
            mixin="LDK_CodeEditorDialogMixin"
            hidden="true" movable="true" resizable="true" enableMouse="true"
@@ -204,6 +233,11 @@
                             </OnClick>
                         </Scripts>
                     </CheckButton>
+                    <Button parentKey="RunButton" inherits="LDK_MenuButtonTemplate">
+                        <Anchors>
+                            <Anchor point="RIGHT" x="-14" y="0"/>
+                        </Anchors>
+                    </Button>
                 </Frames>
             </Frame>
 
