@@ -233,11 +233,6 @@
                             </OnClick>
                         </Scripts>
                     </CheckButton>
-                    <Button parentKey="RunButton" inherits="LDK_MenuButtonTemplate">
-                        <Anchors>
-                            <Anchor point="RIGHT" x="-14" y="0"/>
-                        </Anchors>
-                    </Button>
                 </Frames>
             </Frame>
 
@@ -354,8 +349,11 @@
 
                  StatusDivider.MinimizeButton/MaximizeButton: jump the output
                  panel to its max/min height; rotated and wired in Lua's
-                 OnLoad_StatusBar. MinimizeButton is anchored in
-                 OnLoad_Overlays. -->
+                 OnLoad_StatusBar. They flank the Grip, Minimize on its left.
+
+                 StatusDivider.RunButton: runs the buffer; same arrow art
+                 turned into a play icon in Lua's OnLoad_RunButton;
+                 anchored over the code area in OnLoad_Overlays. -->
             <Button parentKey="StatusDivider" enableMouse="true">
                 <Size y="10"/>
                 <Anchors>
@@ -365,7 +363,7 @@
                 <Layers>
                     <Layer level="ARTWORK">
                         <Texture parentKey="Grip">
-                            <Size x="80" y="4"/>
+                            <Size x="89" y="3"/>
                             <Anchors>
                                 <Anchor point="CENTER"/>
                             </Anchors>
@@ -374,17 +372,27 @@
                 </Layers>
                 <Frames>
                     <Button parentKey="MinimizeButton">
-                        <Size x="14" y="12"/>
+                        <Size x="8" y="15"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.Grip" relativePoint="LEFT" x="-8" y="-0.5"/>
+                        </Anchors>
                         <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
                         <PushedTexture atlas="bag-arrow"/>
                         <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>
                         <HighlightTexture atlas="bag-arrow" alpha="0.9" alphaMode="ADD"/>
                     </Button>
                     <Button parentKey="MaximizeButton">
-                        <Size x="14" y="12"/>
+                        <Size x="8" y="15"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.MinimizeButton" relativePoint="LEFT" x="0" y="0"/>
+                            <Anchor point="LEFT" relativeKey="$parent.Grip" relativePoint="RIGHT" x="8" y="0.5"/>
                         </Anchors>
+                        <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
+                        <PushedTexture atlas="bag-arrow"/>
+                        <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>
+                        <HighlightTexture atlas="bag-arrow" alpha="0.9" alphaMode="ADD"/>
+                    </Button>
+                    <Button parentKey="RunButton">
+                        <Size x="16" y="14"/>
                         <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
                         <PushedTexture atlas="bag-arrow"/>
                         <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>

@@ -52,6 +52,9 @@ local OVERLAY_ALPHA = 0.53
 -- Alpha for disabled-looking output arrows.
 local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = OVERLAY_ALPHA, 0.2
 
+-- Tints RunButton's arrow art, which is gold like the output arrows.
+local RUN_ICON_COLOR = GREEN_FONT_COLOR
+
 -- Output lines kept; same truncation reasoning as MAX_LINES.
 local MAX_OUTPUT_LINES = 500
 
@@ -114,7 +117,6 @@ Types
 
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
---- @field RunButton LDK_MenuButton
 
 --- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
 --- @field Prompt FontString
@@ -134,6 +136,7 @@ Types
 --- @field Grip Texture           @The draggable handle, colored by ApplyTheme
 --- @field MaximizeButton Button
 --- @field MinimizeButton Button
+--- @field RunButton Button
 --- @field cursorStart number|nil @Screen Y at drag start
 --- @field heightStart number|nil @StatusBar height at drag start
 
@@ -423,6 +426,9 @@ local function RotateArrow(button, radians)
   button:GetHighlightTexture():SetRotation(radians)
 end
 
+--- @return string @Locale key naming this client's run shortcut
+local function RunHintKey() return IsMacClient() and 'Run::Hint::Mac' or 'Run::Hint' end
+
 --- Enables an arrow button, or disables and dims it.
 --- @param button Button
 --- @param enabled boolean
@@ -584,7 +590,7 @@ function o:OnLoad_Overlays()
   local i = OVERLAY_INSET
   self.FontSteppers:SetPoint('TOPRIGHT', self.ScrollFrame, 'TOPRIGHT', -(i - 2), -i)
   self.FontSteppers:SetAlpha(OVERLAY_ALPHA)
-  self.StatusDivider.MinimizeButton:SetPoint(
+  self.StatusDivider.RunButton:SetPoint(
     'BOTTOMRIGHT',
     self.ScrollFrame,
     'BOTTOMRIGHT',
@@ -608,11 +614,14 @@ function o:OnLoad_WrapCheckButton()
   AddTooltip(button, 'Wrap Text')
 end
 
+--- Play icon in the code area's corner; tooltip names the shortcut.
 function o:OnLoad_RunButton()
-  local button = self.BottomBar.RunButton
-  button.Label:SetText(L['Run'])
+  local button = self.StatusDivider.RunButton
+  RotateArrow(button, math.pi)
+  button.NormalTexture:SetVertexColor(RUN_ICON_COLOR:GetRGB())
+  button:SetAlpha(OVERLAY_ALPHA)
   button:SetScript('OnClick', function() self:Run() end)
-  AddTooltip(button, 'Run')
+  AddTooltip(button, 'Run', RunHintKey)
 end
 
 function o:OnLoad_StatusBar()
@@ -978,6 +987,10 @@ function o:OnCodeEditBoxPageKey(key)
   if IsMetaKeyDown() then lines = lines * 2 end
   PageMoveCursor(self, key == 'PAGEUP' and -1 or 1, lines)
 end
+
+--- Cmd/Ctrl+1: runs the buffer. Not Enter, which types a newline
+--- over any selection with no way to block it.
+function o:OnCodeEditBoxRunKey() self:Run() end
 
 --- Cmd+Home/End: jumps the caret to document start/end.
 --- @param key "HOME"|"END"

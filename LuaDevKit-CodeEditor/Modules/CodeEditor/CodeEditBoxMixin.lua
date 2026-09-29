@@ -45,6 +45,8 @@ function o:OnKeyDown(key)
   elseif (key == 'HOME' or key == 'END') and IsMetaKeyDown() then
     -- Ctrl+Home/End is native; Cmd (IsMetaKeyDown) is not.
     self.owner:OnCodeEditBoxDocumentJumpKey(key)
+  elseif key == '1' and (IsMetaKeyDown() or IsControlKeyDown()) then
+    self.owner:OnCodeEditBoxRunKey()
   end
   self:SetPropagateKeyboardInput(false)
 end

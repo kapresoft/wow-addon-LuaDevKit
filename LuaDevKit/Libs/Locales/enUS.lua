@@ -34,3 +34,5 @@ L['Command Line'] = true
 L['Command Line::Desc'] = 'Run a single line of Lua and print its result to the output panel.'
 L['Run'] = true
 L['Run::Desc'] = 'Run the code in the editor and print its output to the output panel.'
+L['Run::Hint'] = 'Ctrl+1 to run while cursor is in editor'
+L['Run::Hint::Mac'] = 'Cmd+1 to run while cursor is in editor'
