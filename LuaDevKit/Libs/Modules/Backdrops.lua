@@ -218,6 +218,7 @@ end
 local function __InitBorders()
   _RegisterTheme({
     name = THEME.Default,
+    enabled = false,
     --showGutterOutline = false,
     main = {
       backdrop = {
