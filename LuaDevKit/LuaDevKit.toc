@@ -55,6 +55,7 @@ Libs\Modules\Database.lua
 Libs\Modules\LuaRunner.lua
 Libs\Modules\TextUtil.lua
 Libs\Modules\OutputLog.lua
+Libs\Modules\DocumentStore.lua
 #@do-not-package@
 Libs\Developer\Developer.lua
 #@end-do-not-package@

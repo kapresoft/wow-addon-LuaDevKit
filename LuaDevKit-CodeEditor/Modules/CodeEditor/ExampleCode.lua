@@ -80,7 +80,7 @@ ex1 = ex1 .. "\n" .. ex1
 local ex2 = [==[
 -- Example code
 local function x()
-  x = { 1, 2, 3, fn=function() print('hi') end }
+  tmp = { 1, 2, 3, fn=function() print('hi') end }
   print('x=', fmt(x))
 end
 x()

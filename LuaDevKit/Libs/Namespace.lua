@@ -26,6 +26,7 @@ ns.addon, ns.options = addon, options
 --- @field LuaRunner LDK_LuaRunner
 --- @field TextUtil LDK_TextUtil
 --- @field OutputLog LDK_OutputLog
+--- @field DocumentStore LDK_DocumentStore
 --- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0

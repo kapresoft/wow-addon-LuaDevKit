@@ -73,7 +73,11 @@
 
                  Header.CloseFrame.CloseButton: OnClick wired in Lua OnLoad,
                  not here, since the inherited UIPanelCloseButton_OnClick
-                 hides GetParent() (CloseFrame at this depth). -->
+                 hides GetParent() (CloseFrame at this depth).
+
+                 Header.OptionsButton: plain arrow-only template (no natural
+                 per-item icon, so no chrome to hide); lives here, not in
+                 TopBar, so its Show Toolbar item stays reachable. -->
             <Frame parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
                 <Size y="28"/>
                 <Anchors>
@@ -95,6 +99,14 @@
                             </Button>
                         </Frames>
                     </Frame>
+                    <DropdownButton parentKey="OptionsButton" inherits="WowStyle1ArrowDropdownTemplate">
+                        <KeyValues>
+                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                        </KeyValues>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.CloseFrame" relativePoint="LEFT" x="0" y="0"/>
+                        </Anchors>
+                    </DropdownButton>
                     <Frame parentKey="Title" inherits="BackdropTemplate">
                         <Anchors>
                             <Anchor point="TOPLEFT"/>
@@ -162,11 +174,16 @@
                 </Scripts>
             </Frame>
 
-            <!-- TopBar: reserved space for future toolbar/controls (e.g.
-                 Accept/Run buttons).
+            <!-- TopBar: toolbar. Document controls on the left; font size,
+                 font and theme dropdowns on the right. Hideable: Lua's
+                 SetToolbarShown collapses it and the code area moves up.
 
-                 TopBar.OptionsButton: plain arrow-only template (no natural
-                 per-item icon, so no chrome to hide). -->
+                 TopBar.NewButton: borrows the font icon until custom art exists.
+                 It and TopBar.ThemeButton are pinned above CodeBackdrop's
+                 top corners in Lua's OnLoad_ToolbarEdges.
+
+                 TopBar.DocStepper: Blizzard's dropdown with steppers; its
+                 template requires the Dropdown child declared here. -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Size y="28"/>
                 <Anchors>
@@ -174,18 +191,31 @@
                     <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
                 </Anchors>
                 <Frames>
-                    <DropdownButton parentKey="OptionsButton" inherits="WowStyle1ArrowDropdownTemplate">
+                    <Button parentKey="NewButton">
+                        <Size x="20" y="20"/>
+                        <NormalTexture file="interface\addons\luadevkit\assets\font-btn.tga"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\font-btn.tga" alphaMode="ADD"/>
+                    </Button>
+                    <Frame parentKey="DocStepper" inherits="DropdownWithSteppersTemplate">
+                        <Size x="200" y="26"/>
+                        <Anchors>
+                            <Anchor point="LEFT" relativeKey="$parent.NewButton" relativePoint="RIGHT" x="4" y="0"/>
+                        </Anchors>
                         <KeyValues>
-                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                            <KeyValue key="decrementOffsetX" value="-2" type="number"/>
+                            <KeyValue key="incrementOffsetX" value="2" type="number"/>
                         </KeyValues>
-                        <Anchors><Anchor point="RIGHT" x="-7" y="2"/></Anchors>
-                    </DropdownButton>
+                        <Frames>
+                            <DropdownButton parentKey="Dropdown" inherits="WowStyle2DropdownTemplate">
+                                <Anchors><Anchor point="CENTER"/></Anchors>
+                            </DropdownButton>
+                        </Frames>
+                    </Frame>
                     <DropdownButton parentKey="ThemeButton" inherits="WowStyle1DropdownTemplate">
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
                         <Size x="20" y="20"/>
-                        <Anchors><Anchor point="RIGHT" relativeKey="$parent.OptionsButton" relativePoint="LEFT" x="2" y="0"/></Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\theme-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\theme-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>

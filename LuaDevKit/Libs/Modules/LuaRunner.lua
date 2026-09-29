@@ -19,53 +19,60 @@ local function Print(write, ...)
   write('|cff999999' .. table.concat(parts, ' ') .. '|r')
 end
 
+--- Keeps trailing nils that a plain { ... } would lose.
+--- @return number
+--- @return any[]
+local function Pack(...) return select('#', ...), { ... } end
+
+--- Red, like a compile or runtime error.
+--- @param write LDK_OutputFn
+--- @param msg any
+local function WriteError(write, msg) write('|cffff0000' .. tostring(msg) .. '|r') end
+
+--- Runs func with print sent to write; reports a runtime error.
+--- @param func function
+--- @param write LDK_OutputFn
+--- @return number @Count of results, pcall's status included
+--- @return any[]  @pcall's packed results; [1] is the status
+local function Exec(func, write)
+  local oldPrint = print
+  print = function(...) Print(write, ...) end
+  local n, results = Pack(pcall(func))
+  print = oldPrint
+  if not results[1] then WriteError(write, results[2]) end
+  return n, results
+end
+
 --[[-----------------------------------------------------------------------------
 Methods
 -------------------------------------------------------------------------------]]
 --- Single-shot eval of one command line; no multi-line continuation.
+--- REPL-style, like Lua 5.3+: tried as an expression first so its
+--- values print, else run as a statement.
 --- @param text string
 --- @param write LDK_OutputFn
 function o:EvalCommand(text, write)
   -- '= expr' shorthand, same as WowLua's console.
-  local expr = text:match('^%s*=%s*(.+)$')
-  local func, err = loadstring(expr and ('print(' .. expr .. ')') or text)
-
-  -- Not '= expr' syntax, but maybe still a bare expression -- retry the same
-  -- way WowLua's console does, so e.g. typing "5 + 5" alone still prints.
-  if not func and not expr then
-    local retryFunc = loadstring('print(' .. text .. ')')
-    if retryFunc then
-      func, err = retryFunc, nil
-    end
+  local src = text:match('^%s*=%s*(.+)$') or text
+  local func = loadstring('return ' .. src)
+  local isExpr = func ~= nil
+  local err
+  if not isExpr then
+    func, err = loadstring(src)
   end
 
-  if not func then
-    write('|cffff0000' .. err .. '|r')
-    return
-  end
+  if not func then return WriteError(write, err) end
 
-  local oldPrint = print
-  print = function(...) Print(write, ...) end
-  local ok, runErr = pcall(func)
-  print = oldPrint
-
-  if not ok then write('|cffff0000' .. runErr .. '|r') end
+  local n, results = Exec(func, write)
+  if results[1] and isExpr and n > 1 then Print(write, unpack(results, 2, n)) end
 end
 
---- Evaluates a whole code buffer as a Lua chunk.
+--- Evaluates a whole code buffer as a Lua chunk; returned values
+--- are ignored, like any normal chunk.
 --- @param text string
 --- @param write LDK_OutputFn
 function o:EvalCode(text, write)
   local func, err = loadstring(text, 'Code Editor')
-  if not func then
-    write('|cffff0000' .. err .. '|r')
-    return
-  end
-
-  local oldPrint = print
-  print = function(...) Print(write, ...) end
-  local ok, runErr = pcall(func)
-  print = oldPrint
-
-  if not ok then write('|cffff0000' .. runErr .. '|r') end
+  if not func then return WriteError(write, err) end
+  Exec(func, write)
 end

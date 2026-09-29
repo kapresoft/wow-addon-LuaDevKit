@@ -10,6 +10,7 @@ local bdrops, String = O.Backdrops, O.String
 local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
 local LR, TU = O.LuaRunner, O.TextUtil
 local OutputLog = O.OutputLog
+local DS = O.DocumentStore
 local mt = lsm.MediaType
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
 local upk = unpack
@@ -54,6 +55,12 @@ local ARROW_ENABLED_ALPHA, ARROW_DISABLED_ALPHA = OVERLAY_ALPHA, 0.2
 
 -- Tints RunButton's arrow art, which is gold like the output arrows.
 local RUN_ICON_COLOR = GREEN_FONT_COLOR
+
+-- Gap between the outer toolbar icons and the code area's top.
+local TOOLBAR_ICON_LIFT = 6
+
+-- Set in Lua: an XML Size missing a value zeroes it.
+local DOC_DROPDOWN_WIDTH, DOC_DROPDOWN_HEIGHT = 150, 18
 
 -- Output lines kept; same truncation reasoning as MAX_LINES.
 local MAX_OUTPUT_LINES = 500
@@ -162,13 +169,22 @@ Types
 --- @field fontSize number   @One of FontUtil:GetFontSizes(); other values snap to nearest
 --- @field wrapText boolean
 
+--- @class LDK_CodeEditorDocStepper : Frame
+--- @field Dropdown DropdownButton
+--- @field DecrementButton Button
+--- @field IncrementButton Button
+
 --- @class LDK_CodeEditorDialogMixin : Frame, BackdropTemplate
 --- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
---- @field TopBar Frame                                      @Toolbar holding the options, theme and font dropdowns
---- @field OptionsButton DropdownButton                      @Alias of TopBar.OptionsButton
+--- @field TopBar Frame                                      @Toolbar: document controls left, dropdowns right
+--- @field OptionsButton DropdownButton                      @Alias of Header.OptionsButton
 --- @field ThemeButton DropdownButton                        @Alias of TopBar.ThemeButton
 --- @field FontButton DropdownButton                         @Alias of TopBar.FontButton
 --- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
+--- @field NewButton Button                                  @Alias of TopBar.NewButton
+--- @field DocStepper LDK_CodeEditorDocStepper               @Alias of TopBar.DocStepper
+--- @field docIndex number?                                  @DocumentStore index being edited; nil before the first
+--- @field topBarHeight number?                              @TopBar height to restore after a collapse
 --- @field codeFont Font
 --- @field fontFamily string                                 @Key of the currently applied font (see FontUtil:GetFontChoices())
 --- @field fontSize number                                   @Snapped to FontUtil:GetFontSizes()
@@ -479,8 +495,10 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local th = bdrops.theme
-  local name = th.Oakframe
+  local name = th.Gilded
   self:ApplyTheme(name)
+  self.fontSize = DEFAULTS.fontSize
+  self:SetCodeFont(DEFAULTS.fontFamily)
 
   if self.SetResizeBounds then -- WoW 10.0+
     self:SetResizeBounds(400, 250)
@@ -489,89 +507,20 @@ function o:OnLoad()
   end
 
   self:OnLoad_ScaleWatcher()
-
-  self.HeaderTitle = self.Header.Title.Text
-  self.CloseButton = self.Header.CloseFrame.CloseButton
-  -- Wired in Lua: inherited OnClick hides CloseFrame, not the dialog.
-  self.CloseButton:SetScript('OnClick', function() self:OnClickClose() end)
-
-  self.HeaderTitle:SetText('Code Editor (Prototype)')
-
-  self.OptionsButton = self.TopBar.OptionsButton
-
-  --- @type DropdownButton
-  self.ThemeButton = self.TopBar.ThemeButton
-  self.FontButton = self.TopBar.FontButton
-  self.FontSizeButton = self.TopBar.FontSizeButton
-  -- Static placeholder items, no action wired yet.
-  self.OptionsButton:SetupMenu(function(_, rootDescription)
-    rootDescription:CreateButton('Options', function() end)
-    rootDescription:CreateButton('Results Inspector', function() end)
-  end)
-
-  self:OnLoad_OptionsButton()
-  self:OnLoad_ThemeButton()
+  self:OnLoad_Header()
+  self:OnLoad_Toolbar()
   self:OnLoad_FontSteppers()
-  self:OnLoad_Fonts()
   self:OnLoad_WrapCheckButton()
   self:OnLoad_RunButton()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
 
-  -- Prototype-only: pre-fill to test gutter/scroll sync on open.
-  if ns.EXAMPLE_CODE then self:SetText(ns.EXAMPLE_CODE) end
+  -- Prototype-only: example code tests gutter/scroll sync on open.
+  -- After OnLoad_Toolbar: the stepper menu must exist.
+  self:AddDocument(ns.EXAMPLE_CODE or '')
 
   self:RefreshGutter()
-  --self:OnLoad_Tmp_NineSliceDemo()
-end
-
-function o:OnLoad_Tmp_NineSliceDemo()
-  -- Demo: NineSlice "ButtonFrameTemplateNoPortrait" layout (EventTrace-style border art)
-  local nineSlice = CreateFrame('Frame', nil, UIParent)
-  nineSlice:SetSize(500, 300)
-  nineSlice:SetPoint('CENTER', UIParent, 0, 0)
-  --local bg = nineSlice:CreateTexture(nil, "BACKGROUND")
-  --bg:SetTexture([[Interface\FrameGeneral\UI-Background-Rock]], true, true)
-  --bg:SetPoint("TOPLEFT", 6, -21)
-  --bg:SetPoint("BOTTOMRIGHT", -2, 2)
-
-  --local titleBg = nineSlice:CreateTexture(nil, "BACKGROUND", nil, -6)
-  --titleBg:SetAtlas([[_UI-Frame-TitleTileBg]], true)
-  --titleBg:SetPoint("TOPLEFT", 6, -3)
-  --titleBg:SetPoint("TOPRIGHT", -2, -3)
-  --titleBg:SetHeight(20)
-
-  local titleText = nineSlice:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
-  titleText:SetWordWrap(false)
-  titleText:SetPoint('TOP', 0, -10)
-  --titleText:SetPoint("LEFT", titleBg, "LEFT")
-  --titleText:SetPoint("RIGHT", titleBg, "RIGHT")
-  titleText:SetText('Code Editor')
-  local myLayout = {
-    TopLeftCorner = { atlas = 'CharacterCreateDropdown-NineSlice-CornerTopLeft', x = -30, y = 20 },
-    TopRightCorner = { atlas = 'CharacterCreateDropdown-NineSlice-CornerTopRight', x = 30, y = 20 },
-    BottomLeftCorner = {
-      atlas = 'CharacterCreateDropdown-NineSlice-CornerBottomLeft',
-      x = -30,
-      y = -20,
-    },
-    BottomRightCorner = {
-      atlas = 'CharacterCreateDropdown-NineSlice-CornerBottomRight',
-      x = 30,
-      y = -20,
-    },
-    TopEdge = { atlas = '_CharacterCreateDropdown-NineSlice-EdgeTop' },
-    BottomEdge = { atlas = '_CharacterCreateDropdown-NineSlice-EdgeBottom' },
-    LeftEdge = { atlas = '!CharacterCreateDropdown-NineSlice-EdgeLeft' },
-    RightEdge = { atlas = '!CharacterCreateDropdown-NineSlice-EdgeRight' },
-    Center = { atlas = 'CharacterCreateDropdown-NineSlice-Center' },
-  }
-
-  --NineSliceUtil.ApplyLayoutByName(nineSlice, 'CharacterCreateDropdown')
-  NineSliceUtil.ApplyLayout(nineSlice, myLayout)
-
-  nineSlice:Show()
 end
 
 --- Places both scroll viewports inside their backdrops. Anchored here rather
@@ -735,6 +684,27 @@ function o:OnLoad_ScaleWatcher()
   self.ScaleWatcher:SetScript('OnEvent', function() self:ClampToScreen(true) end)
 end
 
+--- Title, close button and the Options menu.
+function o:OnLoad_Header()
+  local header = self.Header
+  self.HeaderTitle = header.Title.Text
+  self.HeaderTitle:SetText('Code Editor (Prototype)')
+
+  self.CloseButton = header.CloseFrame.CloseButton
+  -- Wired in Lua: inherited OnClick hides CloseFrame, not the dialog.
+  self.CloseButton:SetScript('OnClick', function() self:OnClickClose() end)
+
+  self.OptionsButton = header.OptionsButton
+  -- Options and Results Inspector are placeholders, no action yet.
+  self.OptionsButton:SetupMenu(function(_, rootDescription)
+    rootDescription:CreateButton('Options', function() end)
+    rootDescription:CreateButton('Results Inspector', function() end)
+    local toggle = self.TopBar:IsShown() and 'Hide Toolbar' or 'Show Toolbar'
+    rootDescription:CreateButton(L[toggle], function() self:ToggleToolbar() end)
+  end)
+  self:OnLoad_OptionsButton()
+end
+
 --- Re-asserted on every SetAtlas call, which resets size via useAtlasSize.
 function o:OnLoad_OptionsButton()
   local arrow = self.OptionsButton.Arrow
@@ -763,6 +733,61 @@ function o:OnLoad_ThemeButton()
   -- Theme names are registry keys, so menu entries stay untranslated.
   AddTooltip(self.ThemeButton, 'Theme')
 end
+
+--- Every TopBar control; OnLoad_ToolbarEdges needs their aliases.
+function o:OnLoad_Toolbar()
+  local bar = self.TopBar
+  self.ThemeButton = bar.ThemeButton
+  self.FontButton = bar.FontButton
+  self.FontSizeButton = bar.FontSizeButton
+  self:OnLoad_ThemeButton()
+  self:OnLoad_Fonts()
+  self:OnLoad_NewButton()
+  self:OnLoad_DocStepper()
+  self:OnLoad_ToolbarEdges()
+end
+
+function o:OnLoad_NewButton()
+  self.NewButton = self.TopBar.NewButton
+  self.NewButton:SetScript('OnClick', function() self:NewDocument() end)
+  AddTooltip(self.NewButton, 'New Document')
+end
+
+function o:OnLoad_DocStepper()
+  self.DocStepper = self.TopBar.DocStepper
+  local stepper = self.DocStepper
+  local dropdown = stepper.Dropdown
+  dropdown:SetSize(DOC_DROPDOWN_WIDTH, DOC_DROPDOWN_HEIGHT)
+  -- Arrow art resets to atlas size per state; scale it instead.
+  for _, arrow in ipairs({ stepper.DecrementButton, stepper.IncrementButton }) do
+    arrow:SetScale(DOC_DROPDOWN_HEIGHT / arrow:GetHeight())
+  end
+  dropdown:SetupMenu(function(_, root) self:BuildDocumentMenu(root) end)
+  AddTooltip(dropdown, 'Open Document')
+end
+
+--- Lines New and Theme up with the code area's top corners; the
+--- stepper and font buttons chain off them. CodeBackdrop comes
+--- later in the XML, so anchored here.
+function o:OnLoad_ToolbarEdges()
+  local code, lift = self.CodeBackdrop, TOOLBAR_ICON_LIFT
+  self.NewButton:SetPoint('BOTTOMLEFT', code, 'TOPLEFT', 0, lift)
+  self.ThemeButton:SetPoint('BOTTOMRIGHT', code, 'TOPRIGHT', 0, lift)
+end
+
+--- Collapses or restores the toolbar; the code area follows it.
+--- @param shown boolean
+function o:SetToolbarShown(shown)
+  local bar = self.TopBar
+  self.topBarHeight = self.topBarHeight or bar:GetHeight()
+  bar:SetShown(shown)
+  -- Hidden frames keep their size; 1 not 0, which drops anchors.
+  bar:SetHeight(shown and self.topBarHeight or 1)
+  -- Re-clamp: the output panel's max height just changed.
+  self:SetStatusHeight(self:GetStatusHeight())
+end
+
+function o:ToggleToolbar() self:SetToolbarShown(not self.TopBar:IsShown()) end
 
 function o:OnLoad_Fonts()
   self.FontButton.Background:Hide()
@@ -793,8 +818,6 @@ function o:OnLoad_Fonts()
   end)
   AddTooltip(self.FontButton, 'Font Family')
   AddTooltip(self.FontSizeButton, 'Font Size')
-  self.fontSize = DEFAULTS.fontSize
-  self:SetCodeFont(DEFAULTS.fontFamily)
 end
 
 --- Diagonal resize-grip lines
@@ -1427,6 +1450,43 @@ function o:OnCommandEnterPressed(text)
   self:AppendOutput(self.CommandBar.Prompt:GetText() .. text:gsub('|', '||'))
 
   LR:EvalCommand(text, function(line) self:AppendOutput(line) end)
+end
+
+--[[-----------------------------------------------------------------------------
+Documents: New and the Open stepper, backed by DocumentStore
+-------------------------------------------------------------------------------]]
+--- Starts an empty document and switches to it.
+function o:NewDocument() self:AddDocument('') end
+
+--- @param text string
+function o:AddDocument(text)
+  local name = L['Untitled'] .. ' ' .. (DS:Count() + 1)
+  self:ShowDocument(DS:Add(name, text))
+  -- Picks in the menu refresh it; programmatic switches must.
+  self.DocStepper.Dropdown:GenerateMenu()
+end
+
+--- Saves the current document, then loads the one at index.
+--- @param index number
+function o:ShowDocument(index)
+  if index == self.docIndex then return end
+  self:SaveDocument()
+  self.docIndex = index
+  self:SetText(DS:Get(index).text)
+  self.CodeEditBox:SetCursorPosition(0)
+end
+
+--- Copies the editor text into the current document.
+function o:SaveDocument()
+  if self.docIndex then DS:SetText(self.docIndex, self:GetText()) end
+end
+
+--- One radio per document; the steppers walk the same radios.
+--- @param root RootMenuDescriptionProxy
+function o:BuildDocumentMenu(root)
+  local function isSelected(index) return index == self.docIndex end
+  local function pick(index) self:ShowDocument(index) end
+  DS:Each(function(index, doc) root:CreateRadio(doc.name, isSelected, pick, index) end)
 end
 
 --[[-----------------------------------------------------------------------------

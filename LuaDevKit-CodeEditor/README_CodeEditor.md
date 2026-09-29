@@ -8,7 +8,7 @@ the DevSuite namespace/module registry -- see [issue #90](https://github.com/kap
 | File | Role |
 |---|---|
 | [`CodeEditorDialog.xml`](Modules/CodeEditor/CodeEditorDialog.xml) | Frame layout (`LDK_CodeEditorDialogTemplate`) |
-| [`CodeEditorDialog.lua`](Modules/CodeEditor/CodeEditorDialog.lua) | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, font switching, eval |
+| [`CodeEditorDialog.lua`](Modules/CodeEditor/CodeEditorDialog.lua) | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, font switching, toolbar, documents; eval via [`LuaRunner`](../LuaDevKit/Libs/Modules/LuaRunner.lua), documents kept in [`DocumentStore`](../LuaDevKit/Libs/Modules/DocumentStore.lua) |
 | [`CodeEditBoxMixin.lua`](Modules/CodeEditor/CodeEditBoxMixin.lua) | Mixin for the `CodeEditBox` EditBox |
 | [`MinimalScrollBarStyle.lua`](Modules/CodeEditor/MinimalScrollBarStyle.lua) | `ns.O.MinimalScrollBarStyle` -- restyles the code area scrollbar after MinimalScrollBar |
 
@@ -29,19 +29,22 @@ The dialog is a fixed-header/footer frame with a scrollable body row in between,
 and an output/eval stack sitting above the footer. Row order, top to bottom:
 
 ```mermaid
+
 block-beta
 columns 1
-  Header["Header — full-width bar (drag-to-move)\nTitle (fluid) · CloseFrame (28px, pinned right)"]
-  TopBar["TopBar — toolbar (right-aligned)\nFontSizeButton · FontButton · ThemeButton · OptionsButton"]
+  Header["Header — full-width bar (drag-to-move)\nTitle (fluid) · OptionsButton · CloseFrame (28px, pinned right)"]
+  TopBar["TopBar — toolbar (hideable)\n· left: NewButton · DocStepper\n· right: FontSizeButton · FontButton · ThemeButton"]
   block:body
     Gutter["GutterBackdrop → Gutter\n(line #s)"]
-    Code["CodeBackdrop → ScrollFrame\nCodeEditBox (EditBox) · FontSteppers (+/−, top right)"]
+    Code["CodeBackdrop → ScrollFrame\n· CodeEditBox (EditBox)\n· FontSteppers (+/−, top right)\n· RunButton (▶, bottom right)"]
   end
-  Divider["StatusDivider — drag handle\nGrip · MaximizeButton · MinimizeButton"]
+  Divider["StatusDivider — drag handle\nMinimizeButton · Grip · MaximizeButton"]
   Status["StatusBar — output panel\nOutputScrollFrame → ScrollChild → EvalStatus (EditBox, read-only)"]
-  Command["CommandBar — single-line eval prompt\nPrompt · CommandEditBox"]
+  Command["CommandBar — single-line REPL prompt\nPrompt · CommandEditBox"]
   BottomBar["BottomBar — status/action bar\nWrapCheckButton"]
   Sizer["SizerSE (resize grip, bottom-right corner)"]
+  classDef left text-align:left
+  class Code,TopBar left
 ```
 
 <details>
@@ -49,23 +52,23 @@ columns 1
 
 ```
 +-----------------------------------------------------------+
-|            Code Editor (Prototype)                   [X]  |  <- Header: Title (fluid) + CloseFrame (28px)
+|            Code Editor (Prototype)               [v] [X]  |  <- Header: Title (fluid) + OptionsButton + CloseFrame (28px)
 +-----------------------------------------------------------+
-| TopBar                          [Size][Font][Theme][Opts] |  <- TopBar: font size/family, theme, options
+|      [+] < Untitled 1 >        [Size][Font][Theme]        |  <- TopBar (hideable): New + DocStepper over the code's left edge, font/theme icons over its right edge
 +-----------------------------------------------------------+
-| Gutter |  ScrollFrame                           [-][+]    |
-| (line  |  CodeEditBox (EditBox)                           |  <- body: gutter + code area
-|  #s)   |  (vertical scrollbar at right edge)              |
+|   1 | CodeEditBox (EditBox)               [-][+] |  ^     |  <- body: gutter (line #s) + code area; scrollbar outside it
+|   2 | ScrollFrame, inside CodeBackdrop           |  |     |
+|   3 |                                        [>] |  v     |  <- RunButton: play icon in the code area's corner
 +-----------------------------------------------------------+
-|                        ==========               [^][v]    |  <- StatusDivider: drag grip + max/min
+|                    [v] =========== [^]                    |  <- StatusDivider: MinimizeButton, Grip, MaximizeButton
 +-----------------------------------------------------------+
-| EvalStatus (output, selectable; appended run after run)   |  <- StatusBar: output panel
+| EvalStatus (output, selectable; appended run after run)   |  <- StatusBar: output panel (full width)
 +-----------------------------------------------------------+
-| > CommandEditBox                                          |  <- CommandBar: single-line eval prompt
+| > CommandEditBox                                          |  <- CommandBar: single-line REPL prompt
 +-----------------------------------------------------------+
 | [x] Wrap                                                  |  <- BottomBar: status/action bar
 +-----------------------------------------------------------+
-                                          [SizerSE resize] ->
+                                         [SizerSE resize] ->
 ```
 
 </details>
@@ -73,8 +76,10 @@ columns 1
 `Header` splits its width by anchoring rather than arithmetic: `CloseFrame` is a
 fixed 28px pinned to the right, and `Title`'s `BOTTOMRIGHT` anchors to
 `CloseFrame`'s `BOTTOMLEFT`, so the title absorbs whatever width is left at any
-dialog size. `TopBar` anchors to `Header`'s bottom, making the header's height
-the only place the header size is expressed. Only `Header` sets `enableMouse`
+dialog size. `OptionsButton` sits just left of `CloseFrame`, in the header rather
+than the toolbar, so its Show Toolbar item stays reachable. `TopBar` anchors to
+`Header`'s bottom, making the header's height the only place the header size is
+expressed. Only `Header` sets `enableMouse`
 (for drag-to-move) -- `Title`/`CloseFrame` leave it off so a drag started
 anywhere but the close button still reaches `Header`.
 
