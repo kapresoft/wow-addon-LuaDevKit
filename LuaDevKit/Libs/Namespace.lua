@@ -23,6 +23,9 @@ ns.addon, ns.options = addon, options
 --- @field FontUtil LDK_FontUtil
 --- @field Backdrops LDK_Backdrops
 --- @field Database LDK_Database
+--- @field LuaRunner LDK_LuaRunner
+--- @field TextUtil LDK_TextUtil
+--- @field OutputLog LDK_OutputLog
 --- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0

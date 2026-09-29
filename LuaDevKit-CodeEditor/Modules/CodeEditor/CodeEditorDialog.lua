@@ -8,6 +8,8 @@ local ns = select(2, ...)
 local cns, O = ns:cns(), ns:cns().O
 local bdrops, String = O.Backdrops, O.String
 local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
+local LR, TU = O.LuaRunner, O.TextUtil
+local OutputLog = O.OutputLog
 local mt = lsm.MediaType
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
 local upk = unpack
@@ -174,7 +176,7 @@ Types
 --- @field StatusDivider LDK_CodeEditorStatusDivider         @Drag handle that sets StatusBar's height
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Alias of StatusBar.OutputScrollFrame
 --- @field EvalStatus EditBox                                @Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
---- @field outputLines string[]                              @Appended evaluation output, capped at MAX_OUTPUT_LINES
+--- @field output LDK_OutputLog                              @Evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean
 --- @field onConfigChanged fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
@@ -302,8 +304,7 @@ end
 --- @return string
 local function TrimToMaxLines(text)
   local kept, count = {}, 0
-  -- Trailing '\n' keeps a final empty line, matching CountLines().
-  for line in (text .. '\n'):gmatch('(.-)\n') do
+  for line in TU:Lines(text) do
     count = count + 1
     if count > MAX_LINES then break end
     kept[count] = line
@@ -352,8 +353,7 @@ local function WrappedLineNumbersText(self, digits)
   local fmt = '%' .. digits .. 'd'
   local parts = {}
   local n = 0
-  -- Trailing '\n' keeps a final empty line counted, matching CountLines().
-  for line in (self.CodeEditBox:GetText() .. '\n'):gmatch('(.-)\n') do
+  for line in TU:Lines(self.CodeEditBox:GetText()) do
     n = n + 1
     parts[#parts + 1] = fmt:format(n)
     measure:SetText(line)
@@ -408,7 +408,9 @@ local function AddTooltip(frame, key, hintKey)
   local function show() ShowTooltip(frame, key, hintKey) end
   frame:HookScript('OnEnter', show)
   frame:HookScript('OnLeave', function() GameTooltip:Hide() end)
-  return function() if GameTooltip:IsOwned(frame) then show() end end
+  return function()
+    if GameTooltip:IsOwned(frame) then show() end
+  end
 end
 
 --- CCW radians; bag-arrow art points left, so pi/2 = down, -pi/2 = up.
@@ -446,6 +448,8 @@ function o:OnLoad()
   self.OutputScrollFrame = self.StatusBar.OutputScrollFrame
   self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
   self.CommandEditBox = self.CommandBar.CommandEditBox
+
+  self.output = OutputLog:New(MAX_OUTPUT_LINES)
 
   self:OnLoad_Viewports()
   self:OnLoad_Overlays()
@@ -580,7 +584,13 @@ function o:OnLoad_Overlays()
   local i = OVERLAY_INSET
   self.FontSteppers:SetPoint('TOPRIGHT', self.ScrollFrame, 'TOPRIGHT', -(i - 2), -i)
   self.FontSteppers:SetAlpha(OVERLAY_ALPHA)
-  self.StatusDivider.MinimizeButton:SetPoint('BOTTOMRIGHT', self.ScrollFrame, 'BOTTOMRIGHT', -(i - 3.3), i)
+  self.StatusDivider.MinimizeButton:SetPoint(
+    'BOTTOMRIGHT',
+    self.ScrollFrame,
+    'BOTTOMRIGHT',
+    -(i - 3.3),
+    i
+  )
 end
 
 --- Starts at viewport height for a clickable area; RefreshGutter grows it.
@@ -651,7 +661,7 @@ end
 --- @param yRange number
 function o:OnOutputScrollRangeChanged(yRange) self.OutputScrollFrame:SetVerticalScroll(yRange) end
 
---- Read-only: outputLines is the only text source.
+--- Read-only: the output log is the only text source.
 --- @param userInput boolean
 function o:OnEvalStatusTextChanged(userInput)
   if userInput then self:RefreshOutput() end
@@ -1351,11 +1361,11 @@ end
 
 --- Drops every line of output collected so far.
 function o:ClearOutput()
-  self.outputLines = {}
+  self.output:Clear()
   self:RefreshOutput()
 end
 
---- Rewrites the output box from outputLines.
+--- Rewrites the output box from the output log.
 function o:RefreshOutput()
   local box = self.EvalStatus
   local child = self.OutputScrollFrame.ScrollChild
@@ -1366,7 +1376,7 @@ function o:RefreshOutput()
   self:SyncOutputHeight()
 
   -- A divider drag re-enters this every frame.
-  local text = table.concat(self.outputLines or {}, '\n')
+  local text = self.output:GetText()
   if box:GetText() == text then return end
   -- Raised before every SetText; see RefreshGutter for why.
   box:SetMaxLetters(strlenutf8(text))
@@ -1383,68 +1393,16 @@ end
 --- Appends output; embedded newlines count toward the cap.
 --- @param text string
 function o:AppendOutput(text)
-  local lines = self.outputLines or {}
-  -- Trailing '\n' keeps a final empty line, matching CountLines().
-  for line in (tostring(text or '') .. '\n'):gmatch('(.-)\n') do
-    lines[#lines + 1] = line
-  end
-  local excess = #lines - MAX_OUTPUT_LINES
-  if excess > 0 then
-    -- Shift survivors down instead of rebuilding the table each append.
-    for i = 1, #lines - excess do
-      lines[i] = lines[i + excess]
-    end
-    for i = #lines - excess + 1, #lines do
-      lines[i] = nil
-    end
-  end
-  self.outputLines = lines
+  self.output:Append(text)
   self:RefreshOutput()
 end
 
 --- @return string
-function o:GetOutput() return table.concat(self.outputLines or {}, '\n') end
+function o:GetOutput() return self.output:GetText() end
 
 --[[-----------------------------------------------------------------------------
 Command line: single-shot eval; no multi-line continuation
 -------------------------------------------------------------------------------]]
---- Grey, space-joined print output, matching WoW's own print.
---- @param self LDK_CodeEditorDialog
-local function CommandPrint(self, ...)
-  local parts = {}
-  for i = 1, select('#', ...) do
-    parts[i] = tostring(select(i, ...))
-  end
-  self:AppendOutput('|cff999999' .. table.concat(parts, ' ') .. '|r')
-end
-
---- @param self LDK_CodeEditorDialog
---- @param text string
-local function EvalCommand(self, text)
-  -- '= expr' shorthand, same as WowLua's console.
-  local expr = text:match('^%s*=%s*(.+)$')
-  local func, err = loadstring(expr and ('print(' .. expr .. ')') or text)
-
-  -- Not '= expr' syntax, but maybe still a bare expression -- retry the same
-  -- way WowLua's console does, so e.g. typing "5 + 5" alone still prints.
-  if not func and not expr then
-    local retryFunc = loadstring('print(' .. text .. ')')
-    if retryFunc then func, err = retryFunc, nil end
-  end
-
-  if not func then
-    self:AppendOutput('|cffff0000' .. err .. '|r')
-    return
-  end
-
-  local oldPrint = print
-  print = function(...) CommandPrint(self, ...) end
-  local ok, runErr = pcall(func)
-  print = oldPrint
-
-  if not ok then self:AppendOutput('|cffff0000' .. runErr .. '|r') end
-end
-
 --- Runs one line from the command bar and appends every outcome -- the echoed
 --- input, a compile error, a runtime error, or printed output -- to the same
 --- output panel a full Run uses.
@@ -1455,34 +1413,17 @@ function o:OnCommandEnterPressed(text)
   -- Escape literal '|' so the echoed input can't be read as a color/texture code.
   self:AppendOutput(self.CommandBar.Prompt:GetText() .. text:gsub('|', '||'))
 
-  EvalCommand(self, text)
+  LR:EvalCommand(text, function(line) self:AppendOutput(line) end)
 end
 
 --[[-----------------------------------------------------------------------------
 Run: evaluates the whole editor buffer
 -------------------------------------------------------------------------------]]
---- @param self LDK_CodeEditorDialog
---- @param text string
-local function EvalCode(self, text)
-  local func, err = loadstring(text, 'Code Editor')
-  if not func then
-    self:AppendOutput('|cffff0000' .. err .. '|r')
-    return
-  end
-
-  local oldPrint = print
-  print = function(...) CommandPrint(self, ...) end
-  local ok, runErr = pcall(func)
-  print = oldPrint
-
-  if not ok then self:AppendOutput('|cffff0000' .. runErr .. '|r') end
-end
-
 --- Output goes to the output panel.
 function o:Run()
   local text = self:GetText()
   if str_isBlank(text) then return end
-  EvalCode(self, text)
+  LR:EvalCode(text, function(line) self:AppendOutput(line) end)
 end
 
 --- @return string
