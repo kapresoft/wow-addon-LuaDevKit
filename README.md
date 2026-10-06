@@ -3,7 +3,7 @@
 # LuaDevKit :: Write, run, and inspect Lua without leaving Azeroth.
 > ▶ A [World of Warcraft](https://worldofwarcraft.com/) AddOn
 
-![download-count](https://cf.way2muchnoise.eu/full_566626_downloads.svg?badge_style=for_the_badge) ![supported-wow-versions](https://cf.way2muchnoise.eu/versions/World%20of%20Warcraft%20Versions_566626_all.svg?badge_style=for_the_badge)
+![download-count](https://cf.way2muchnoise.eu/full_1689187_downloads.svg?badge_style=for_the_badge) ![supported-wow-versions](https://cf.way2muchnoise.eu/versions/World%20of%20Warcraft%20Versions_1689187_all.svg?badge_style=for_the_badge)
 
 An in-game Lua development toolkit for World of Warcraft addon authors. LuaDevKit gives you a line-numbered code editor, buffer evaluation, and variable inspection — all without leaving the game.
 

@@ -1,0 +1,92 @@
+package-as: LuaDevKit
+# --------------------------
+
+manual-changelog:
+  filename: dev/changelog-release.md
+  markup-type: markdown
+
+embedded-libraries:
+  - LibStub
+  - Ace3
+  - LibUtil
+  - LibSharedMedia-3-0
+
+required-dependencies:
+  - sharedmedia-fonts-mono
+
+tools-used:
+  - DevSuite
+  - DebugChatFrame
+  - Bugsack
+  - Bug-Grabber
+
+# Only what LuaDevKit.toc loads: LibStub, CallbackHandler and
+# AceLocale from Ace3, LSM, and LibUtil's String/Table modules.
+externals:
+  LuaDevKit/ThirdParty/Libs/Ace3:
+    url: https://github.com/WoWUIDev/Ace3
+    tag: latest
+  LuaDevKit/ThirdParty/Libs/LibSharedMedia-3.0:
+    url: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk
+    tag: latest
+  LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil:
+    url: https://github.com/kapresoft/wow-lib-util
+    tag: latest
+
+ignore:
+  - "*.sh"
+  - "*.md"
+  - "*.yaml"
+  - "*.yml"
+  - "*.toml"
+  - dev
+  - doc
+  - LuaDevKit/Libs/Developer
+  - LuaDevKit-CodeEditor/Developer
+  - LuaDevKit/ThirdParty/Libs/Ace3/Ace3.lua
+  - LuaDevKit/ThirdParty/Libs/Ace3/Ace3.toc
+  - LuaDevKit/ThirdParty/Libs/Ace3/Bindings.xml
+  - LuaDevKit/ThirdParty/Libs/Ace3/changelog.txt
+  - LuaDevKit/ThirdParty/Libs/Ace3/LICENSE.txt
+  - LuaDevKit/ThirdParty/Libs/Ace3/tests
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceAddon-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceBucket-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceComm-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceConfig-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceConsole-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceDB-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceDBOptions-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceEvent-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceGUI-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceHook-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceSerializer-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceTab-3.0
+  - LuaDevKit/ThirdParty/Libs/Ace3/AceTimer-3.0
+  - LuaDevKit/ThirdParty/Libs/LibSharedMedia-3.0/*.toc
+  - LuaDevKit/ThirdParty/Libs/LibSharedMedia-3.0/lib.xml
+  - LuaDevKit/ThirdParty/Libs/LibSharedMedia-3.0/LibStub
+  - LuaDevKit/ThirdParty/Libs/LibSharedMedia-3.0/CallbackHandler-1.0
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/dev
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/LICENSE
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-1-0
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/*.toc
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/LibUtil.lua
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/LibUtil.xml
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/Annotations
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/Assets
+  - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/ThirdParty
+
+# REQUIRED for CurseForge packager (non-obvious):
+# The LEFT side MUST be <repo-folder>/<addon-folder>
+#   - <addon-folder> MUST be the folder that contains the .toc files
+# The RIGHT side MUST be the addon name:
+#   - Must match the .toc filename (AddonName.toc)
+#   - Must match `package-as` for the main addon
+#
+# NOTE:
+# CurseForge release.sh relies on `move-folders` for *addon discovery*,
+# not just post-processing. If this does not exactly match
+# <repo>/<addon>, `toc_root_paths` will be empty and packaging WILL fail.
+move-folders:
+  LuaDevKit/LuaDevKit: LuaDevKit
+  LuaDevKit/LuaDevKit-CodeEditor: LuaDevKit-CodeEditor
