@@ -59,8 +59,20 @@ local RUN_ICON_COLOR = GREEN_FONT_COLOR
 -- Gap between the outer toolbar icons and the code area's top.
 local TOOLBAR_ICON_LIFT = 6
 
+-- Space above the toolbar icons, inside TopBar.
+local TOOLBAR_TOP_PAD = 2
+
+-- Toolbar icon edge length, and the gap between right-side icons.
+local TOOLBAR_ICON_SIZE, TOOLBAR_ICON_GAP = 24, 3
+
+-- Extra gap right of FontButton; lines up its icon art.
+local FONT_ICON_NUDGE = 0.35
+
 -- Set in Lua: an XML Size missing a value zeroes it.
-local DOC_DROPDOWN_WIDTH, DOC_DROPDOWN_HEIGHT = 150, 18
+local DOC_DROPDOWN_WIDTH = 150
+
+-- How much shorter the document dropdown is than the icons.
+local DOC_DROPDOWN_INSET = 4
 
 -- Output lines kept; same truncation reasoning as MAX_LINES.
 local MAX_OUTPUT_LINES = 500
@@ -184,7 +196,7 @@ Types
 --- @field NewButton Button                                  @Alias of TopBar.NewButton
 --- @field DocStepper LDK_CodeEditorDocStepper               @Alias of TopBar.DocStepper
 --- @field docIndex number?                                  @DocumentStore index being edited; nil before the first
---- @field topBarHeight number?                              @TopBar height to restore after a collapse
+--- @field topBarHeight number                               @TopBar height to restore after a collapse
 --- @field codeFont Font
 --- @field fontFamily string                                 @Key of the currently applied font (see FontUtil:GetFontChoices())
 --- @field fontSize number                                   @Snapped to FontUtil:GetFontSizes()
@@ -560,6 +572,7 @@ end
 function o:OnLoad_WrapCheckButton()
   local button = self.BottomBar.WrapCheckButton
   button.text:SetText(L['Wrap Text'])
+  button:SetHitRectInsets(0, -button.text:GetStringWidth(), 0, 0)
   AddTooltip(button, 'Wrap Text')
 end
 
@@ -715,10 +728,6 @@ function o:OnLoad_OptionsButton()
 end
 
 function o:OnLoad_ThemeButton()
-  self.ThemeButton.Background:Hide()
-  self.ThemeButton.Arrow:Hide()
-  self.ThemeButton.Text:Hide()
-
   --- @param rootDescription RootMenuDescriptionProxy
   self.ThemeButton:SetupMenu(function(_, rootDescription)
     local function addRadio(name)
@@ -745,6 +754,46 @@ function o:OnLoad_Toolbar()
   self:OnLoad_NewButton()
   self:OnLoad_DocStepper()
   self:OnLoad_ToolbarEdges()
+  self:OnLoad_ToolbarIcons()
+end
+
+--- Strips dropdown chrome so only the icon art shows.
+function o:OnLoad_ToolbarIcons()
+  for _, button in ipairs(self:RightToolbarIcons()) do
+    button.Background:Hide()
+    button.Arrow:Hide()
+    button.Text:Hide()
+  end
+  self:LayoutToolbar(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_GAP)
+end
+
+--- @return DropdownButton[] @Right to left, ThemeButton first
+function o:RightToolbarIcons() return { self.ThemeButton, self.FontButton, self.FontSizeButton } end
+
+--- Sizes the icons and fits the stepper and bar height to them.
+--- @param size number
+--- @param gap number
+function o:LayoutToolbar(size, gap)
+  self:LayoutToolbarIcons(size, gap)
+  self:LayoutDocStepper(size - DOC_DROPDOWN_INSET, gap)
+  self.topBarHeight = size + TOOLBAR_ICON_LIFT + TOOLBAR_TOP_PAD
+  if self.TopBar:IsShown() then self.TopBar:SetHeight(self.topBarHeight) end
+end
+
+--- Sizes the icon buttons and chains the right-side ones leftward.
+--- @param size number
+--- @param gap number
+function o:LayoutToolbarIcons(size, gap)
+  self.NewButton:SetSize(size, size)
+  local prev
+  for _, button in ipairs(self:RightToolbarIcons()) do
+    button:SetSize(size, size)
+    if prev then
+      local nudge = button == self.FontButton and FONT_ICON_NUDGE or 0
+      button:SetPoint('RIGHT', prev, 'LEFT', -(gap + nudge), 0)
+    end
+    prev = button
+  end
 end
 
 function o:OnLoad_NewButton()
@@ -757,13 +806,26 @@ function o:OnLoad_DocStepper()
   self.DocStepper = self.TopBar.DocStepper
   local stepper = self.DocStepper
   local dropdown = stepper.Dropdown
-  dropdown:SetSize(DOC_DROPDOWN_WIDTH, DOC_DROPDOWN_HEIGHT)
-  -- Arrow art resets to atlas size per state; scale it instead.
-  for _, arrow in ipairs({ stepper.DecrementButton, stepper.IncrementButton }) do
-    arrow:SetScale(DOC_DROPDOWN_HEIGHT / arrow:GetHeight())
-  end
   dropdown:SetupMenu(function(_, root) self:BuildDocumentMenu(root) end)
   AddTooltip(dropdown, 'Open Document')
+end
+
+--- Chains the back arrow and dropdown off NewButton by `gap`.
+--- @param height number
+--- @param gap number
+function o:LayoutDocStepper(height, gap)
+  local stepper = self.DocStepper
+  local back, dropdown = stepper.DecrementButton, stepper.Dropdown
+  dropdown:SetSize(DOC_DROPDOWN_WIDTH, height)
+  -- Arrow art resets to atlas size per state; scale it instead.
+  for _, arrow in ipairs({ back, stepper.IncrementButton }) do
+    arrow:SetScale(height / arrow:GetHeight())
+  end
+  -- Replaces the mixin's back-arrow anchor to the dropdown.
+  back:ClearAllPoints()
+  -- Offsets on a scaled frame scale too; divide it back out.
+  back:SetPoint('LEFT', self.NewButton, 'RIGHT', gap / back:GetScale(), 0)
+  dropdown:SetPoint('LEFT', back, 'RIGHT', -stepper.decrementOffsetX, 0)
 end
 
 --- Lines New and Theme up with the code area's top corners; the
@@ -779,7 +841,6 @@ end
 --- @param shown boolean
 function o:SetToolbarShown(shown)
   local bar = self.TopBar
-  self.topBarHeight = self.topBarHeight or bar:GetHeight()
   bar:SetShown(shown)
   -- Hidden frames keep their size; 1 not 0, which drops anchors.
   bar:SetHeight(shown and self.topBarHeight or 1)
@@ -790,9 +851,6 @@ end
 function o:ToggleToolbar() self:SetToolbarShown(not self.TopBar:IsShown()) end
 
 function o:OnLoad_Fonts()
-  self.FontButton.Background:Hide()
-  self.FontButton.Arrow:Hide()
-  self.FontButton.Text:Hide()
   self.FontButton:SetupMenu(function(_, rootDescription)
     for _, choice in ipairs(fontChoices) do
       -- CreateButton never checks IsSelected() -- only CreateRadio draws
@@ -804,9 +862,6 @@ function o:OnLoad_Fonts()
       )
     end
   end)
-  self.FontSizeButton.Background:Hide()
-  self.FontSizeButton.Arrow:Hide()
-  self.FontSizeButton.Text:Hide()
   self.FontSizeButton:SetupMenu(function(_, rootDescription)
     for _, size in ipairs(fut:GetFontSizes()) do
       rootDescription:CreateRadio(

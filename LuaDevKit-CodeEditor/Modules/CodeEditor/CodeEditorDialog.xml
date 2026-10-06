@@ -180,42 +180,39 @@
 
                  TopBar.NewButton: borrows the font icon until custom art exists.
                  It and TopBar.ThemeButton are pinned above CodeBackdrop's
-                 top corners in Lua's OnLoad_ToolbarEdges.
+                 top corners in Lua's OnLoad_ToolbarEdges. Icon sizes, the
+                 stepper height and the bar height come from Lua's LayoutToolbar.
 
                  TopBar.DocStepper: Blizzard's dropdown with steppers; its
-                 template requires the Dropdown child declared here. -->
+                 template requires the Dropdown child declared here. Its back
+                 arrow and Dropdown are chained off NewButton in Lua. -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
-                <Size y="28"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
                     <Anchor point="TOPRIGHT" relativeKey="$parent.Header" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
                 </Anchors>
                 <Frames>
                     <Button parentKey="NewButton">
-                        <Size x="20" y="20"/>
                         <NormalTexture file="interface\addons\luadevkit\assets\font-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\font-btn.tga" alphaMode="ADD"/>
                     </Button>
                     <Frame parentKey="DocStepper" inherits="DropdownWithSteppersTemplate">
                         <Size x="200" y="26"/>
                         <Anchors>
-                            <Anchor point="LEFT" relativeKey="$parent.NewButton" relativePoint="RIGHT" x="4" y="0"/>
+                            <Anchor point="LEFT" relativeKey="$parent.NewButton" relativePoint="RIGHT"/>
                         </Anchors>
                         <KeyValues>
                             <KeyValue key="decrementOffsetX" value="-2" type="number"/>
                             <KeyValue key="incrementOffsetX" value="2" type="number"/>
                         </KeyValues>
                         <Frames>
-                            <DropdownButton parentKey="Dropdown" inherits="WowStyle2DropdownTemplate">
-                                <Anchors><Anchor point="CENTER"/></Anchors>
-                            </DropdownButton>
+                            <DropdownButton parentKey="Dropdown" inherits="WowStyle2DropdownTemplate"/>
                         </Frames>
                     </Frame>
                     <DropdownButton parentKey="ThemeButton" inherits="WowStyle1DropdownTemplate">
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
-                        <Size x="20" y="20"/>
                         <NormalTexture file="interface\addons\luadevkit\assets\theme-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\theme-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
@@ -223,10 +220,6 @@
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
-                        <Size x="20" y="20"/>
-                        <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.ThemeButton" relativePoint="LEFT" x="-1.35" y="0"/>
-                        </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\font-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\font-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
@@ -234,10 +227,6 @@
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
-                        <Size x="20" y="20"/>
-                        <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.FontButton" relativePoint="LEFT" x="-1" y="0"/>
-                        </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\font-size-btn.tga"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\font-size-btn.tga" alphaMode="ADD"/>
                     </DropdownButton>
@@ -246,10 +235,10 @@
 
             <!-- BottomBar: status/action bar. -->
             <Frame parentKey="BottomBar" inherits="BackdropTemplate">
-                <Size y="30"/>
+                <Size y="24"/>
                 <Anchors>
-                    <Anchor point="BOTTOMLEFT" relativeTo="$parent" x="0" y="16"/>
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$parent" x="0" y="16"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$parent" x="0" y="8"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$parent" x="0" y="8"/>
                 </Anchors>
                 <Frames>
                     <CheckButton parentKey="WrapCheckButton" inherits="UICheckButtonTemplate">
@@ -597,7 +586,7 @@
                     <Button parentKey="MinusButton">
                         <Size x="10" y="12"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.PlusButton" relativePoint="LEFT" x="-2.6" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.PlusButton" relativePoint="LEFT" x="-5" y="0"/>
                         </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\minus-btn" alpha="0.7"/>
                         <DisabledTexture file="interface\addons\luadevkit\assets\minus-btn-disabled"/>
