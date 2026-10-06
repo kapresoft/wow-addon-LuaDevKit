@@ -62,11 +62,8 @@ local TOOLBAR_ICON_LIFT = 6
 -- Space above the toolbar icons, inside TopBar.
 local TOOLBAR_TOP_PAD = 2
 
--- Toolbar icon edge length, and the gap between right-side icons.
-local TOOLBAR_ICON_SIZE, TOOLBAR_ICON_GAP = 24, 3
-
--- Extra gap right of FontButton; lines up its icon art.
-local FONT_ICON_NUDGE = 0.35
+-- Toolbar icon edge length, and the gap between toolbar controls.
+local TOOLBAR_ICON_SIZE, TOOLBAR_ICON_GAP = 24, 1
 
 -- Set in Lua: an XML Size missing a value zeroes it.
 local DOC_DROPDOWN_WIDTH = 150
@@ -781,17 +778,15 @@ function o:LayoutToolbar(size, gap)
 end
 
 --- Sizes the icon buttons and chains the right-side ones leftward.
+--- Snapped to whole pixels so every gap rounds the same way.
 --- @param size number
 --- @param gap number
 function o:LayoutToolbarIcons(size, gap)
-  self.NewButton:SetSize(size, size)
+  PixelUtil.SetSize(self.NewButton, size, size)
   local prev
   for _, button in ipairs(self:RightToolbarIcons()) do
-    button:SetSize(size, size)
-    if prev then
-      local nudge = button == self.FontButton and FONT_ICON_NUDGE or 0
-      button:SetPoint('RIGHT', prev, 'LEFT', -(gap + nudge), 0)
-    end
+    PixelUtil.SetSize(button, size, size)
+    if prev then PixelUtil.SetPoint(button, 'RIGHT', prev, 'LEFT', -gap, 0) end
     prev = button
   end
 end
@@ -816,7 +811,7 @@ end
 function o:LayoutDocStepper(height, gap)
   local stepper = self.DocStepper
   local back, dropdown = stepper.DecrementButton, stepper.Dropdown
-  dropdown:SetSize(DOC_DROPDOWN_WIDTH, height)
+  PixelUtil.SetSize(dropdown, DOC_DROPDOWN_WIDTH, height)
   -- Arrow art resets to atlas size per state; scale it instead.
   for _, arrow in ipairs({ back, stepper.IncrementButton }) do
     arrow:SetScale(height / arrow:GetHeight())
@@ -824,8 +819,8 @@ function o:LayoutDocStepper(height, gap)
   -- Replaces the mixin's back-arrow anchor to the dropdown.
   back:ClearAllPoints()
   -- Offsets on a scaled frame scale too; divide it back out.
-  back:SetPoint('LEFT', self.NewButton, 'RIGHT', gap / back:GetScale(), 0)
-  dropdown:SetPoint('LEFT', back, 'RIGHT', -stepper.decrementOffsetX, 0)
+  PixelUtil.SetPoint(back, 'LEFT', self.NewButton, 'RIGHT', gap / back:GetScale(), 0)
+  PixelUtil.SetPoint(dropdown, 'LEFT', back, 'RIGHT', -stepper.decrementOffsetX, 0)
 end
 
 --- Lines New and Theme up with the code area's top corners; the
@@ -833,8 +828,8 @@ end
 --- later in the XML, so anchored here.
 function o:OnLoad_ToolbarEdges()
   local code, lift = self.CodeBackdrop, TOOLBAR_ICON_LIFT
-  self.NewButton:SetPoint('BOTTOMLEFT', code, 'TOPLEFT', 0, lift)
-  self.ThemeButton:SetPoint('BOTTOMRIGHT', code, 'TOPRIGHT', 0, lift)
+  self.NewButton:SetPoint('BOTTOMLEFT', code, 'TOPLEFT', 2, lift)
+  self.ThemeButton:SetPoint('BOTTOMRIGHT', code, 'TOPRIGHT', 2, lift)
 end
 
 --- Collapses or restores the toolbar; the code area follows it.

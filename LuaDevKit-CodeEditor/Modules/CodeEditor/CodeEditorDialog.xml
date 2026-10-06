@@ -178,8 +178,7 @@
                  font and theme dropdowns on the right. Hideable: Lua's
                  SetToolbarShown collapses it and the code area moves up.
 
-                 TopBar.NewButton: borrows the font icon until custom art exists.
-                 It and TopBar.ThemeButton are pinned above CodeBackdrop's
+                 TopBar.NewButton and TopBar.ThemeButton are pinned above CodeBackdrop's
                  top corners in Lua's OnLoad_ToolbarEdges. Icon sizes, the
                  stepper height and the bar height come from Lua's LayoutToolbar.
 
@@ -193,8 +192,8 @@
                 </Anchors>
                 <Frames>
                     <Button parentKey="NewButton">
-                        <NormalTexture file="interface\addons\luadevkit\assets\font-btn.tga"/>
-                        <HighlightTexture file="interface\addons\luadevkit\assets\font-btn.tga" alphaMode="ADD"/>
+                        <NormalTexture file="interface\addons\luadevkit\assets\new-btn"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\new-btn" alphaMode="ADD"/>
                     </Button>
                     <Frame parentKey="DocStepper" inherits="DropdownWithSteppersTemplate">
                         <Size x="200" y="26"/>
