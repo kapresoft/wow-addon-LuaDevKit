@@ -337,7 +337,7 @@
 
                  StatusBar.ConsoleSettingsButton: floating gear menu for console
                  font and size; raised in Lua's OnLoad_Overlays, anchored per
-                 theme in ApplyConsoleInsets. -->
+                 theme in ApplyConsoleInsets, faded in ApplyToolIconAlpha. -->
             <Frame parentKey="StatusBar" inherits="BackdropTemplate">
                 <Size y="100"/>
                 <Anchors>

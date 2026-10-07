@@ -608,6 +608,7 @@ local function _RegisterBuiltInThemes()
       },
       commandLine = {
         prompt = {
+          -- FFAB25
           color = { 1.000, 0.671, 0.145, 1 },
         },
       },
