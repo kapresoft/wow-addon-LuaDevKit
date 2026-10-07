@@ -3,12 +3,18 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
 
-    <!-- Placeholder base: the two FontStrings below inherit this only so they
-         have a valid font at XML-load time. FontUtil builds the real, catalog-
+    <!-- Placeholder base: the FontString below inherits this only so it
+         has a valid font at XML-load time. FontUtil builds the real, catalog-
          driven font objects at runtime (see Libs/Modules/FontUtil.lua), and
-         ApplyCodeFont() overrides both FontStrings via SetFontObject as soon
+         ApplyCodeFont() overrides it via SetFontObject as soon
          as the dialog configures, so this definition's own look never shows. -->
     <Font name="LDK_CodeEditorFont" inherits="SharedMediaFontsMono_DefaultFont"/>
+
+    <!-- Command line prompt arrow: one fixed face on every client, so the
+         glyph never changes with the code font or locale. -->
+    <Font name="LDK_CommandPromptFont"
+          font="Interface/AddOns/SharedMediaFontsMono/Assets/Fonts/JetBrainsMono-Medium.ttf" height="12"/>
+
     <Script file="ExampleCode.lua"/>
     <Script file="CodeEditBoxMixin.lua"/>
     <Script file="MinimalScrollBarStyle.lua"/>
@@ -260,7 +266,16 @@
 
                  CommandBar.CommandEditBox: plain EditBox, not
                  LDK_CodeEditBoxMixin, wired straight to the dialog like
-                 WrapCheckButton; historyLines gives native Up/Down history. -->
+                 WrapCheckButton. No native history (no historyLines): Lua's
+                 commandHistory is the only list, stepped by StepCommandHistory.
+                 It's the bar's height and centered on Prompt, so its text lines
+                 up with the prompt at any font size.
+
+                 CommandBar.Prompt: fixed LDK_CommandPromptFont, not the code
+                 font, so the arrow keeps one shape; ApplyCodeFont leaves it alone.
+
+                 CommandBar.HistoryButton: arrow dropdown listing that history,
+                 pinned right; set up in Lua's OnLoad_HistoryButton. -->
             <Frame parentKey="CommandBar" inherits="BackdropTemplate">
                 <Size y="22"/>
                 <Anchors>
@@ -269,24 +284,33 @@
                 </Anchors>
                 <Layers>
                     <Layer level="ARTWORK">
-                        <FontString parentKey="Prompt" inherits="LDK_CodeEditorFont" justifyH="LEFT">
+                        <FontString parentKey="Prompt" inherits="LDK_CommandPromptFont" justifyH="LEFT">
                             <Anchors>
-                                <Anchor point="LEFT" x="6" y="0"/>
+                                <Anchor point="LEFT" x="10" y="0"/>
                             </Anchors>
                         </FontString>
                     </Layer>
                 </Layers>
                 <Frames>
-                    <EditBox parentKey="CommandEditBox" letters="4096" historyLines="100"
-                             autoFocus="false">
+                    <DropdownButton parentKey="HistoryButton" inherits="WowStyle1ArrowDropdownTemplate">
+                        <KeyValues>
+                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                        </KeyValues>
                         <Anchors>
-                            <Anchor point="TOPLEFT" relativeKey="$parent.Prompt" relativePoint="TOPRIGHT" x="4" y="4"/>
-                            <Anchor point="BOTTOMRIGHT" x="-6" y="0"/>
+                            <Anchor point="TOPRIGHT" x="-4" y="0"/>
+                            <Anchor point="BOTTOMRIGHT" x="-4" y="0"/>
+                        </Anchors>
+                    </DropdownButton>
+                    <EditBox parentKey="CommandEditBox" letters="4096"
+                             autoFocus="false">
+                        <Size y="22"/>
+                        <Anchors>
+                            <Anchor point="LEFT" relativeKey="$parent.Prompt" relativePoint="RIGHT" x="0" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.HistoryButton" relativePoint="LEFT" x="-4" y="0"/>
                         </Anchors>
                         <Scripts>
                             <OnEnterPressed>
                                 local text = self:GetText()
-                                self:AddHistoryLine(text)
                                 self:SetText('')
                                 self:GetParent():GetParent():OnCommandEnterPressed(text)
                             </OnEnterPressed>

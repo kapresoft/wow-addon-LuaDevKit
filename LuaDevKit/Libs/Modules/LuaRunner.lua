@@ -51,6 +51,7 @@ Methods
 --- values print, else run as a statement.
 --- @param text string
 --- @param write LDK_OutputFn
+--- @return boolean @false on a compile or runtime error
 function o:EvalCommand(text, write)
   -- '= expr' shorthand, same as WowLua's console.
   local src = text:match('^%s*=%s*(.+)$') or text
@@ -61,10 +62,14 @@ function o:EvalCommand(text, write)
     func, err = loadstring(src)
   end
 
-  if not func then return WriteError(write, err) end
+  if not func then
+    WriteError(write, err)
+    return false
+  end
 
   local n, results = Exec(func, write)
   if results[1] and isExpr and n > 1 then Print(write, unpack(results, 2, n)) end
+  return results[1]
 end
 
 --- Evaluates a whole code buffer as a Lua chunk; returned values

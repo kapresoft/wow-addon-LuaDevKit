@@ -95,11 +95,26 @@ local GUTTER_PADDING = 5 + 4 + GUTTER_TEXT_RIGHT_INSET + 4
 -- Extra room an EditBox needs beyond the measured digit width.
 local GUTTER_SLACK = 0
 
--- OptionsButton arrow glyph; sized by the atlas, not the button.
-local OPTIONS_ARROW_SIZE = 18
+-- Arrow dropdown glyph; sized by the atlas, not the button.
+local DROPDOWN_ARROW_SIZE = 18
+
+-- Echoed commands in the output; ASCII so every code font has it.
+local COMMAND_ECHO_PREFIX = '> '
+
+-- Commands kept for Up/Down and the history menu.
+local MAX_COMMAND_HISTORY = 50
+
+-- History menu height before it scrolls.
+local HISTORY_MENU_MAX_HEIGHT = 150
+
+-- History row text width cap; WoW truncates longer lines.
+local HISTORY_MENU_MAX_WIDTH = 200
+
+-- Truncated-command tooltip width; long commands wrap at it.
+local HISTORY_TOOLTIP_WIDTH = 400
 
 -- Horizontal text padding inside CodeEditBox (left, right).
-local CODE_TEXT_INSET_LEFT = 0
+local CODE_TEXT_INSET_LEFT = 4
 local CODE_TEXT_INSET_RIGHT = 6
 
 -- Shared inset so the code area's corner buttons line up.
@@ -137,6 +152,7 @@ Types
 --- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
 --- @field Prompt FontString
 --- @field CommandEditBox EditBox @Single-line quick-eval input with Up/Down history
+--- @field HistoryButton DropdownButton
 
 --- @class LDK_CodeEditorOutputScrollChild : Frame
 --- @field EvalStatus EditBox @Read-only output log; an EditBox so text can be selected and copied
@@ -183,6 +199,10 @@ Types
 --- @field DecrementButton Button
 --- @field IncrementButton Button
 
+--- @class LDK_CommandHistoryEntry
+--- @field text string
+--- @field failed boolean? @Last run hit a compile or runtime error
+
 --- @class LDK_CodeEditorDialogMixin : Frame, BackdropTemplate
 --- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
 --- @field TopBar Frame                                      @Toolbar: document controls left, dropdowns right
@@ -200,6 +220,11 @@ Types
 --- @field BottomBar LDK_CodeEditorBottomBar
 --- @field CommandBar LDK_CodeEditorCommandBar
 --- @field CommandEditBox EditBox                            @Alias of CommandBar.CommandEditBox
+--- @field HistoryButton DropdownButton                      @Alias of CommandBar.HistoryButton
+--- @field HistoryTooltip GameTooltip                        @History menu's own tooltip; shows truncated commands
+--- @field commandHistory LDK_CommandHistoryEntry[]          @Entered commands, oldest first
+--- @field historyIndex number                               @Up/Down position; one past the end is the draft
+--- @field historyDraft string?                              @Unsent text saved when stepping into history
 --- @field StatusBar LDK_CodeEditorStatusBar                 @Output panel
 --- @field StatusDivider LDK_CodeEditorStatusDivider         @Drag handle that sets StatusBar's height
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Alias of StatusBar.OutputScrollFrame
@@ -439,6 +464,38 @@ local function AddTooltip(frame, key, hintKey)
   return function()
     if GameTooltip:IsOwned(frame) then show() end
   end
+end
+
+--- Keeps an arrow dropdown's glyph at `size`; each state resets it.
+--- @param button DropdownButton
+--- @param size number
+local function PinArrowSize(button, size)
+  local arrow = button.Arrow
+  if not arrow then return end
+  local function SizeArrow() arrow:SetSize(size, size) end
+  SizeArrow()
+  hooksecurefunc(arrow, 'SetAtlas', SizeArrow)
+end
+
+--- Runs after Blizzard's SetTextToFit, which sizes text to fit.
+--- @param button Button @Menu row with a fontString
+local function CapHistoryRowWidth(button)
+  local text = button.fontString
+  text:SetWidth(math.min(text:GetWidth(), HISTORY_MENU_MAX_WIDTH))
+end
+
+--- Full command in a tooltip, only when the row cut it short.
+--- @param frame Button @Menu row
+--- @param row ElementMenuDescriptionProxy
+--- @param label string
+--- @param font Font    @Editor's code font
+local function ShowTruncatedCommand(frame, row, label, font)
+  if not frame.fontString:IsTruncated() then return end
+  MenuUtil.ShowTooltipEx(frame, row:GetTooltipFrame(), function(tooltip)
+    tooltip:SetMinimumWidth(HISTORY_TOOLTIP_WIDTH)
+    tooltip.TextLeft1:SetFontObject(font)
+    GameTooltip_AddHighlightLine(tooltip, label, true)
+  end)
 end
 
 --- CCW radians; bag-arrow art points left, so pi/2 = down, -pi/2 = up.
@@ -681,9 +738,98 @@ end
 
 --- Editable, unlike EvalStatus; native focus/keyboard.
 function o:OnLoad_CommandBar()
-  self.CommandBar.Prompt:SetText('> ')
+  self.CommandBar.Prompt:SetText('▶ ')
   self.CommandEditBox:SetAutoFocus(false)
+  self.commandHistory, self.historyIndex = {}, 1
+  self.CommandEditBox:SetScript('OnArrowPressed', function(_, key) self:StepCommandHistory(key) end)
   AddTooltip(self.CommandEditBox, 'Command Line')
+  self:OnLoad_HistoryButton()
+end
+
+function o:OnLoad_HistoryButton()
+  local button = self.CommandBar.HistoryButton
+  self.HistoryButton = button
+  PinArrowSize(button, DROPDOWN_ARROW_SIZE)
+  -- The command bar sits low; open the menu upward.
+  button:SetMenuAnchor(AnchorUtil.CreateAnchor('BOTTOMRIGHT', button, 'TOPRIGHT'))
+  button:SetupMenu(function(_, root) self:BuildHistoryMenu(root) end)
+  AddTooltip(button, 'Command History')
+  -- Own tooltip: its width and font never leak to GameTooltip.
+  self.HistoryTooltip = CreateFrame(
+    'GameTooltip', 'LDK_CommandHistoryTooltip', UIParent, 'SharedNoHeaderTooltipTemplate'
+  )
+end
+
+--- Newest first; picking an entry puts it back on the command line.
+--- @param root RootMenuDescriptionProxy
+function o:BuildHistoryMenu(root)
+  local history = self.commandHistory
+  if #history == 0 then
+    root:CreateTitle(L['No Command History'])
+    return
+  end
+  root:SetScrollMode(HISTORY_MENU_MAX_HEIGHT)
+  root:SetTooltipFrame(self.HistoryTooltip)
+  for i = #history, 1, -1 do
+    local entry = history[i]
+    -- Escape '|' so a command can't render as a color/texture code.
+    local plain = entry.text:gsub('|', '||')
+    local label = entry.failed and RED_FONT_COLOR:WrapTextInColorCode(plain) or plain
+    local row = root:CreateButton(label, function() self:RecallCommand(i) end)
+    row:AddInitializer(CapHistoryRowWidth)
+    row:SetOnEnter(function(frame)
+      ShowTruncatedCommand(frame, row, self:SyntaxColor(plain), self.codeFont)
+    end)
+  end
+end
+
+--- Same colors as the code editor; plain if FAIAP isn't loaded.
+--- @param text string @Escaped, as FAIAP sees editor text
+--- @return string
+function o:SyntaxColor(text)
+  local colors = self.CodeEditBox.faiap_colorTable
+  if not colors then return text end
+  return (FAIAP.colorCodeCode(text, colors))
+end
+
+--- @param index number @Position in commandHistory
+function o:RecallCommand(index)
+  self:SaveCommandDraft()
+  self.historyIndex = index
+  self.CommandEditBox:SetText(self.commandHistory[index].text)
+  self.CommandEditBox:SetFocus()
+end
+
+--- @param key 'UP'|'DOWN'|'LEFT'|'RIGHT'
+function o:StepCommandHistory(key)
+  local history = self.commandHistory
+  local step = (key == 'UP' and -1) or (key == 'DOWN' and 1)
+  if not step or #history == 0 then return end
+  self:SaveCommandDraft()
+  self.historyIndex = Clamp(self.historyIndex + step, 1, #history + 1)
+  local entry = history[self.historyIndex]
+  self.CommandEditBox:SetText(entry and entry.text or self.historyDraft or '')
+end
+
+--- Keeps unsent text when leaving the draft slot for history.
+function o:SaveCommandDraft()
+  if self.historyIndex ~= #self.commandHistory + 1 then return end
+  self.historyDraft = self.CommandEditBox:GetText()
+end
+
+--- A repeat of the last command updates it instead of adding.
+--- @param text string
+--- @param failed boolean
+function o:PushCommandHistory(text, failed)
+  local history = self.commandHistory
+  local last = history[#history]
+  if last and last.text == text then
+    last.failed = failed or nil
+  else
+    table.insert(history, { text = text, failed = failed or nil })
+  end
+  if #history > MAX_COMMAND_HISTORY then table.remove(history, 1) end
+  self.historyIndex, self.historyDraft = #history + 1, nil
 end
 
 --- A too-wide dialog must shrink to fit; clampedToScreen can't move it in.
@@ -715,14 +861,7 @@ function o:OnLoad_Header()
   self:OnLoad_OptionsButton()
 end
 
---- Re-asserted on every SetAtlas call, which resets size via useAtlasSize.
-function o:OnLoad_OptionsButton()
-  local arrow = self.OptionsButton.Arrow
-  if not arrow then return end
-  local function SizeArrow() arrow:SetSize(OPTIONS_ARROW_SIZE, OPTIONS_ARROW_SIZE) end
-  SizeArrow()
-  hooksecurefunc(arrow, 'SetAtlas', SizeArrow)
-end
+function o:OnLoad_OptionsButton() PinArrowSize(self.OptionsButton, DROPDOWN_ARROW_SIZE) end
 
 function o:OnLoad_ThemeButton()
   --- @param rootDescription RootMenuDescriptionProxy
@@ -1149,7 +1288,7 @@ function o:ApplyTheme(name)
   self.StatusDivider.MaximizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self.StatusDivider.MinimizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self.EvalStatus:SetTextColor(upk(status.textColor))
-  self.CommandBar.Prompt:SetTextColor(upk(status.textColor))
+  self.CommandBar.Prompt:SetTextColor(upk(status.promptColor or status.textColor))
   self.CommandEditBox:SetTextColor(upk(status.textColor))
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
@@ -1209,7 +1348,6 @@ function o:ApplyCodeFont(notify)
   self.EvalStatus:SetFontObject(font)
   self.EvalStatus:SetJustifyH('LEFT')
 
-  self.CommandBar.Prompt:SetFontObject(font)
   self.CommandEditBox:SetFontObject(font)
 
   -- Gray out the steppers at the size list ends.
@@ -1497,9 +1635,10 @@ function o:OnCommandEnterPressed(text)
   if str_isBlank(text) then return end
 
   -- Escape literal '|' so the echoed input can't be read as a color/texture code.
-  self:AppendOutput(self.CommandBar.Prompt:GetText() .. text:gsub('|', '||'))
+  self:AppendOutput(COMMAND_ECHO_PREFIX .. text:gsub('|', '||'))
 
-  LR:EvalCommand(text, function(line) self:AppendOutput(line) end)
+  local ok = LR:EvalCommand(text, function(line) self:AppendOutput(line) end)
+  self:PushCommandHistory(text, not ok)
 end
 
 --[[-----------------------------------------------------------------------------
@@ -1546,7 +1685,14 @@ Run: evaluates the whole editor buffer
 function o:Run()
   local text = self:GetText()
   if str_isBlank(text) then return end
+  self:AppendOutput(COMMAND_ECHO_PREFIX .. 'run ' .. self:DocumentName())
   LR:EvalCode(text, function(line) self:AppendOutput(line) end)
+end
+
+--- @return string
+function o:DocumentName()
+  local doc = self.docIndex and DS:Get(self.docIndex)
+  return doc and doc.name or L['Untitled']
 end
 
 --- @return string

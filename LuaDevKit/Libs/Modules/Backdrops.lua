@@ -63,7 +63,8 @@ Type Definitions
 --- @field arrowColor RGBA @Tint for the maximize/minimize arrows at the divider's right end
 
 --- @class LDK_StatusTheme
---- @field textColor RGBA @Evaluation output text
+--- @field textColor RGBA    @Evaluation output text
+--- @field promptColor? RGBA @Command line prompt arrow; defaults to textColor
 --- @field divider LDK_DividerTheme
 
 --- @class LDK_ThemeSet
@@ -215,7 +216,7 @@ end
 -- LDK_ThemeSet, not a raw LSM border name -- GetThemes() only lists
 -- themes registered here, since an untuned border has no matching edgeSize/
 -- insets/colors and would look broken in the editor.
-local function __InitBorders()
+local function _RegisterBuiltInThemes()
   _RegisterTheme({
     name = THEME.Default,
     enabled = false,
@@ -432,9 +433,8 @@ local function __InitBorders()
         bgFile = BG_TOAST,
         tile = false,
         tileEdge = false,
-        --tileSize = 4,
-        edgeSize = 20,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        edgeSize = 10,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
         bgColor = { 0.008, 0.008, 0.008, 1 },
         borderColor = { 1, 1, 1, 1 },
       },
@@ -442,7 +442,7 @@ local function __InitBorders()
         backdrop = {
           edgeSize = 14,
           bgFile = _bg(lbg.BLIZZARD_PARCHMENT),
-          insets = { left = 1, right = 1, top = 1, bottom = 1 },
+          insets = { left = 4, right = 4, top = 4, bottom = 4 },
           bgColor = { 0.58, 0.58, 0.58, 1 },
         },
       },
@@ -462,6 +462,7 @@ local function __InitBorders()
     },
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
+      promptColor = { 0.435, 0.306, 0.216, 1 },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 1.000, 0.965, 0.494, 1 },
@@ -551,6 +552,8 @@ local function __InitBorders()
     },
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
+      -- FFAB25
+      promptColor = { 1.000, 0.671, 0.145, 1 },
       divider = {
         gripColor = { 1.000, 0.820, 0.000, 0.7 },
         gripHoverColor = { 1.000, 0.820, 0.000, 1.0 },
@@ -676,4 +679,4 @@ end
 --[[-----------------------------------------------------------------------------
 Last
 -------------------------------------------------------------------------------]]
-__InitBorders()
+_RegisterBuiltInThemes()
