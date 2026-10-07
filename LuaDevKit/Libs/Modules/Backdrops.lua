@@ -23,6 +23,7 @@ O.Backdrops = o
 Type Definitions
 -------------------------------------------------------------------------------]]
 --- @alias RGBA number[]  -- {r,g,b,a} each value 0.0–1.0
+--- @alias RGB number[]   -- {r,g,b} each value 0.0–1.0
 
 --- @class LDK_Insets
 --- @field left number
@@ -50,18 +51,18 @@ Type Definitions
 --- @field header? LDK_MainHeaderOverride
 
 --- @class LDK_GutterTheme
---- @field textColor? RGBA
+--- @field textColor? RGBA @Defaults to palette.base
 
 --- @class LDK_PanelTheme
---- @field backdrop LDK_Backdrop @Gutter, code, output and command line boxes
+--- @field backdrop LDK_Backdrop @Gutter, code, output and command line boxes; borderColor defaults to palette.base
 
 --- @class LDK_CodeTheme
 --- @field gutter? LDK_GutterTheme
 
 --- @class LDK_DividerTheme
---- @field gripColor RGBA @The resting handle color
---- @field gripHoverColor RGBA @The handle color while the pointer is over it
---- @field arrowColor RGBA @Tint for the maximize/minimize arrows at the divider's right end
+--- @field gripColor? RGBA      @The resting handle color; defaults to palette.base
+--- @field gripHoverColor? RGBA @The handle color while the pointer is over it; defaults to palette.base
+--- @field arrowColor? RGBA     @Tint for the maximize/minimize arrows; defaults to palette.base
 
 --- @class LDK_XY
 --- @field x number
@@ -86,10 +87,14 @@ Type Definitions
 --- @class LDK_ConsoleTheme
 --- @field output LDK_OutputTheme
 --- @field commandLine? LDK_CommandLineTheme
---- @field divider LDK_DividerTheme
+--- @field divider? LDK_DividerTheme
+
+--- @class LDK_PaletteTheme
+--- @field base? RGB @Accent hue; colors a theme leaves out are tinted from it
 
 --- @class LDK_ThemeSet
 --- @field name Name
+--- @field palette? LDK_PaletteTheme
 --- @field main LDK_MainTheme
 --- @field panel LDK_PanelTheme
 --- @field code? LDK_CodeTheme
@@ -98,12 +103,13 @@ Type Definitions
 --- @field default? boolean @The theme a new editor starts with; first enabled one wins
 
 --- @class LDK_BorderSettings : table<string, LDK_ThemeSet>
---- @field ['Oakframe'] LDK_ThemeSet
---- @field ['Whisper'] LDK_ThemeSet
---- @field ['Stonecut'] LDK_ThemeSet
+--- @field ['Abyss'] LDK_ThemeSet
+--- @field ['Dark Knight'] LDK_ThemeSet
 --- @field ['Gilded'] LDK_ThemeSet
+--- @field ['Oakframe'] LDK_ThemeSet
+--- @field ['Stonecut'] LDK_ThemeSet
 --- @field ['Warband'] LDK_ThemeSet
---- @field ['Ashen'] LDK_ThemeSet
+--- @field ['Whisper'] LDK_ThemeSet
 local borderSettings = {}
 
 --- @see LibSharedMedia-3.0
@@ -139,15 +145,12 @@ local LSM_BLIZZ_NAMES = {
 local lbn = LSM_BLIZZ_NAMES
 local BG_TOAST = [[Interface\FriendsFrame\UI-Toast-Background]]
 local BG_WHITE = [[interface\buttons\white8x8]]
-local BORDER_TOAST = [[Interface\FriendsFrame\UI-Toast-Border]]
-local BORDER_MAW = [[interface\addons\actionbarplus-core\assets\textures\ui-tooltip-border-maw]]
+local BORDER_MAW = [[interface\addons\luadevkit\assets\ui-tooltip-border-maw]]
 
 local INSETS_NONE = { left = 0, right = 0, top = 0, bottom = 0 }
 local INSETS_PAD = { left = 3, right = 3, top = 4, bottom = 3 }
 
 --- @class LDK_ThemeNames
---- @field Default Name
---- @field Minimal Name
 --- @field DarkKnight Name
 --- @field Abyss Name
 --- @field Oakframe Name
@@ -155,10 +158,7 @@ local INSETS_PAD = { left = 3, right = 3, top = 4, bottom = 3 }
 --- @field Stonecut Name
 --- @field Gilded Name
 --- @field Warband Name
---- @field Ashen Name
 local THEME = {
-  Default = 'Default',
-  Minimal = 'Minimal',
   DarkKnight = 'Dark Knight',
   Abyss = 'Abyss',
   Oakframe = 'Oakframe',
@@ -166,16 +166,12 @@ local THEME = {
   Stonecut = 'Stonecut',
   Gilded = 'Gilded',
   Warband = 'Warband',
-  Ashen = 'Ashen',
 }
 o.theme = THEME
 
--- "Default" first, then Minimal, then the rest alphabetically.
+-- Alphabetical.
 local THEME_ORDER = {
-  THEME.Default,
-  THEME.Minimal,
   THEME.Abyss,
-  THEME.Ashen,
   THEME.DarkKnight,
   THEME.Gilded,
   THEME.Oakframe,
@@ -237,6 +233,41 @@ local function _panel(spec)
   }
 end
 
+-- Alpha of each palette.base tint, per role.
+local PALETTE_ALPHA = {
+  panelBorder = 0.53,
+  gutterText = 0.58,
+  grip = 0.7,
+  gripHover = 1.0,
+  arrow = 0.99,
+}
+
+--- @param base RGB
+--- @param alpha number
+--- @return RGBA
+local function _tint(base, alpha) return { base[1], base[2], base[3], alpha } end
+
+--- Fills colors a theme leaves out with palette.base tints.
+--- @param theme LDK_ThemeSet
+--- @return LDK_ThemeSet @A copy when tinted; the registered theme stays as written
+local function _ResolvePalette(theme)
+  local base = theme.palette and theme.palette.base
+  if not base then return theme end
+  local t = tbl_deepCopy(theme)
+  local pbd = t.panel.backdrop
+  pbd.borderColor = pbd.borderColor or _tint(base, PALETTE_ALPHA.panelBorder)
+  t.code = t.code or {}
+  t.code.gutter = t.code.gutter or {}
+  local gutter = t.code.gutter
+  gutter.textColor = gutter.textColor or _tint(base, PALETTE_ALPHA.gutterText)
+  t.console.divider = t.console.divider or {}
+  local divider = t.console.divider
+  divider.gripColor = divider.gripColor or _tint(base, PALETTE_ALPHA.grip)
+  divider.gripHoverColor = divider.gripHoverColor or _tint(base, PALETTE_ALPHA.gripHover)
+  divider.arrowColor = divider.arrowColor or _tint(base, PALETTE_ALPHA.arrow)
+  return t
+end
+
 --- @package
 --- @param theme LDK_ThemeSet
 local function _RegisterTheme(theme)
@@ -246,13 +277,17 @@ local function _RegisterTheme(theme)
   assertsafe(str_notBlank(name), themeReqMsg, m, 'theme.name')
   assertsafe(theme.main.backdrop.bgFile, themeReqMsg, m, 'main.backdrop.bgFile')
   assertsafe(theme.main.backdrop.edgeFile, themeReqMsg, m, 'theme.main.backdrop.edgeFile')
-  -- Every theme carries its own complete panel and console values; nothing is merged in
-  -- behind it, so an omission has to surface here and not at ApplyTheme time.
+  -- A missing value, or a color with no palette.base to tint it from,
+  -- has to surface here and not at ApplyTheme time.
   assertsafe(theme.panel, themeReqMsg, m, 'theme.panel')
   assertsafe(theme.panel.backdrop, themeReqMsg, m, 'theme.panel.backdrop')
   assertsafe(theme.console, themeReqMsg, m, 'theme.console')
   assertsafe(theme.console.output, themeReqMsg, m, 'theme.console.output')
-  assertsafe(theme.console.divider, themeReqMsg, m, 'theme.console.divider')
+  local base = theme.palette and theme.palette.base
+  local divider = theme.console.divider or {}
+  for _, key in ipairs({ 'gripColor', 'gripHoverColor', 'arrowColor' }) do
+    assertsafe(divider[key] or base, themeReqMsg, m, 'theme.console.divider.' .. key .. ' or theme.palette.base')
+  end
   borderSettings[name] = theme
 end
 
@@ -262,84 +297,8 @@ end
 -- insets/colors and would look broken in the editor.
 local function _RegisterBuiltInThemes()
   _RegisterTheme({
-    name = THEME.Default,
-    enabled = false,
-    main = {
-      backdrop = {
-        bgFile = BG_TOAST,
-        edgeFile = BORDER_TOAST,
-        tileSize = 4,
-        tile = true,
-        edgeSize = 8,
-        tileEdge = false,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-        borderColor = { 1, 1, 1, 1.0 },
-      },
-    },
-    panel = {
-      backdrop = _panel({
-        insets = INSETS_PAD,
-        bgColor = { 0.1, 0.1, 0.1, 0.1 },
-        borderColor = { 0.6, 0.6, 0.6, 0.1 },
-      }),
-    },
-    code = {
-      gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
-    },
-    console = {
-      output = {
-        textColor = { 0.78, 0.82, 0.85, 1 },
-      },
-      divider = {
-        gripColor = { 0.6, 0.6, 0.6, 0.9 },
-        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
-        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
-      },
-    },
-  })
-  _RegisterTheme({
-    name = THEME.Minimal,
-    enabled = false,
-    main = {
-      backdrop = {
-        tile = false,
-        tileEdge = false,
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        edgeSize = 1,
-        insets = { left = 1, right = 1, top = 1, bottom = 1 },
-        bgColor = { 0.1, 0.1, 0.1, 0.98 },
-        borderColor = { rgb(LIGHTGRAY_FONT_COLOR, 0.75) },
-      },
-      header = {
-        backdrop = {
-          bgColor = { 0.085, 0.085, 0.085, 0.98 },
-        },
-      },
-    },
-    panel = {
-      backdrop = _panel({
-        insets = INSETS_PAD,
-        bgColor = { 0.1, 0.1, 0.1, 0.1 },
-        borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
-      }),
-    },
-    code = {
-      gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
-    },
-    console = {
-      output = {
-        textColor = { 0.78, 0.82, 0.85, 1 },
-      },
-      divider = {
-        gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
-        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
-        arrowColor = { rgb(GRAY_FONT_COLOR, 0.9) },
-      },
-    },
-  })
-  _RegisterTheme({
     name = THEME.DarkKnight,
+    palette = { base = { 0.255, 0.380, 0.204 } },
     main = {
       backdrop = {
         bgFile = BG_TOAST,
@@ -365,11 +324,6 @@ local function _RegisterBuiltInThemes()
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       }),
     },
-    code = {
-      gutter = {
-        textColor = { 0.255, 0.380, 0.204, 1.0}
-      }
-    },
     console = {
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
@@ -380,15 +334,11 @@ local function _RegisterBuiltInThemes()
           offset = { x=5, y= 0 },
         },
       },
-      divider = {
-        gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
-        gripHoverColor = { 0.255, 0.380, 0.204, 1 },
-        arrowColor = { rgb(GRAY_FONT_COLOR, 0.9) },
-      },
     },
   })
   _RegisterTheme({
     name = THEME.Abyss,
+    palette = { base = { 0.424, 0.573, 0.573 } },
     main = {
       backdrop = {
         bgFile = BG_TOAST,
@@ -414,24 +364,16 @@ local function _RegisterBuiltInThemes()
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       }),
     },
-    code = {
-      -- 6C9292
-      gutter = { textColor = { 0.424, 0.573, 0.573, 1 } },
-    },
     console = {
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 3, y = 4 } },
       },
-      divider = {
-        gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
-        gripHoverColor = { 0.424, 0.573, 0.573, 1 },
-        arrowColor = { rgb(GRAY_FONT_COLOR, 0.9) },
-      },
     },
   })
   _RegisterTheme({
     name = THEME.Oakframe,
+    palette = { base = { 0.85, 0.72, 0.30 } },
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_ACHIEVEMENT_WOOD),
@@ -465,15 +407,11 @@ local function _RegisterBuiltInThemes()
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 9, y = 4 } },
       },
-      divider = {
-        gripColor = { 0.6, 0.6, 0.6, 0.9 },
-        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
-        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
-      },
     },
   })
   _RegisterTheme({
     name = THEME.Whisper,
+    palette = { base = { 1.000, 0.965, 0.494 } },
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_CHAT_BUBBLE),
@@ -501,10 +439,6 @@ local function _RegisterBuiltInThemes()
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
       }),
     },
-    code = {
-      -- FFF67E
-      gutter = { textColor = { 1.000, 0.965, 0.494, 0.5 } },
-    },
     console = {
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
@@ -516,15 +450,11 @@ local function _RegisterBuiltInThemes()
           offset = { x = 26, y = 0 },
         },
       },
-      divider = {
-        gripColor = { 0.6, 0.6, 0.6, 0.9 },
-        gripHoverColor = { 1.000, 0.965, 0.494, 1 },
-        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
-      },
     },
   })
   _RegisterTheme({
     name = THEME.Stonecut,
+    palette = { base = { 0.588, 0.561, 0.529 } },
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_DIALOG),
@@ -550,26 +480,17 @@ local function _RegisterBuiltInThemes()
         borderColor = { 0.388, 0.361, 0.329, 0.21 },
       }),
     },
-    code = {
-      gutter = {
-        textColor = { 0.388, 0.361, 0.329, 1.0 },
-      },
-    },
     console = {
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 8, y = 4 } },
-      },
-      divider = {
-        gripColor = { 0.388, 0.361, 0.329, 0.9 },
-        gripHoverColor = { 0.588, 0.561, 0.529, 1 },
-        arrowColor = { 0.388, 0.361, 0.329, 0.9 },
       },
     },
   })
   _RegisterTheme({
     name = THEME.Gilded,
     default = true,
+    palette = { base = { 1.000, 0.820, 0.000 } },
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_DIALOG_GOLD),
@@ -594,13 +515,7 @@ local function _RegisterBuiltInThemes()
       backdrop = _panel({
         insets = INSETS_NONE,
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
-        borderColor = { 1.000, 0.820, 0.000, 0.53 },
       }),
-    },
-    code = {
-      gutter = {
-        textColor = { 1.000, 0.820, 0.000, 0.58 },
-      },
     },
     console = {
       output = {
@@ -611,15 +526,11 @@ local function _RegisterBuiltInThemes()
           color = { 1.000, 0.671, 0.145, 1 },
         },
       },
-      divider = {
-        gripColor = { 1.000, 0.820, 0.000, 0.7 },
-        gripHoverColor = { 1.000, 0.820, 0.000, 1.0 },
-        arrowColor = { 1.000, 0.820, 0.000, 0.7 },
-      },
     },
   })
   _RegisterTheme({
     name = THEME.Warband,
+    palette = { base = { 0.85, 0.72, 0.30 } },
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_PARTY),
@@ -643,43 +554,6 @@ local function _RegisterBuiltInThemes()
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 4, y = 4 } },
       },
-      divider = {
-        gripColor = { 0.6, 0.6, 0.6, 0.9 },
-        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
-        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
-      },
-    },
-  })
-  _RegisterTheme({
-    name = THEME.Ashen,
-    enabled = false,
-    main = {
-      backdrop = {
-        edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
-        bgFile = BG_TOAST,
-        tile = false,
-        tileEdge = false,
-        edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-        borderColor = { 0.81, 0.81, 0.81, 1 },
-      },
-    },
-    panel = {
-      backdrop = _panel({
-        insets = INSETS_PAD,
-        bgColor = { 0.1, 0.1, 0.1, 0.1 },
-        borderColor = { 0.6, 0.6, 0.6, 0.1 },
-      }),
-    },
-    console = {
-      output = {
-        textColor = { 0.78, 0.82, 0.85, 1 },
-      },
-      divider = {
-        gripColor = { 0.6, 0.6, 0.6, 0.9 },
-        gripHoverColor = { 0.85, 0.72, 0.30, 1 },
-        arrowColor = { 0.6, 0.6, 0.6, 0.9 },
-      },
     },
   })
 end
@@ -689,7 +563,7 @@ Methods & Fields
 -------------------------------------------------------------------------------]]
 
 ---@return LDK_ThemeSet
-function o:GetDefaultBorderSettings() return borderSettings[THEME.Default] end
+function o:GetDefaultBorderSettings() return borderSettings[self:GetDefaultThemeName()] end
 
 --- @return Name @First enabled theme if none sets default
 function o:GetDefaultThemeName()
@@ -697,12 +571,14 @@ function o:GetDefaultThemeName()
   for _, name in ipairs(names) do
     if borderSettings[name].default then return name end
   end
-  return names[1] or THEME.Default
+  return names[1]
 end
 
 ---@param name Name? @Returns the default border setting if nil
----@return LDK_ThemeSet
-function o:GetBorderSettings(name) return borderSettings[name] or self:GetDefaultBorderSettings() end
+---@return LDK_ThemeSet @palette.base tints already filled in
+function o:GetBorderSettings(name)
+  return _ResolvePalette(borderSettings[name] or self:GetDefaultBorderSettings())
+end
 
 --- @param theme LDK_ThemeSet @Returns the default border setting if nil
 --- @return LDK_MainHeaderOverride?
