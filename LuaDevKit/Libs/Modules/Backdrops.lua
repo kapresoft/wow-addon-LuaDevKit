@@ -31,31 +31,30 @@ Type Definitions
 --- @field bottom number
 
 --- @class LDK_Backdrop
---- @field bgFile string?
---- @field edgeFile string?
---- @field tile boolean?
---- @field tileEdge boolean?
---- @field tileSize number?
+--- @field bgFile? string
+--- @field edgeFile? string
+--- @field tile? boolean
+--- @field tileEdge? boolean
+--- @field tileSize? number
 --- @field edgeSize number
---- @field insets LDK_Insets?
---- @field bgColor? RGBA @Optional override
---- @field borderColor? RGBA @Optional override
+--- @field insets? LDK_Insets
+--- @field bgColor? RGBA
+--- @field borderColor? RGBA
 
 --- @class LDK_MainHeaderOverride
---- @field backdrop LDK_Backdrop
---- @field height number @The header height
+--- @field backdrop? LDK_Backdrop @Merged over main.backdrop
+--- @field height? number         @Defaults to the dialog's HEADER_HEIGHT
 
 --- @class LDK_MainTheme
 --- @field backdrop LDK_Backdrop
---- @field header LDK_MainHeaderOverride
+--- @field header? LDK_MainHeaderOverride
 
 --- @class LDK_GutterTheme
---- @field textColor? RGBA @Optional override
+--- @field textColor? RGBA
 
---- @class LDK_CodeTheme : LDK_MainTheme
---- @field showGutterOutline? boolean @Defaults to true
+--- @class LDK_CodeTheme
 --- @field backdrop LDK_Backdrop
---- @field gutter LDK_GutterTheme
+--- @field gutter? LDK_GutterTheme
 
 --- @class LDK_DividerTheme
 --- @field gripColor RGBA @The resting handle color
@@ -242,7 +241,6 @@ local function _RegisterBuiltInThemes()
   _RegisterTheme({
     name = THEME.Default,
     enabled = false,
-    --showGutterOutline = false,
     main = {
       backdrop = {
         bgFile = BG_TOAST,
