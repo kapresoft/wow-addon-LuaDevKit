@@ -139,6 +139,9 @@ local BG_WHITE = [[interface\buttons\white8x8]]
 local BORDER_TOAST = [[Interface\FriendsFrame\UI-Toast-Border]]
 local BORDER_MAW = [[interface\addons\actionbarplus-core\assets\textures\ui-tooltip-border-maw]]
 
+local INSETS_NONE = { left = 0, right = 0, top = 0, bottom = 0 }
+local INSETS_PAD = { left = 3, right = 3, top = 4, bottom = 3 }
+
 --- @class LDK_ThemeNames
 --- @field Default Name
 --- @field Minimal Name
@@ -216,6 +219,21 @@ local function _border(name)
   return lsm:Fetch(mt.BORDER, name, true)
 end
 
+--- 1px solid-edge backdrop for the code, gutter and console panels.
+--- @param spec { insets?: LDK_Insets, bgColor?: RGBA, borderColor?: RGBA }
+--- @return LDK_Backdrop
+local function _panel(spec)
+  return {
+    bgFile = BG_WHITE,
+    edgeFile = BG_WHITE,
+    edgeSize = 1,
+    tileSize = 4,
+    insets = spec.insets,
+    bgColor = spec.bgColor,
+    borderColor = spec.borderColor,
+  }
+end
+
 --- @package
 --- @param theme LDK_ThemeSet
 local function _RegisterTheme(theme)
@@ -254,14 +272,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        edgeFile = BG_WHITE,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+      backdrop = _panel({
+        insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
-      },
+      }),
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
     console = {
@@ -296,16 +311,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileEdge = true,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+      backdrop = _panel({
+        insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
-      },
+      }),
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
     console = {
@@ -340,16 +350,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileEdge = true,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+      backdrop = _panel({
+        insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
-      },
+      }),
       gutter = {
         textColor = { 0.255, 0.380, 0.204, 1.0}
       }
@@ -392,16 +397,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileEdge = true,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+      backdrop = _panel({
+        insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
-      },
+      }),
       -- 6C9292
       gutter = { textColor = { 0.424, 0.573, 0.573, 1 } },
     },
@@ -441,15 +441,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+      backdrop = _panel({
+        insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
-      },
+      }),
     },
     console = {
       output = {
@@ -486,15 +482,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileSize = 4,
-        edgeSize = 1,
+      backdrop = _panel({
         insets = { left = 1, right = 1, top = 1, bottom = 1 },
         bgColor = { 0.08, 0.08, 0.08, 0.5 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
-      },
+      }),
       -- FFF67E
       gutter = { textColor = { 1.000, 0.965, 0.494, 0.5 } },
     },
@@ -537,15 +529,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 },
+      backdrop = _panel({
+        insets = INSETS_NONE,
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
         borderColor = { 0.388, 0.361, 0.329, 0.21 },
-      },
+      }),
       gutter = {
         textColor = { 0.388, 0.361, 0.329, 1.0 },
       },
@@ -586,16 +574,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tile = false,
-        tileEdge = false,
-        edgeSize = 1,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 },
+      backdrop = _panel({
+        insets = INSETS_NONE,
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
         borderColor = { 1.000, 0.820, 0.000, 0.53 },
-      },
+      }),
       gutter = {
         textColor = { 1.000, 0.820, 0.000, 0.58 },
       },
@@ -630,15 +613,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+      backdrop = _panel({
+        insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
-      },
+      }),
     },
     console = {
       output = {
@@ -667,15 +646,11 @@ local function _RegisterBuiltInThemes()
       },
     },
     code = {
-      backdrop = {
-        bgFile = BG_WHITE,
-        edgeFile = BG_WHITE,
-        tileSize = 4,
-        edgeSize = 1,
-        insets = { left = 3, right = 3, top = 4, bottom = 3 },
+      backdrop = _panel({
+        insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
-      },
+      }),
     },
     console = {
       output = {
