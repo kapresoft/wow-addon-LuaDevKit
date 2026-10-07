@@ -81,6 +81,7 @@ local ex2 = [==[
 -- Example code
 local function x()
   tmp = { 1, 2, 3, fn=function() print('hi') end }
+  print('Spell=', fmtx(C_Spell))
   print('x=', fmt(x))
 end
 x()

@@ -338,6 +338,8 @@ local function _RegisterBuiltInThemes()
     },
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
+      promptColor = { 0.3, 0.5, 0.3, 1.0},
+      promptOffset = { x=5, y= 0 },
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.255, 0.380, 0.204, 1 },

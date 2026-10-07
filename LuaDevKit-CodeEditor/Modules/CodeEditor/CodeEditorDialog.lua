@@ -23,7 +23,6 @@ Blizzard Vars
 -------------------------------------------------------------------------------]]
 local CreateFrame = CreateFrame
 local strlenutf8 = strlenutf8
-local nop = nop
 
 --[[-----------------------------------------------------------------------------
 Local Vars
@@ -195,9 +194,11 @@ Types
 --- @field Text FontString @Hidden; same font/wrap as CodeEditBox, used to count wrapped rows
 
 --- @class LDK_CodeEditorOptions
---- @field fontFamily string @Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
---- @field fontSize number   @One of FontUtil:GetFontSizes(); other values snap to nearest
+--- @field fontFamily string         @Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
+--- @field fontSize number           @One of FontUtil:GetFontSizes(); other values snap to nearest
 --- @field wrapText boolean
+--- @field consoleFontFamily string? @Output and command line font; nil follows fontFamily
+--- @field consoleFontSize number?   @nil follows fontSize
 
 --- @class LDK_CodeEditorDocStepper : Frame
 --- @field Dropdown DropdownButton
@@ -222,6 +223,8 @@ Types
 --- @field codeFont Font
 --- @field fontFamily string                                 @Key of the currently applied font (see FontUtil:GetFontChoices())
 --- @field fontSize number                                   @Snapped to FontUtil:GetFontSizes()
+--- @field consoleFontFamily string?                         @nil follows fontFamily
+--- @field consoleFontSize number?                           @nil follows fontSize
 --- @field BottomBar LDK_CodeEditorBottomBar
 --- @field CommandBar LDK_CodeEditorCommandBar
 --- @field CommandEditBox EditBox                            @Alias of CommandBar.CommandEditBox
@@ -504,17 +507,18 @@ local function ShowTruncatedCommand(frame, row, label, font)
   end)
 end
 
---- Radio submenu; picks do nothing until console fonts apply.
+--- Radio submenu led by Same as Editor, whose value is nil.
 --- @param root RootMenuDescriptionProxy
 --- @param key string                     @Locale key of the submenu label
---- @param labels string[]
-local function AddConsoleSubmenu(root, key, labels)
+--- @param items { label: string, value: any }[]
+--- @param getValue fun(): any
+--- @param setValue fun(value: any)
+local function AddConsoleSubmenu(root, key, items, getValue, setValue)
   local menu = root:CreateButton(L[key])
-  -- Only Same as Editor (nil data) is in effect today.
-  local function isSelected(label) return label == nil end
-  menu:CreateRadio(L['Same as Editor'], isSelected, nop)
-  for _, label in ipairs(labels) do
-    menu:CreateRadio(label, isSelected, nop, label)
+  local function isSelected(value) return value == getValue() end
+  menu:CreateRadio(L['Same as Editor'], isSelected, setValue)
+  for _, item in ipairs(items) do
+    menu:CreateRadio(item.label, isSelected, setValue, item.value)
   end
 end
 
@@ -582,7 +586,7 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local th = bdrops.theme
-  local name = th.Abyss
+  local name = th.DarkKnight
   self:ApplyTheme(name)
   self.fontSize = DEFAULTS.fontSize
   self:SetCodeFont(DEFAULTS.fontFamily)
@@ -690,13 +694,25 @@ end
 function o:BuildConsoleSettingsMenu(root)
   local fonts, sizes = {}, {}
   for i, choice in ipairs(fontChoices) do
-    fonts[i] = choice.label
+    fonts[i] = { label = choice.label, value = choice.key }
   end
   for i, size in ipairs(fut:GetFontSizes()) do
-    sizes[i] = tostring(size)
+    sizes[i] = { label = tostring(size), value = size }
   end
-  AddConsoleSubmenu(root, 'Console Font', fonts)
-  AddConsoleSubmenu(root, 'Console Font Size', sizes)
+  AddConsoleSubmenu(
+    root,
+    'Console Font',
+    fonts,
+    function() return self.consoleFontFamily end,
+    function(key) self:SetConsoleFont(key, self.consoleFontSize) end
+  )
+  AddConsoleSubmenu(
+    root,
+    'Console Font Size',
+    sizes,
+    function() return self.consoleFontSize end,
+    function(size) self:SetConsoleFont(self.consoleFontFamily, size) end
+  )
 end
 
 --- Hint names what a double-click does next; refreshed while hovered.
@@ -1411,12 +1427,7 @@ function o:ApplyCodeFont(notify)
   self.CodeEditBox:SetFontObject(font)
   self.Gutter.ScrollChild.Numbers:SetFontObject(font)
   self.WrapMeasure.Text:SetFontObject(font)
-
-  -- Must set justify here: SetFontObject resets it.
-  self.EvalStatus:SetFontObject(font)
-  self.EvalStatus:SetJustifyH('LEFT')
-
-  self.CommandEditBox:SetFontObject(font)
+  self:ApplyConsoleFont()
 
   -- Gray out the steppers at the size list ends.
   local sizes = fut:GetFontSizes()
@@ -1429,6 +1440,30 @@ function o:ApplyCodeFont(notify)
   -- RefreshGutter re-sizes the gutter for the new font's digit width.
   self:RefreshGutter()
   if notify then self:FireConfigChanged() end
+end
+
+--- User-driven pick from the console settings menu; notifies.
+--- @param fontFamily string? @nil follows the editor's font
+--- @param fontSize number?   @nil follows the editor's size
+function o:SetConsoleFont(fontFamily, fontSize)
+  self.consoleFontFamily = fontFamily
+  self.consoleFontSize = fontSize
+  self:ApplyConsoleFont()
+  self:FireConfigChanged()
+end
+
+--- Output and command line font; nil console picks follow the editor.
+function o:ApplyConsoleFont()
+  local choice = fut:FindFontChoice(self.consoleFontFamily or self.fontFamily)
+  if not choice then return end
+  local size = self.consoleFontSize or self.fontSize
+  local font = choice.bySize[size] or choice.bySize[DEFAULTS.fontSize]
+
+  -- Must set justify here: SetFontObject resets it.
+  self.EvalStatus:SetFontObject(font)
+  self.EvalStatus:SetJustifyH('LEFT')
+
+  self.CommandEditBox:SetFontObject(font)
 end
 
 --- Sets the font size (snapped to the nearest supported size) and re-applies
@@ -1479,6 +1514,8 @@ function o:GetOptions()
     fontFamily = self.fontFamily,
     fontSize = self.fontSize,
     wrapText = self.wrapText,
+    consoleFontFamily = self.consoleFontFamily,
+    consoleFontSize = self.consoleFontSize,
   }
 end
 
@@ -1499,12 +1536,22 @@ function o:Configure(options)
   if not fut:FindFontChoice(fontFamily) then fontFamily = DEFAULTS.fontFamily end
   self.fontFamily = fontFamily
   self.fontSize = fut:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
+  self:ConfigureConsoleFont(options)
   local wrapText = options.wrapText
   if wrapText == nil then wrapText = self.wrapText end
   if wrapText == nil then wrapText = DEFAULTS.wrapText end
 
   self:ApplyCodeFont()
   self:SetWrapText(wrapText)
+end
+
+--- Missing or unresolvable console picks keep the current value.
+--- @param options LDK_CodeEditorOptions|table
+function o:ConfigureConsoleFont(options)
+  local fontFamily = options.consoleFontFamily
+  if fontFamily and fut:FindFontChoice(fontFamily) then self.consoleFontFamily = fontFamily end
+  local fontSize = options.consoleFontSize
+  if fontSize then self.consoleFontSize = fut:NearestFontSize(fontSize) end
 end
 
 --- Rebuilds the gutter's "1..N" text and sizes both columns to the content.
