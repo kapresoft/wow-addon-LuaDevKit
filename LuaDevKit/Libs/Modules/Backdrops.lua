@@ -62,9 +62,15 @@ Type Definitions
 --- @field gripHoverColor RGBA @The handle color while the pointer is over it
 --- @field arrowColor RGBA @Tint for the maximize/minimize arrows at the divider's right end
 
+--- @class LDK_XY
+--- @field x number
+--- @field y number
+
 --- @class LDK_StatusTheme
---- @field textColor RGBA    @Evaluation output text
---- @field promptColor? RGBA @Command line prompt arrow; defaults to textColor
+--- @field textColor RGBA        @Evaluation output text
+--- @field promptColor? RGBA     @Command line prompt arrow; defaults to textColor
+--- @field settingsInset? LDK_XY @Console settings gear, in from the output panel's top right
+--- @field promptOffset? LDK_XY  @Prompt arrow, offset from the command line's left; y up
 --- @field divider LDK_DividerTheme
 
 --- @class LDK_ThemeSet
@@ -375,6 +381,7 @@ local function _RegisterBuiltInThemes()
     },
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
+      settingsInset = { x = 3, y = 4 },
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.424, 0.573, 0.573, 1 },
@@ -418,6 +425,7 @@ local function _RegisterBuiltInThemes()
     },
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
+      settingsInset = { x = 9, y = 4 },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
@@ -433,8 +441,8 @@ local function _RegisterBuiltInThemes()
         bgFile = BG_TOAST,
         tile = false,
         tileEdge = false,
-        edgeSize = 10,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        edgeSize = 24,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
         bgColor = { 0.008, 0.008, 0.008, 1 },
         borderColor = { 1, 1, 1, 1 },
       },
@@ -463,6 +471,9 @@ local function _RegisterBuiltInThemes()
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
       promptColor = { 0.435, 0.306, 0.216, 1 },
+      promptOffset = { x = 26, y = 0 },
+      settingsInset = { x = 24, y = 4 },
+
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 1.000, 0.965, 0.494, 1 },
@@ -506,6 +517,7 @@ local function _RegisterBuiltInThemes()
     },
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
+      settingsInset = { x = 8, y = 4 },
       divider = {
         gripColor = { 0.388, 0.361, 0.329, 0.9 },
         gripHoverColor = { 0.588, 0.561, 0.529, 1 },
@@ -587,6 +599,7 @@ local function _RegisterBuiltInThemes()
     },
     status = {
       textColor = { 0.78, 0.82, 0.85, 1 },
+      settingsInset = { x = 4, y = 4 },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },

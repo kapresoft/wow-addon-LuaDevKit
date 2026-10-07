@@ -23,6 +23,7 @@ Blizzard Vars
 -------------------------------------------------------------------------------]]
 local CreateFrame = CreateFrame
 local strlenutf8 = strlenutf8
+local nop = nop
 
 --[[-----------------------------------------------------------------------------
 Local Vars
@@ -120,6 +121,9 @@ local CODE_TEXT_INSET_RIGHT = 6
 -- Shared inset so the code area's corner buttons line up.
 local OVERLAY_INSET = 4
 
+-- Fallbacks for a theme without status.settingsInset/promptOffset.
+local SETTINGS_INSET, PROMPT_OFFSET = { x = 6, y = 4 }, { x = 10, y = 0 }
+
 -- Breathing room on whichever axis shrinks when clamped to screen.
 local SCREEN_MARGIN = 100
 
@@ -162,6 +166,7 @@ Types
 
 --- @class LDK_CodeEditorStatusBar : Frame, BackdropTemplate
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Clips the output box; wheel-scrolled, no scrollbar
+--- @field ConsoleSettingsButton DropdownButton
 
 --- @class LDK_CodeEditorStatusDivider : Button
 --- @field owner LDK_CodeEditorDialog
@@ -229,6 +234,7 @@ Types
 --- @field StatusDivider LDK_CodeEditorStatusDivider         @Drag handle that sets StatusBar's height
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Alias of StatusBar.OutputScrollFrame
 --- @field EvalStatus EditBox                                @Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
+--- @field ConsoleSettingsButton DropdownButton              @Alias of StatusBar.ConsoleSettingsButton
 --- @field output LDK_OutputLog                              @Evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean
@@ -498,6 +504,20 @@ local function ShowTruncatedCommand(frame, row, label, font)
   end)
 end
 
+--- Radio submenu; picks do nothing until console fonts apply.
+--- @param root RootMenuDescriptionProxy
+--- @param key string                     @Locale key of the submenu label
+--- @param labels string[]
+local function AddConsoleSubmenu(root, key, labels)
+  local menu = root:CreateButton(L[key])
+  -- Only Same as Editor (nil data) is in effect today.
+  local function isSelected(label) return label == nil end
+  menu:CreateRadio(L['Same as Editor'], isSelected, nop)
+  for _, label in ipairs(labels) do
+    menu:CreateRadio(label, isSelected, nop, label)
+  end
+end
+
 --- CCW radians; bag-arrow art points left, so pi/2 = down, -pi/2 = up.
 --- @param button Button
 --- @param radians number
@@ -535,6 +555,7 @@ function o:OnLoad()
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
   self.OutputScrollFrame = self.StatusBar.OutputScrollFrame
   self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
+  self.ConsoleSettingsButton = self.StatusBar.ConsoleSettingsButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
 
   self.output = OutputLog:New(MAX_OUTPUT_LINES)
@@ -561,7 +582,7 @@ function o:OnLoad()
   -- todo: will come from settings in the future
   --local name = cns.addon .. ' Dark Knight'
   local th = bdrops.theme
-  local name = th.Gilded
+  local name = th.Abyss
   self:ApplyTheme(name)
   self.fontSize = DEFAULTS.fontSize
   self:SetCodeFont(DEFAULTS.fontFamily)
@@ -612,6 +633,10 @@ function o:OnLoad_Overlays()
     -(i - 3.3),
     i
   )
+  local settings = self.ConsoleSettingsButton
+  -- Above the output box, which would otherwise take its clicks.
+  settings:SetFrameLevel(self.EvalStatus:GetFrameLevel() + 1)
+  settings:SetAlpha(OVERLAY_ALPHA)
 end
 
 --- Starts at viewport height for a clickable area; RefreshGutter grows it.
@@ -651,7 +676,27 @@ function o:OnLoad_StatusBar()
   AddTooltip(divider.MinimizeButton, 'Minimize Output')
   self:OnLoad_DividerTooltip()
   self:OnLoad_EvalStatus()
+  self:OnLoad_ConsoleSettingsButton()
   self:ClearOutput()
+end
+
+function o:OnLoad_ConsoleSettingsButton()
+  local button = self.ConsoleSettingsButton
+  button:SetupMenu(function(_, root) self:BuildConsoleSettingsMenu(root) end)
+  AddTooltip(button, 'Console Settings')
+end
+
+--- @param root RootMenuDescriptionProxy
+function o:BuildConsoleSettingsMenu(root)
+  local fonts, sizes = {}, {}
+  for i, choice in ipairs(fontChoices) do
+    fonts[i] = choice.label
+  end
+  for i, size in ipairs(fut:GetFontSizes()) do
+    sizes[i] = tostring(size)
+  end
+  AddConsoleSubmenu(root, 'Console Font', fonts)
+  AddConsoleSubmenu(root, 'Console Font Size', sizes)
 end
 
 --- Hint names what a double-click does next; refreshed while hovered.
@@ -1290,11 +1335,34 @@ function o:ApplyTheme(name)
   self.EvalStatus:SetTextColor(upk(status.textColor))
   self.CommandBar.Prompt:SetTextColor(upk(status.promptColor or status.textColor))
   self.CommandEditBox:SetTextColor(upk(status.textColor))
+  self:ApplyStatusInsets(status)
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
   self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextColor))
   self:_SetHeaderBorderStyle(bs)
+end
+
+--- Places the gear, history arrow and prompt per border.
+--- @param status LDK_StatusTheme
+function o:ApplyStatusInsets(status)
+  local gear = status.settingsInset or SETTINGS_INSET
+  local settings = self.ConsoleSettingsButton
+  settings:ClearAllPoints()
+  settings:SetPoint('TOPRIGHT', self.StatusBar, 'TOPRIGHT', -gear.x, -gear.y)
+
+  -- Not self.HistoryButton: OnLoad themes before aliasing it.
+  local bar = self.CommandBar
+  local history, nudge = bar.HistoryButton, 4.7
+  local x = -gear.x + nudge
+  history:ClearAllPoints()
+  history:SetPoint('TOPRIGHT', bar, 'TOPRIGHT', x, 0)
+  history:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', x, 0)
+
+  local offset = status.promptOffset or PROMPT_OFFSET
+  local prompt = bar.Prompt
+  prompt:ClearAllPoints()
+  prompt:SetPoint('LEFT', bar, 'LEFT', offset.x, offset.y)
 end
 
 --- @private

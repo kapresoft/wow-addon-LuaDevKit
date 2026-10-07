@@ -273,9 +273,11 @@
 
                  CommandBar.Prompt: fixed LDK_CommandPromptFont, not the code
                  font, so the arrow keeps one shape; ApplyCodeFont leaves it alone.
+                 Anchored per theme in Lua's ApplyStatusInsets.
 
                  CommandBar.HistoryButton: arrow dropdown listing that history,
-                 pinned right; set up in Lua's OnLoad_HistoryButton. -->
+                 set up in Lua's OnLoad_HistoryButton; right-aligned with the
+                 console settings gear in ApplyStatusInsets. -->
             <Frame parentKey="CommandBar" inherits="BackdropTemplate">
                 <Size y="22"/>
                 <Anchors>
@@ -284,11 +286,7 @@
                 </Anchors>
                 <Layers>
                     <Layer level="ARTWORK">
-                        <FontString parentKey="Prompt" inherits="LDK_CommandPromptFont" justifyH="LEFT">
-                            <Anchors>
-                                <Anchor point="LEFT" x="10" y="0"/>
-                            </Anchors>
-                        </FontString>
+                        <FontString parentKey="Prompt" inherits="LDK_CommandPromptFont" justifyH="LEFT"/>
                     </Layer>
                 </Layers>
                 <Frames>
@@ -296,10 +294,6 @@
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
-                        <Anchors>
-                            <Anchor point="TOPRIGHT" x="-4" y="0"/>
-                            <Anchor point="BOTTOMRIGHT" x="-4" y="0"/>
-                        </Anchors>
                     </DropdownButton>
                     <EditBox parentKey="CommandEditBox" letters="4096"
                              autoFocus="false">
@@ -339,7 +333,11 @@
                  OutputScrollFrame.ScrollChild.EvalStatus: EditBox, not a
                  ScrollingMessageFrame, which has no way to select text; hangs
                  off the child's bottom and grows upward with its own text;
-                 kept read-only in Lua's OnEvalStatusTextChanged. -->
+                 kept read-only in Lua's OnEvalStatusTextChanged.
+
+                 StatusBar.ConsoleSettingsButton: floating gear menu for console
+                 font and size; raised in Lua's OnLoad_Overlays, anchored per
+                 theme in ApplyStatusInsets. -->
             <Frame parentKey="StatusBar" inherits="BackdropTemplate">
                 <Size y="100"/>
                 <Anchors>
@@ -379,6 +377,14 @@
                             </Frame>
                         </ScrollChild>
                     </ScrollFrame>
+                    <DropdownButton parentKey="ConsoleSettingsButton">
+                        <Size x="16" y="16"/>
+                        <KeyValues>
+                            <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
+                        </KeyValues>
+                        <NormalTexture file="Interface\Icons\INV_Misc_Gear_01"/>
+                        <HighlightTexture file="Interface\Icons\INV_Misc_Gear_01" alphaMode="ADD"/>
+                    </DropdownButton>
                 </Frames>
             </Frame>
 
