@@ -66,19 +66,34 @@ Type Definitions
 --- @field x number
 --- @field y number
 
---- @class LDK_StatusTheme
---- @field textColor RGBA        @Evaluation output text
---- @field promptColor? RGBA     @Command line prompt arrow; defaults to textColor
---- @field settingsInset? LDK_XY @Console settings gear, in from the output panel's top right
---- @field promptOffset? LDK_XY  @Prompt arrow, offset from the command line's left; y up
+--- @class LDK_ToolIconsTheme
+--- @field inset? LDK_XY @The icon row's corner, in from the output panel's top right
+--- @field alpha? number @Resting alpha of every output tool icon; hover stays full
+
+--- @class LDK_OutputTheme
+--- @field textColor RGBA @Evaluation output text
+--- @field toolIcons? LDK_ToolIconsTheme
+
+--- @class LDK_PromptTheme
+--- @field color? RGBA    @Defaults to the command line's textColor
+--- @field offset? LDK_XY @From the command line's left; y up
+
+--- @class LDK_CommandLineTheme
+--- @field textColor? RGBA @Typed text; defaults to output.textColor
+--- @field prompt? LDK_PromptTheme
+
+--- @class LDK_ConsoleTheme
+--- @field output LDK_OutputTheme
+--- @field commandLine? LDK_CommandLineTheme
 --- @field divider LDK_DividerTheme
 
 --- @class LDK_ThemeSet
 --- @field name Name
 --- @field main LDK_MainTheme
 --- @field code LDK_CodeTheme
---- @field status LDK_StatusTheme
+--- @field console LDK_ConsoleTheme
 --- @field enabled? boolean @Defaults to true; set false to exclude from GetThemes()/EachTheme()
+--- @field default? boolean @The theme a new editor starts with; first enabled one wins
 
 --- @class LDK_BorderSettings : table<string, LDK_ThemeSet>
 --- @field ['Oakframe'] LDK_ThemeSet
@@ -211,10 +226,11 @@ local function _RegisterTheme(theme)
   assertsafe(str_notBlank(name), themeReqMsg, m, 'theme.name')
   assertsafe(theme.main.backdrop.bgFile, themeReqMsg, m, 'main.backdrop.bgFile')
   assertsafe(theme.main.backdrop.edgeFile, themeReqMsg, m, 'theme.main.backdrop.edgeFile')
-  -- Every theme carries its own complete status value; nothing is merged in
+  -- Every theme carries its own complete console value; nothing is merged in
   -- behind it, so an omission has to surface here and not at ApplyTheme time.
-  assertsafe(theme.status, themeReqMsg, m, 'theme.status')
-  assertsafe(theme.status.divider, themeReqMsg, m, 'theme.status.divider')
+  assertsafe(theme.console, themeReqMsg, m, 'theme.console')
+  assertsafe(theme.console.output, themeReqMsg, m, 'theme.console.output')
+  assertsafe(theme.console.divider, themeReqMsg, m, 'theme.console.divider')
   borderSettings[name] = theme
 end
 
@@ -250,8 +266,10 @@ local function _RegisterBuiltInThemes()
       },
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+      },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
@@ -292,8 +310,10 @@ local function _RegisterBuiltInThemes()
       },
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+      },
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
@@ -336,10 +356,16 @@ local function _RegisterBuiltInThemes()
         textColor = { 0.255, 0.380, 0.204, 1.0}
       }
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
-      promptColor = { 0.3, 0.5, 0.3, 1.0},
-      promptOffset = { x=5, y= 0 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+      },
+      commandLine = {
+        prompt = {
+          color = { 0.3, 0.5, 0.3, 1.0},
+          offset = { x=5, y= 0 },
+        },
+      },
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.255, 0.380, 0.204, 1 },
@@ -381,9 +407,11 @@ local function _RegisterBuiltInThemes()
       -- 6C9292
       gutter = { textColor = { 0.424, 0.573, 0.573, 1 } },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
-      settingsInset = { x = 3, y = 4 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+        toolIcons = { inset = { x = 3, y = 4 } },
+      },
       divider = {
         gripColor = { rgb(GRAY_FONT_COLOR, 0.9) },
         gripHoverColor = { 0.424, 0.573, 0.573, 1 },
@@ -425,9 +453,11 @@ local function _RegisterBuiltInThemes()
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
       },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
-      settingsInset = { x = 9, y = 4 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+        toolIcons = { inset = { x = 9, y = 4 } },
+      },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
@@ -470,12 +500,17 @@ local function _RegisterBuiltInThemes()
       -- FFF67E
       gutter = { textColor = { 1.000, 0.965, 0.494, 0.5 } },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
-      promptColor = { 0.435, 0.306, 0.216, 1 },
-      promptOffset = { x = 26, y = 0 },
-      settingsInset = { x = 24, y = 4 },
-
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+        toolIcons = { inset = { x = 24, y = 4 } },
+      },
+      commandLine = {
+        prompt = {
+          color = { 0.435, 0.306, 0.216, 1 },
+          offset = { x = 26, y = 0 },
+        },
+      },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 1.000, 0.965, 0.494, 1 },
@@ -517,9 +552,11 @@ local function _RegisterBuiltInThemes()
         textColor = { 0.388, 0.361, 0.329, 1.0 },
       },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
-      settingsInset = { x = 8, y = 4 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+        toolIcons = { inset = { x = 8, y = 4 } },
+      },
       divider = {
         gripColor = { 0.388, 0.361, 0.329, 0.9 },
         gripHoverColor = { 0.588, 0.561, 0.529, 1 },
@@ -529,6 +566,7 @@ local function _RegisterBuiltInThemes()
   })
   _RegisterTheme({
     name = THEME.Gilded,
+    default = true,
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_DIALOG_GOLD),
@@ -564,10 +602,15 @@ local function _RegisterBuiltInThemes()
         textColor = { 1.000, 0.820, 0.000, 0.58 },
       },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
-      -- FFAB25
-      promptColor = { 1.000, 0.671, 0.145, 1 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+      },
+      commandLine = {
+        prompt = {
+          color = { 1.000, 0.671, 0.145, 1 },
+        },
+      },
       divider = {
         gripColor = { 1.000, 0.820, 0.000, 0.7 },
         gripHoverColor = { 1.000, 0.820, 0.000, 1.0 },
@@ -599,9 +642,11 @@ local function _RegisterBuiltInThemes()
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
       },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
-      settingsInset = { x = 4, y = 4 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+        toolIcons = { inset = { x = 4, y = 4 } },
+      },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
@@ -634,8 +679,10 @@ local function _RegisterBuiltInThemes()
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
       },
     },
-    status = {
-      textColor = { 0.78, 0.82, 0.85, 1 },
+    console = {
+      output = {
+        textColor = { 0.78, 0.82, 0.85, 1 },
+      },
       divider = {
         gripColor = { 0.6, 0.6, 0.6, 0.9 },
         gripHoverColor = { 0.85, 0.72, 0.30, 1 },
@@ -651,6 +698,15 @@ Methods & Fields
 
 ---@return LDK_ThemeSet
 function o:GetDefaultBorderSettings() return borderSettings[THEME.Default] end
+
+--- @return Name @First enabled theme if none sets default
+function o:GetDefaultThemeName()
+  local names = self:GetThemes()
+  for _, name in ipairs(names) do
+    if borderSettings[name].default then return name end
+  end
+  return names[1] or THEME.Default
+end
 
 ---@param name Name? @Returns the default border setting if nil
 ---@return LDK_ThemeSet

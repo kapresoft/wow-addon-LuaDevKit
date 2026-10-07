@@ -120,8 +120,9 @@ local CODE_TEXT_INSET_RIGHT = 6
 -- Shared inset so the code area's corner buttons line up.
 local OVERLAY_INSET = 4
 
--- Fallbacks for a theme without status.settingsInset/promptOffset.
-local SETTINGS_INSET, PROMPT_OFFSET = { x = 6, y = 4 }, { x = 10, y = 0 }
+-- Fallbacks for a theme without toolIcons.inset/alpha or prompt.offset.
+local TOOL_ICON_INSET, PROMPT_OFFSET = { x = 6, y = 4 }, { x = 10, y = 0 }
+local TOOL_ICON_ALPHA = 0.6
 
 -- Breathing room on whichever axis shrinks when clamped to screen.
 local SCREEN_MARGIN = 100
@@ -583,11 +584,7 @@ function o:OnLoad()
 
   self:OnLoad_Border()
 
-  -- todo: will come from settings in the future
-  --local name = cns.addon .. ' Dark Knight'
-  local th = bdrops.theme
-  local name = th.DarkKnight
-  self:ApplyTheme(name)
+  self:ApplyTheme(bdrops:GetDefaultThemeName())
   self.fontSize = DEFAULTS.fontSize
   self:SetCodeFont(DEFAULTS.fontFamily)
 
@@ -1340,18 +1337,22 @@ function o:ApplyTheme(name)
     if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
   end
   -- Grip color is tuned per theme; code.backdrop.borderColor alpha is too low here.
-  local status = bs.status
-  local divider = status.divider
+  local console = bs.console
+  local divider = console.divider
   -- Both remembered so OnStatusDividerHover can swap between them.
   self.statusGripColor = divider.gripColor
   self.statusGripHoverColor = divider.gripHoverColor
   self.StatusDivider.Grip:SetColorTexture(upk(divider.gripColor))
   self.StatusDivider.MaximizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self.StatusDivider.MinimizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
-  self.EvalStatus:SetTextColor(upk(status.textColor))
-  self.CommandBar.Prompt:SetTextColor(upk(status.promptColor or status.textColor))
-  self.CommandEditBox:SetTextColor(upk(status.textColor))
-  self:ApplyStatusInsets(status)
+  local output, commandLine = console.output, console.commandLine or {}
+  local commandColor = commandLine.textColor or output.textColor
+  local prompt = commandLine.prompt or {}
+  self.EvalStatus:SetTextColor(upk(output.textColor))
+  self.CommandBar.Prompt:SetTextColor(upk(prompt.color or commandColor))
+  self.CommandEditBox:SetTextColor(upk(commandColor))
+  self:ApplyConsoleInsets(console)
+  self:ApplyToolIconAlpha(output)
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
@@ -1359,10 +1360,18 @@ function o:ApplyTheme(name)
   self:_SetHeaderBorderStyle(bs)
 end
 
+--- NormalTexture only: the hover highlight stays full strength.
+--- @param output LDK_OutputTheme
+function o:ApplyToolIconAlpha(output)
+  local toolIcons = output.toolIcons or {}
+  self.ConsoleSettingsButton:GetNormalTexture():SetAlpha(toolIcons.alpha or TOOL_ICON_ALPHA)
+end
+
 --- Places the gear, history arrow and prompt per border.
---- @param status LDK_StatusTheme
-function o:ApplyStatusInsets(status)
-  local gear = status.settingsInset or SETTINGS_INSET
+--- @param console LDK_ConsoleTheme
+function o:ApplyConsoleInsets(console)
+  local toolIcons = console.output.toolIcons or {}
+  local gear = toolIcons.inset or TOOL_ICON_INSET
   local settings = self.ConsoleSettingsButton
   settings:ClearAllPoints()
   settings:SetPoint('TOPRIGHT', self.StatusBar, 'TOPRIGHT', -gear.x, -gear.y)
@@ -1375,7 +1384,9 @@ function o:ApplyStatusInsets(status)
   history:SetPoint('TOPRIGHT', bar, 'TOPRIGHT', x, 0)
   history:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', x, 0)
 
-  local offset = status.promptOffset or PROMPT_OFFSET
+  local commandLine = console.commandLine or {}
+  local promptTheme = commandLine.prompt or {}
+  local offset = promptTheme.offset or PROMPT_OFFSET
   local prompt = bar.Prompt
   prompt:ClearAllPoints()
   prompt:SetPoint('LEFT', bar, 'LEFT', offset.x, offset.y)

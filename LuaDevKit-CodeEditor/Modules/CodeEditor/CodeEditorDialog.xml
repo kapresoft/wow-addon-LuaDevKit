@@ -273,11 +273,11 @@
 
                  CommandBar.Prompt: fixed LDK_CommandPromptFont, not the code
                  font, so the arrow keeps one shape; ApplyCodeFont leaves it alone.
-                 Anchored per theme in Lua's ApplyStatusInsets.
+                 Anchored per theme in Lua's ApplyConsoleInsets.
 
                  CommandBar.HistoryButton: arrow dropdown listing that history,
                  set up in Lua's OnLoad_HistoryButton; right-aligned with the
-                 console settings gear in ApplyStatusInsets. -->
+                 console settings gear in ApplyConsoleInsets. -->
             <Frame parentKey="CommandBar" inherits="BackdropTemplate">
                 <Size y="22"/>
                 <Anchors>
@@ -337,7 +337,7 @@
 
                  StatusBar.ConsoleSettingsButton: floating gear menu for console
                  font and size; raised in Lua's OnLoad_Overlays, anchored per
-                 theme in ApplyStatusInsets. -->
+                 theme in ApplyConsoleInsets. -->
             <Frame parentKey="StatusBar" inherits="BackdropTemplate">
                 <Size y="100"/>
                 <Anchors>
