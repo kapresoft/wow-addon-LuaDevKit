@@ -28,7 +28,6 @@ local strlenutf8 = strlenutf8
 Local Vars
 -------------------------------------------------------------------------------]]
 local GUTTER = {
-  useCodeBorderColor = false,
   borderColor = { 0.133, 0.341, 0.031, 0 },
   bgColor = { 0, 0, 0, 0 },
   textColor = { 1, 1, 1, 1.0 },
@@ -1309,7 +1308,6 @@ function o:ApplyTheme(name)
   end
 
   local gutterTextColor = GUTTER.textColor
-  local gutterBorderColor = GUTTER.borderColor
   local pbd = bs.panel.backdrop
   local bgColor, borderColor = pbd.bgColor, pbd.borderColor
 
@@ -1327,7 +1325,6 @@ function o:ApplyTheme(name)
     self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
     self.StatusBar:SetBackdropBorderColor(upk(borderColor))
     self.CommandBar:SetBackdropBorderColor(upk(borderColor))
-    if GUTTER.useCodeBorderColor then gutterBorderColor = borderColor end
   end
   local gutter = bs.code and bs.code.gutter
   if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
@@ -1349,7 +1346,7 @@ function o:ApplyTheme(name)
   self:ApplyConsoleInsets(console)
   self:ApplyToolIconAlpha(output)
   -- gutter borderColor is alpha 0 (hidden)
-  self.GutterBackdrop:SetBackdropBorderColor(upk(gutterBorderColor))
+  self.GutterBackdrop:SetBackdropBorderColor(upk(GUTTER.borderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
   self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextColor))
   self:_SetHeaderBorderStyle(bs)
