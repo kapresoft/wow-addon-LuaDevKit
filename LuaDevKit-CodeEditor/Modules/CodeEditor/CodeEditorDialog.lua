@@ -1310,33 +1310,28 @@ function o:ApplyTheme(name)
 
   local gutterTextColor = GUTTER.textColor
   local gutterBorderColor = GUTTER.borderColor
-  local code = bs.code
+  local pbd = bs.panel.backdrop
+  local bgColor, borderColor = pbd.bgColor, pbd.borderColor
 
-  if code and code.backdrop then
-    local cbd = code.backdrop
-    local gutter = code.gutter
-    local bgColor = cbd.bgColor
-    local borderColor = cbd.borderColor
+  self.GutterBackdrop:SetBackdrop(pbd)
+  self.CodeBackdrop:SetBackdrop(pbd)
+  self.StatusBar:SetBackdrop(pbd)
+  self.CommandBar:SetBackdrop(pbd)
 
-    self.GutterBackdrop:SetBackdrop(cbd)
-    self.CodeBackdrop:SetBackdrop(cbd)
-    self.StatusBar:SetBackdrop(cbd)
-    self.CommandBar:SetBackdrop(cbd)
-
-    if bgColor then
-      self.CodeBackdrop:SetBackdropColor(upk(bgColor))
-      self.StatusBar:SetBackdropColor(upk(bgColor))
-      self.CommandBar:SetBackdropColor(upk(bgColor))
-    end
-    if borderColor then
-      self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
-      self.StatusBar:SetBackdropBorderColor(upk(borderColor))
-      self.CommandBar:SetBackdropBorderColor(upk(borderColor))
-      if GUTTER.useCodeBorderColor then gutterBorderColor = borderColor end
-    end
-    if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
+  if bgColor then
+    self.CodeBackdrop:SetBackdropColor(upk(bgColor))
+    self.StatusBar:SetBackdropColor(upk(bgColor))
+    self.CommandBar:SetBackdropColor(upk(bgColor))
   end
-  -- Grip color is tuned per theme; code.backdrop.borderColor alpha is too low here.
+  if borderColor then
+    self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
+    self.StatusBar:SetBackdropBorderColor(upk(borderColor))
+    self.CommandBar:SetBackdropBorderColor(upk(borderColor))
+    if GUTTER.useCodeBorderColor then gutterBorderColor = borderColor end
+  end
+  local gutter = bs.code and bs.code.gutter
+  if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
+  -- Grip color is tuned per theme; panel.backdrop.borderColor alpha is too low here.
   local console = bs.console
   local divider = console.divider
   -- Both remembered so OnStatusDividerHover can swap between them.

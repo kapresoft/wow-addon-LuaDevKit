@@ -52,8 +52,10 @@ Type Definitions
 --- @class LDK_GutterTheme
 --- @field textColor? RGBA
 
+--- @class LDK_PanelTheme
+--- @field backdrop LDK_Backdrop @Gutter, code, output and command line boxes
+
 --- @class LDK_CodeTheme
---- @field backdrop LDK_Backdrop
 --- @field gutter? LDK_GutterTheme
 
 --- @class LDK_DividerTheme
@@ -89,7 +91,8 @@ Type Definitions
 --- @class LDK_ThemeSet
 --- @field name Name
 --- @field main LDK_MainTheme
---- @field code LDK_CodeTheme
+--- @field panel LDK_PanelTheme
+--- @field code? LDK_CodeTheme
 --- @field console LDK_ConsoleTheme
 --- @field enabled? boolean @Defaults to true; set false to exclude from GetThemes()/EachTheme()
 --- @field default? boolean @The theme a new editor starts with; first enabled one wins
@@ -243,8 +246,10 @@ local function _RegisterTheme(theme)
   assertsafe(str_notBlank(name), themeReqMsg, m, 'theme.name')
   assertsafe(theme.main.backdrop.bgFile, themeReqMsg, m, 'main.backdrop.bgFile')
   assertsafe(theme.main.backdrop.edgeFile, themeReqMsg, m, 'theme.main.backdrop.edgeFile')
-  -- Every theme carries its own complete console value; nothing is merged in
+  -- Every theme carries its own complete panel and console values; nothing is merged in
   -- behind it, so an omission has to surface here and not at ApplyTheme time.
+  assertsafe(theme.panel, themeReqMsg, m, 'theme.panel')
+  assertsafe(theme.panel.backdrop, themeReqMsg, m, 'theme.panel.backdrop')
   assertsafe(theme.console, themeReqMsg, m, 'theme.console')
   assertsafe(theme.console.output, themeReqMsg, m, 'theme.console.output')
   assertsafe(theme.console.divider, themeReqMsg, m, 'theme.console.divider')
@@ -271,12 +276,14 @@ local function _RegisterBuiltInThemes()
         borderColor = { 1, 1, 1, 1.0 },
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
       }),
+    },
+    code = {
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
     console = {
@@ -310,12 +317,14 @@ local function _RegisterBuiltInThemes()
         },
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       }),
+    },
+    code = {
       gutter = { textColor = { 0.294, 0.314, 0.349, 1 } },
     },
     console = {
@@ -349,12 +358,14 @@ local function _RegisterBuiltInThemes()
         },
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       }),
+    },
+    code = {
       gutter = {
         textColor = { 0.255, 0.380, 0.204, 1.0}
       }
@@ -396,12 +407,14 @@ local function _RegisterBuiltInThemes()
         },
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
         borderColor = { rgb(GRAY_FONT_COLOR, 0.2) },
       }),
+    },
+    code = {
       -- 6C9292
       gutter = { textColor = { 0.424, 0.573, 0.573, 1 } },
     },
@@ -440,7 +453,7 @@ local function _RegisterBuiltInThemes()
         height = 30,
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
@@ -481,12 +494,14 @@ local function _RegisterBuiltInThemes()
         },
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = { left = 1, right = 1, top = 1, bottom = 1 },
         bgColor = { 0.08, 0.08, 0.08, 0.5 },
         borderColor = { 0.6, 0.6, 0.6, 0.1 },
       }),
+    },
+    code = {
       -- FFF67E
       gutter = { textColor = { 1.000, 0.965, 0.494, 0.5 } },
     },
@@ -528,12 +543,14 @@ local function _RegisterBuiltInThemes()
         height = 35,
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_NONE,
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
         borderColor = { 0.388, 0.361, 0.329, 0.21 },
       }),
+    },
+    code = {
       gutter = {
         textColor = { 0.388, 0.361, 0.329, 1.0 },
       },
@@ -573,12 +590,14 @@ local function _RegisterBuiltInThemes()
         height = 35,
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_NONE,
         bgColor = { 0.1, 0.1, 0.1, 0.9 },
         borderColor = { 1.000, 0.820, 0.000, 0.53 },
       }),
+    },
+    code = {
       gutter = {
         textColor = { 1.000, 0.820, 0.000, 0.58 },
       },
@@ -612,7 +631,7 @@ local function _RegisterBuiltInThemes()
         insets = { left = 4, right = 4, top = 4, bottom = 4 },
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
@@ -645,7 +664,7 @@ local function _RegisterBuiltInThemes()
         borderColor = { 0.81, 0.81, 0.81, 1 },
       },
     },
-    code = {
+    panel = {
       backdrop = _panel({
         insets = INSETS_PAD,
         bgColor = { 0.1, 0.1, 0.1, 0.1 },
