@@ -20,8 +20,9 @@ tools-used:
   - Bugsack
   - Bug-Grabber
 
-# Only what LuaDevKit.toc loads: LibStub, CallbackHandler and
-# AceLocale from Ace3, LSM, and LibUtil's String/Table modules.
+# Ace3 keeps LibStub, CallbackHandler, AceAddon, AceEvent, AceConsole,
+# AceLocale, AceDB, AceDBOptions, AceConfig and AceGUI (AceConfigDialog
+# needs it); plus LSM and LibUtil.
 externals:
   LuaDevKit/ThirdParty/Libs/Ace3:
     url: https://github.com/WoWUIDev/Ace3
@@ -49,15 +50,8 @@ ignore:
   - LuaDevKit/ThirdParty/Libs/Ace3/changelog.txt
   - LuaDevKit/ThirdParty/Libs/Ace3/LICENSE.txt
   - LuaDevKit/ThirdParty/Libs/Ace3/tests
-  - LuaDevKit/ThirdParty/Libs/Ace3/AceAddon-3.0
   - LuaDevKit/ThirdParty/Libs/Ace3/AceBucket-3.0
   - LuaDevKit/ThirdParty/Libs/Ace3/AceComm-3.0
-  - LuaDevKit/ThirdParty/Libs/Ace3/AceConfig-3.0
-  - LuaDevKit/ThirdParty/Libs/Ace3/AceConsole-3.0
-  - LuaDevKit/ThirdParty/Libs/Ace3/AceDB-3.0
-  - LuaDevKit/ThirdParty/Libs/Ace3/AceDBOptions-3.0
-  - LuaDevKit/ThirdParty/Libs/Ace3/AceEvent-3.0
-  - LuaDevKit/ThirdParty/Libs/Ace3/AceGUI-3.0
   - LuaDevKit/ThirdParty/Libs/Ace3/AceHook-3.0
   - LuaDevKit/ThirdParty/Libs/Ace3/AceSerializer-3.0
   - LuaDevKit/ThirdParty/Libs/Ace3/AceTab-3.0

@@ -14,3 +14,7 @@ local O = {}; ns.O = O
 
 --- @return LDK_Core_Namespace, LDK_Core_Objects
 function ns:cns() return LDK_CORE_NS, LDK_CORE_NS.O end
+
+--- @param message Name
+--- @return string @e.g. 'LuaDevKit-CodeEditor::OnEnable'
+function ns:msg(message) return ('%s::%s'):format(self.addon, message) end

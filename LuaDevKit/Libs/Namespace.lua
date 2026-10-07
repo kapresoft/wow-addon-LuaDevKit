@@ -14,8 +14,11 @@ local options = {
 --- @class LDK_Core_Namespace
 --- @field addon Name
 --- @field options LDK_Core_Options
+--- @field DB_NAME Name           @SavedVariables name; matches LuaDevKit.toc
+--- @field dbObj? LDK_DatabaseObj @nil until DatabaseMixin:InitDb()
 local ns = xns; LDK_CORE_NS = ns
 ns.addon, ns.options = addon, options
+ns.DB_NAME = 'LUADEVKIT_DB'
 
 --- @class LDK_Core_Objects
 --- @field FAIAP? LuaDevKit-FAIAP-1-0
@@ -23,10 +26,13 @@ ns.addon, ns.options = addon, options
 --- @field FontUtil LDK_FontUtil
 --- @field Backdrops LDK_Backdrops
 --- @field Database LDK_Database
+--- @field DatabaseMixin LDK_DatabaseMixin
 --- @field LuaRunner LDK_LuaRunner
 --- @field TextUtil LDK_TextUtil
 --- @field OutputLog LDK_OutputLog
 --- @field DocumentStore LDK_DocumentStore
+--- @field AceAddon AceAddon-3.0
+--- @field AceDB AceDB-3.0
 --- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0
@@ -38,9 +44,38 @@ local function RegisterObjects(self)
   self.LSM = LibStub('LibSharedMedia-3.0')
   self.String = LibStub('Kapresoft-String-2-0')
   self.Table = LibStub('Kapresoft-Table-2-0')
+  self.AceAddon = LibStub('AceAddon-3.0')
+  self.AceDB = LibStub('AceDB-3.0')
   self.AceLocale = LibStub('AceLocale-3.0')
 end
 RegisterObjects(O)
+
+--- Register a Namespace Module
+--- @generic T
+--- @param lib Name   @The library name
+--- @param anyObj? T @The library object instance; a new {} if nil
+--- @return T
+function ns:Register(lib, anyObj)
+  assertsafe(
+    type(lib) == 'string' and (anyObj == nil or type(anyObj) == 'table'),
+    'Register(lib, anyObj): <lib> should be a string (got %s); <anyObj> a table or nil (got %s).',
+    type(lib),
+    type(anyObj)
+  )
+  local obj = anyObj or {}
+  self.O[lib] = obj
+  return obj
+end
+
+--- @param db LDK_DatabaseObj
+function ns:RegisterDB(db) self.dbObj = db end
+
+--- @return LDK_DatabaseObj
+function ns:db() return self.dbObj end
+
+--- @param message Name
+--- @return string @e.g. 'LuaDevKit::OnEnable'
+function ns:msg(message) return ('%s::%s'):format(self.addon, message) end
 
 --- @return table<string, string>
 function ns:GetLocale()
