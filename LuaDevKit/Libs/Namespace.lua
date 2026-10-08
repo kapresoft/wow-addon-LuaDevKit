@@ -15,7 +15,7 @@ local options = {
 --- @field addon Name
 --- @field options LDK_Core_Options
 --- @field DB_NAME Name           @SavedVariables name; matches LuaDevKit.toc
---- @field dbObj? LDK_DatabaseObj @nil until DatabaseMixin:InitDb()
+--- @field dbObj? LDK_DatabaseObj @nil until DatabaseAccessMixin:InitDb()
 local ns = xns; LDK_CORE_NS = ns
 ns.addon, ns.options = addon, options
 ns.DB_NAME = 'LUADEVKIT_DB'
@@ -26,7 +26,7 @@ ns.DB_NAME = 'LUADEVKIT_DB'
 --- @field FontUtil LDK_FontUtil
 --- @field Backdrops LDK_Backdrops
 --- @field Database LDK_Database
---- @field DatabaseMixin LDK_DatabaseMixin
+--- @field DatabaseAccessMixin LDK_DatabaseAccessMixin
 --- @field LuaRunner LDK_LuaRunner
 --- @field TextUtil LDK_TextUtil
 --- @field OutputLog LDK_OutputLog
