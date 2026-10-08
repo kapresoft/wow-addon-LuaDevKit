@@ -47,12 +47,13 @@ function o:InitDb(addon)
   --- @type LDK_DatabaseObj
   local db = AceDB:New(ns.DB_NAME, nil, true)
   db:RegisterDefaults(Database:GetDefaultDatabase())
+  Database:Sanitize(db['global'])
   RegisterCallbacks(addon, db)
   ns:RegisterDB(db)
 end
 
 --- @return LDK_DB_GlobalConfig
-function o:g() return ns:db()['global'] end
+function o:g() return ns:g() end
 
 --- @return LDK_DB_ProfileConfig
-function o:p() return ns:db().profile end
+function o:p() return ns:p() end

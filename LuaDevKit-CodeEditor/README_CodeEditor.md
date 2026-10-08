@@ -1,13 +1,13 @@
 # CodeEditor
 
-Standalone (non-Ace3) line-numbered code editor dialog prototype. Not wired into
-the DevSuite namespace/module registry -- see [issue #90](https://github.com/kapresoft/wow-DevSuite/issues/90).
+Line-numbered code editor dialog prototype; settings persist through LuaDevKit's
+AceDB. Not wired into the DevSuite namespace/module registry -- see [issue #90](https://github.com/kapresoft/wow-DevSuite/issues/90).
 
 ## Files
 
 | File | Role |
 |---|---|
-| [`CodeEditorDialog.xml`](Modules/CodeEditor/CodeEditorDialog.xml) | Frame layout (`LDK_CodeEditorDialogTemplate`) |
+| [`CodeEditorDialog.xml`](Modules/CodeEditor/CodeEditorDialog.xml) | Frame layout (`LDK_CodeEditorDialog`) |
 | [`CodeEditorDialog.lua`](Modules/CodeEditor/CodeEditorDialog.lua) | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, font switching, toolbar, documents; eval via [`LuaRunner`](../LuaDevKit/Libs/Modules/LuaRunner.lua), documents kept in [`DocumentStore`](../LuaDevKit/Libs/Modules/DocumentStore.lua) |
 | [`CodeEditBoxMixin.lua`](Modules/CodeEditor/CodeEditBoxMixin.lua) | Mixin for the `CodeEditBox` EditBox |
 | [`MinimalScrollBarStyle.lua`](Modules/CodeEditor/MinimalScrollBarStyle.lua) | `ns.O.MinimalScrollBarStyle` -- restyles the code area scrollbar after MinimalScrollBar |

@@ -27,16 +27,6 @@ function o:ShowCodeEditor()
   if codeEditor then return codeEditor:Show() end
   codeEditor = LDK_CodeEditorDialog
   if not codeEditor then return end
-  --- @type LDK_CodeEditorOptions
-  local opt = {
-    fontFamily = 'JetBrainsMono',
-    fontSize = 12,
-    wrapText = true,
-  }
-  codeEditor:Configure(opt)
-  codeEditor:SetOnConfigChanged(
-    function(self, options) tr(addon, libName, 'options=', fmt(options)) end
-  )
   codeEditor:Show()
 end
 

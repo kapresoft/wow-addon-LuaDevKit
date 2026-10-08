@@ -1,8 +1,3 @@
---[[-----------------------------------------------------------------------------
-CodeEditorDialog: standalone (non-Ace3) line-numbered code editor prototype.
-Self-contained: not wired into the DevSuite namespace/module registry.
-See GitHub issue #90.
--------------------------------------------------------------------------------]]
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
 local cns, O = ns:cns(), ns:cns().O
@@ -11,6 +6,7 @@ local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
 local LR, TU = O.LuaRunner, O.TextUtil
 local OutputLog = O.OutputLog
 local DS = O.DocumentStore
+local DB = O.Database
 local mt = lsm.MediaType
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
 local upk = unpack
@@ -128,7 +124,7 @@ local SCREEN_MARGIN = 100
 
 local fontChoices, defaultFontChoice = fut:GetFontChoices(), fut:GetDefaultFontChoice()
 
--- Configure() defaults; shape of the OnConfigChanged snapshot.
+-- Configure() fallbacks for settings the DB doesn't hold.
 local DEFAULTS = {
   -- Literal key; cns:GetFonts() here fails SetFont too early.
   fontFamily = defaultFontChoice and defaultFontChoice.key,
@@ -193,13 +189,6 @@ Types
 --- @class LDK_CodeEditorWrapMeasure : Frame
 --- @field Text FontString @Hidden; same font/wrap as CodeEditBox, used to count wrapped rows
 
---- @class LDK_CodeEditorOptions
---- @field fontFamily string         @Key into FontUtil:GetFontChoices(), e.g. 'UbuntuMono'
---- @field fontSize number           @One of FontUtil:GetFontSizes(); other values snap to nearest
---- @field wrapText boolean
---- @field consoleFontFamily string? @Output and command line font; nil follows fontFamily
---- @field consoleFontSize number?   @nil follows fontSize
-
 --- @class LDK_CodeEditorDocStepper : Frame
 --- @field Dropdown DropdownButton
 --- @field DecrementButton Button
@@ -209,7 +198,7 @@ Types
 --- @field text string
 --- @field failed boolean? @Last run hit a compile or runtime error
 
---- @class LDK_CodeEditorDialogMixin : Frame, BackdropTemplate
+--- @class LDK_CodeEditorDialogMixin : Frame, BackdropTemplate, AceEvent-3.0
 --- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
 --- @field TopBar Frame                                      @Toolbar: document controls left, dropdowns right
 --- @field OptionsButton DropdownButton                      @Alias of Header.OptionsButton
@@ -241,7 +230,6 @@ Types
 --- @field output LDK_OutputLog                              @Evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean
---- @field onConfigChanged fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
 --- @field GutterBackdrop Frame|BackdropTemplate             @Draws the gutter's border; Gutter is inset inside it
 --- @field Gutter LDK_CodeEditorGutter
 --- @field CodeBackdrop Frame|BackdropTemplate               @Draws the code area's border; ScrollFrame is inset inside it
@@ -255,8 +243,9 @@ Types
 --- @field borderStyle Name
 --- @field statusGripColor RGBA                              @Resting divider grip color, from the active theme
 --- @field statusGripHoverColor RGBA                         @Hovered divider grip color, from the active theme
-LDK_CodeEditorDialogMixin = {}
+LDK_CodeEditorDialogMixin = cns:NewAceEvent()
 local o = LDK_CodeEditorDialogMixin
+
 
 --
 --- @class LDK_CodeEditorDialog : LDK_CodeEditorDialogMixin
@@ -602,12 +591,18 @@ function o:OnLoad()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
+  self:_RegisterMessages()
 
   -- Prototype-only: example code tests gutter/scroll sync on open.
   -- After OnLoad_Toolbar: the stepper menu must exist.
   self:AddDocument(ns.EXAMPLE_CODE or '')
 
   self:RefreshGutter()
+end
+
+function o:_RegisterMessages()
+  -- Configure reads the DB; it's ready once LDK_CodeEditor enables.
+  self:RegisterMessage(ns:msg('OnEnable'), 'Configure')
 end
 
 --- Places both scroll viewports inside their backdrops. Anchored here rather
@@ -927,7 +922,7 @@ function o:OnLoad_ThemeButton()
       rootDescription:CreateRadio(
         name,
         function() return name and str_eq(self.borderStyle, name) end,
-        function() self:ApplyTheme(name) end
+        function() self:ApplyTheme(name, true) end
       )
     end
     bdrops:EachTheme(addRadio, function(name) return name and name:lower() ~= 'none' end)
@@ -1287,12 +1282,13 @@ function o:OnCodeViewportSizeChanged()
   self:RefreshGutter()
 end
 
---- User-driven change (checkbox click) -- notify listeners.
+--- User-driven change (checkbox click); saved.
 --- @param checked boolean
 function o:OnWrapToggled(checked) self:SetWrapText(checked, true) end
 
---- @param name string? @LSM border media name
-function o:ApplyTheme(name)
+--- @param name Name?    @Unknown names fall back to the default theme
+--- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
+function o:ApplyTheme(name, save)
   local bs = bdrops:GetBorderSettings(name)
   if not bs then return end
 
@@ -1350,6 +1346,7 @@ function o:ApplyTheme(name)
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
   self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextColor))
   self:_SetHeaderBorderStyle(bs)
+  if save then cns:g().editor.theme = self.borderStyle end
 end
 
 --- NormalTexture only: the hover highlight stays full strength.
@@ -1410,17 +1407,17 @@ end
 
 --- Applies a font to the code box, gutter numbers, and wrap measuring string.
 --- @param fontFamily string Key into FontUtil:GetFontChoices()
---- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
-function o:SetCodeFont(fontFamily, notify)
+--- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
+function o:SetCodeFont(fontFamily, save)
   local choice = fut:FindFontChoice(fontFamily)
   if not choice then return end
   self.fontFamily = choice.key
-  self:ApplyCodeFont(notify)
+  self:ApplyCodeFont(save)
 end
 
 --- Re-resolves and applies the font for the current fontFamily/fontSize.
---- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
-function o:ApplyCodeFont(notify)
+--- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
+function o:ApplyCodeFont(save)
   local choice = fut:FindFontChoice(self.fontFamily)
   if not choice then return end
   local font = choice.bySize[self.fontSize] or choice.bySize[DEFAULTS.fontSize]
@@ -1442,17 +1439,21 @@ function o:ApplyCodeFont(notify)
 
   -- RefreshGutter re-sizes the gutter for the new font's digit width.
   self:RefreshGutter()
-  if notify then self:FireConfigChanged() end
+  if not save then return end
+  local editor = cns:g().editor
+  editor.fontFamily, editor.fontSize = self.fontFamily, self.fontSize
 end
 
---- User-driven pick from the console settings menu; notifies.
+--- User-driven pick from the console settings menu; saved.
 --- @param fontFamily string? @nil follows the editor's font
 --- @param fontSize number?   @nil follows the editor's size
 function o:SetConsoleFont(fontFamily, fontSize)
   self.consoleFontFamily = fontFamily
   self.consoleFontSize = fontSize
   self:ApplyConsoleFont()
-  self:FireConfigChanged()
+  local console = cns:g().console
+  console.fontFamily = fontFamily or DB.SAME_AS_EDITOR_FONT
+  console.fontSize = fontSize or DB.SAME_AS_EDITOR_SIZE
 end
 
 --- Output and command line font; nil console picks follow the editor.
@@ -1472,13 +1473,13 @@ end
 --- Sets the font size (snapped to the nearest supported size) and re-applies
 --- the current font family at that size.
 --- @param fontSize number
---- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
-function o:SetFontSize(fontSize, notify)
+--- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
+function o:SetFontSize(fontSize, save)
   self.fontSize = fut:NearestFontSize(fontSize)
-  self:ApplyCodeFont(notify)
+  self:ApplyCodeFont(save)
 end
 
---- Steps the font size, clamped at the ends. Always user-driven; notifies.
+--- Steps the font size, clamped at the ends. Always user-driven; saved.
 --- @param delta 1|-1
 function o:StepFontSize(delta)
   local sizes = fut:GetFontSizes()
@@ -1496,8 +1497,8 @@ end
 
 --- Toggles wrap mode: oversized EditBox vs. pinned to viewport width.
 --- @param enabled boolean
---- @param notify boolean|nil Fire OnConfigChanged (user-driven change); omit for internal/initial sets
-function o:SetWrapText(enabled, notify)
+--- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
+function o:SetWrapText(enabled, save)
   self.wrapText = enabled and true or false
   self.BottomBar.WrapCheckButton:SetChecked(self.wrapText)
   local editBox = self.CodeEditBox
@@ -1508,53 +1509,36 @@ function o:SetWrapText(enabled, notify)
     editBox:SetWidth(4000)
   end
   self:RefreshGutter()
-  if notify then self:FireConfigChanged() end
+  if save then cns:g().editor.wrapText = self.wrapText end
 end
 
---- @return LDK_CodeEditorOptions Current settings, regardless of what (if anything) just changed
-function o:GetOptions()
-  return {
-    fontFamily = self.fontFamily,
-    fontSize = self.fontSize,
-    wrapText = self.wrapText,
-    consoleFontFamily = self.consoleFontFamily,
-    consoleFontSize = self.consoleFontSize,
-  }
-end
-
---- Callback after user config changes; always gets a full options snapshot.
---- @param callback fun(self: LDK_CodeEditorDialog, options: LDK_CodeEditorOptions)|nil
-function o:SetOnConfigChanged(callback) self.onConfigChanged = callback end
-
-function o:FireConfigChanged()
-  if self.onConfigChanged then self.onConfigChanged(self, self:GetOptions()) end
-end
-
---- Merges partial settings over current; does not fire OnConfigChanged.
---- @param options LDK_CodeEditorOptions|table|nil Partial table; omitted fields keep their current value
-function o:Configure(options)
-  options = options or {}
+--- Applies the saved text settings; doesn't write back.
+--- @see LDK_CodeEditorDialogMixin._RegisterMessages
+function o:Configure()
+  local editor = cns:g().editor
+  if editor.theme then self:ApplyTheme(editor.theme) end
   -- Falls back if the key no longer resolves (e.g. a removed font family).
-  local fontFamily = options.fontFamily or self.fontFamily or DEFAULTS.fontFamily
+  local fontFamily = editor.fontFamily or DEFAULTS.fontFamily
   if not fut:FindFontChoice(fontFamily) then fontFamily = DEFAULTS.fontFamily end
   self.fontFamily = fontFamily
-  self.fontSize = fut:NearestFontSize(options.fontSize or self.fontSize or DEFAULTS.fontSize)
-  self:ConfigureConsoleFont(options)
-  local wrapText = options.wrapText
-  if wrapText == nil then wrapText = self.wrapText end
+  self.fontSize = fut:NearestFontSize(editor.fontSize or DEFAULTS.fontSize)
+  self:ConfigureConsoleFont(cns:g().console)
+  local wrapText = editor.wrapText
   if wrapText == nil then wrapText = DEFAULTS.wrapText end
 
   self:ApplyCodeFont()
   self:SetWrapText(wrapText)
 end
 
---- Missing or unresolvable console picks keep the current value.
---- @param options LDK_CodeEditorOptions|table
-function o:ConfigureConsoleFont(options)
-  local fontFamily = options.consoleFontFamily
-  if fontFamily and fut:FindFontChoice(fontFamily) then self.consoleFontFamily = fontFamily end
-  local fontSize = options.consoleFontSize
-  if fontSize then self.consoleFontSize = fut:NearestFontSize(fontSize) end
+--- SAME_AS_EDITOR values or an unresolvable font follow the editor.
+--- @param console LDK_DB_ConsoleConfig
+function o:ConfigureConsoleFont(console)
+  local fontFamily = console.fontFamily
+  local followFont = fontFamily == DB.SAME_AS_EDITOR_FONT or not fut:FindFontChoice(fontFamily)
+  self.consoleFontFamily = not followFont and fontFamily or nil
+  local fontSize = console.fontSize
+  local followSize = fontSize == DB.SAME_AS_EDITOR_SIZE
+  self.consoleFontSize = not followSize and fut:NearestFontSize(fontSize) or nil
 end
 
 --- Rebuilds the gutter's "1..N" text and sizes both columns to the content.

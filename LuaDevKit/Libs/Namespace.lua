@@ -33,6 +33,7 @@ ns.DB_NAME = 'LUADEVKIT_DB'
 --- @field DocumentStore LDK_DocumentStore
 --- @field AceAddon AceAddon-3.0
 --- @field AceDB AceDB-3.0
+--- @field AceEvent AceEvent-3.0
 --- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0
@@ -46,6 +47,7 @@ local function RegisterObjects(self)
   self.Table = LibStub('Kapresoft-Table-2-0')
   self.AceAddon = LibStub('AceAddon-3.0')
   self.AceDB = LibStub('AceDB-3.0')
+  self.AceEvent = LibStub('AceEvent-3.0')
   self.AceLocale = LibStub('AceLocale-3.0')
 end
 RegisterObjects(O)
@@ -70,8 +72,24 @@ end
 --- @param db LDK_DatabaseObj
 function ns:RegisterDB(db) self.dbObj = db end
 
---- @return LDK_DatabaseObj
+--- @return LDK_DatabaseObj?
 function ns:db() return self.dbObj end
+
+--- Call after DatabaseAccessMixin:InitDb().
+--- @return LDK_DB_GlobalConfig
+function ns:g() return self:db()['global'] end
+
+--- Call after DatabaseAccessMixin:InitDb().
+--- @return LDK_DB_ProfileConfig
+function ns:p() return self:db().profile end
+
+--- @return AceEvent-3.0
+function ns:AceEvent() return self.O.AceEvent end
+
+--- Embeds AceEvent into obj, or into a new table when nil.
+--- @param obj? table
+--- @return AceEvent-3.0
+function ns:NewAceEvent(obj) return self:AceEvent():Embed(obj or {}) end
 
 --- @param message Name
 --- @return string @e.g. 'LuaDevKit::OnEnable'

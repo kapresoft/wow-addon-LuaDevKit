@@ -49,7 +49,7 @@
         </Scripts>
     </Button>
 
-    <Frame name="LDK_CodeEditorDialogTemplate" virtual="true"
+    <Frame name="LDK_CodeEditorDialog" parent="UIParent" inherits="BackdropTemplate"
            mixin="LDK_CodeEditorDialogMixin"
            hidden="true" movable="true" resizable="true" enableMouse="true"
            enableKeyboard="true" frameStrata="DIALOG" toplevel="true"
@@ -629,10 +629,5 @@
                  CommandBar; raised in Lua's OnLoad_Border. -->
             <Frame parentKey="Border" inherits="BackdropTemplate" setAllPoints="true"/>
         </Frames>
-    </Frame>
-
-    <Frame name="LDK_CodeEditorDialog" hidden="true" movable="true" enableMouse="true"
-           parent="UIParent"
-           inherits="BackdropTemplate, LDK_CodeEditorDialogTemplate">
     </Frame>
 </Ui>
