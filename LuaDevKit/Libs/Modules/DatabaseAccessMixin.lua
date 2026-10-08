@@ -7,19 +7,21 @@ local AceDB, Database = O.AceDB, O.Database
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_DatabaseObj : AceDBObject-3.0
---- @field global LDK_GlobalConfig
---- @field profile LDK_ProfileConfig
+--- @field global LDK_DB_GlobalConfig
+--- @field profile LDK_DB_ProfileConfig
 
 --[[-----------------------------------------------------------------------------
 New Instance
 -------------------------------------------------------------------------------]]
---- @class LDK_DatabaseMixin
-local o = ns:Register('DatabaseMixin')
+--- @class LDK_DatabaseAccessMixin
+local o = ns:Register('DatabaseAccessMixin')
+
+--- @class LDK_DatabaseAccess : LDK_DatabaseAccessMixin @An object InitDb mixed these methods into
 
 --[[-----------------------------------------------------------------------------
 Support Functions
 -------------------------------------------------------------------------------]]
---- @param self LDK_DatabaseMixin
+--- @param self LDK_DatabaseAccess
 --- @param db LDK_DatabaseObj
 local function RegisterCallbacks(self, db)
   db.RegisterCallback(self, 'OnNewProfile', 'OnNewProfile')
@@ -43,14 +45,14 @@ function o:OnProfileDeleted(evt, db, profileKey) end
 function o:InitDb(addon)
   Mixin(addon, o)
   --- @type LDK_DatabaseObj
-  local db = AceDB:New(ns.DB_NAME)
+  local db = AceDB:New(ns.DB_NAME, nil, true)
   db:RegisterDefaults(Database:GetDefaultDatabase())
   RegisterCallbacks(addon, db)
   ns:RegisterDB(db)
 end
 
---- @return LDK_GlobalConfig
+--- @return LDK_DB_GlobalConfig
 function o:g() return ns:db()['global'] end
 
---- @return LDK_ProfileConfig
+--- @return LDK_DB_ProfileConfig
 function o:p() return ns:db().profile end
