@@ -6,6 +6,7 @@ local LR, TU = CO.LuaRunner, CO.TextUtil
 local OutputLog, DS, DB = CO.OutputLog, CO.DocumentStore, CO.Database
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
 local L = ns:GetLocale()
+local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
@@ -220,7 +221,7 @@ Types
 --- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
 --- @field TopBar Frame                                      @Toolbar: document controls left, dropdowns right
 --- @field OptionsButton DropdownButton                      @Alias of Header.OptionsButton
---- @field OptionsTip LDK_HelpTip                            @Points at OptionsButton until dismissed
+--- @field HelpTip LDK_HelpTip                               @Shows this dialog's help tour steps
 --- @field ThemeButton DropdownButton                        @Alias of TopBar.ThemeButton
 --- @field FontButton DropdownButton                         @Alias of TopBar.FontButton
 --- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
@@ -1081,7 +1082,7 @@ function o:OnLoad_OptionsButton()
   PinArrowSize(self.OptionsButton, DROPDOWN_ARROW_SIZE)
   self.OptionsButton:RegisterCallback(
     DropdownButtonMixin.Event.OnMenuOpen,
-    function() self.OptionsTip:Dismiss() end
+    function() HelpTour:CompleteStep('OptionsMenu') end
   )
 end
 
@@ -1327,7 +1328,7 @@ function o:OnShow()
   -- Scale may change while hidden; re-clamp visibly on the way in.
   self:ClampToScreen(true)
   self:SetStatusHeight(self:GetStatusHeight())
-  self.OptionsTip:ShowOnce(self.Header.OptionsButton)
+  HelpTour:OnHostShown('CodeEditor', self, self.HelpTip)
   -- SetFocus() needs the frame visible; OnLoad ran while still hidden.
   if not self.initialFocusApplied then
     self.initialFocusApplied = true
@@ -1965,6 +1966,7 @@ Command line: single-shot eval; no multi-line continuation
 --- @param text string
 function o:OnCommandEnterPressed(text)
   if str_isBlank(text) then return end
+  HelpTour:CompleteStep('CommandLine')
 
   -- Escape literal '|' so the echoed input can't be read as a color/texture code.
   self:AppendOutput(COMMAND_ECHO_PREFIX .. text:gsub('|', '||'))
@@ -2150,6 +2152,7 @@ end
 
 --- Saves the document first if Save on Run is on; output goes to the output panel.
 function o:Run()
+  HelpTour:CompleteStep('RunButton')
   if ns:editor().saveOnRun then self:SaveDocument() end
   local text = self:GetText()
   if str_isBlank(text) then return end

@@ -13,17 +13,17 @@ local TEXT_PAD_X = 44
 local TEXT_PAD_Y = 32
 
 --[[-----------------------------------------------------------------------------
-LDK_HelpTipMixin
+LDK_HelpTipMixin: the view; LDK_HelpTour decides what it shows.
 @see HelpTips.xml
 -------------------------------------------------------------------------------]]
 --- @class LDK_HelpTipMixin : Frame
 --- @field Text FontString
+--- @field Counter FontString  @Step position, e.g. 1/3; hidden on one-step tours
 --- @field CloseButton Button
 --- @field Arrow Frame         @Points down; shown while the tip is above its target
 --- @field ArrowUp Frame       @Points up; shown while the tip is below its target
---- @field tipKey string       @Key in global.helpTipsDismissed; set per instance in XML
---- @field textKey string      @Locale key of the tip text; set per instance in XML
 --- @field textMaxWidth number @Wrap width; Text's width from XML
+--- @field onClose fun()?      @Set by LDK_HelpTour; runs on the close button
 LDK_HelpTipMixin = {}; local o = LDK_HelpTipMixin
 
 --
@@ -32,20 +32,19 @@ LDK_HelpTipMixin = {}; local o = LDK_HelpTipMixin
 
 function o:OnLoad()
   self.textMaxWidth = self.Text:GetWidth()
-  self.Text:SetText(L[self.textKey])
-  self.CloseButton:SetScript('OnClick', function() self:Dismiss() end)
+  self.CloseButton:SetScript('OnClick', function()
+    if self.onClose then self.onClose() end
+  end)
 end
 
---- Points at anchorTo unless this tip was dismissed before.
+--- @param textKey string @Locale key of the step text
 --- @param anchorTo Region
-function o:ShowOnce(anchorTo)
-  -- todo: if we have more than one tips to show, we should make sure we only show one at a time
-  --       Example: show tip #1, if dismissed by user, then next reload shows tip #2, else keep showing tip #1
-  if ns:g().helpTipsDismissed[self.tipKey] then
-    self:Hide()
-    return
-  end
-
+--- @param index number   @Step position in its tour
+--- @param count number   @Steps in the tour; 1 hides the counter
+function o:ShowStep(textKey, anchorTo, index, count)
+  self.Text:SetText(L[textKey])
+  self.Counter:SetFormattedText('%d/%d', index, count)
+  self.Counter:SetShown(count > 1)
   -- Set here: the parent raises its level after our OnLoad.
   self:SetFrameLevel(self:GetParent():GetFrameLevel() + 10)
   self:FitToText()
@@ -81,9 +80,4 @@ function o:RoomAbove(anchorTo)
   local screenTop = UIParent:GetTop() * UIParent:GetEffectiveScale()
   local anchorTop = anchorTo:GetTop() * anchorTo:GetEffectiveScale()
   return (screenTop - anchorTop) / self:GetEffectiveScale()
-end
-
-function o:Dismiss()
-  self:Hide()
-  ns:g().helpTipsDismissed[self.tipKey] = true
 end

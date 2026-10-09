@@ -2,8 +2,11 @@
 ..\FrameXML\UI.xsd">
 
     <Script file="HelpTip.lua"/>
+    <Script file="HelpTour.lua"/>
+    <Script file="TourList.lua"/>
 
-    <!-- One-time help tip; instances set tipKey and textKey. The arrows sit
+    <!-- Help tip view; LDK_HelpTour sets its text and target per step.
+         Counter shows the step position on multi-step tours. The arrows sit
          at the right edge, so the tip opens leftward from its target.
          Arrow points down from below the tip; ArrowUp points up from above
          it and is shown instead when Lua's PlaceAt flips the tip below.
@@ -21,6 +24,11 @@
                     <Size x="188" y="0"/>
                     <Anchors>
                         <Anchor point="TOPLEFT" x="16" y="-16"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Counter" inherits="GameFontDisableSmall" hidden="true">
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" x="-10" y="6"/>
                     </Anchors>
                 </FontString>
             </Layer>
