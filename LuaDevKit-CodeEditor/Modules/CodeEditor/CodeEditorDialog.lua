@@ -170,6 +170,7 @@ Types
 --- @class LDK_CodeEditorStatusBar : Frame, BackdropTemplate
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Clips the output box; wheel-scrolled, no scrollbar
 --- @field ConsoleSettingsButton DropdownButton
+--- @field ClearOutputButton Button
 
 --- @class LDK_CodeEditorStatusDivider : Button
 --- @field owner LDK_CodeEditorDialog
@@ -237,6 +238,7 @@ Types
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Alias of StatusBar.OutputScrollFrame
 --- @field EvalStatus EditBox                                @Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
 --- @field ConsoleSettingsButton DropdownButton              @Alias of StatusBar.ConsoleSettingsButton
+--- @field ClearOutputButton Button                          @Alias of StatusBar.ClearOutputButton
 --- @field output LDK_OutputLog                              @Evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean
@@ -256,7 +258,6 @@ Types
 LDK_CodeEditorDialogMixin = ns:NewAceEvent()
 local o = LDK_CodeEditorDialogMixin
 
-
 --
 --- @class LDK_CodeEditorDialog : LDK_CodeEditorDialogMixin
 --
@@ -271,9 +272,7 @@ local function DefaultFontFamily() return fut:GetDefaultFontChoice().key end
 --- Falls back if the key no longer resolves (e.g. a removed font family).
 --- @param key string
 --- @return string
-local function ResolveFontFamily(key)
-  return fut:FindFontChoice(key) and key or DefaultFontFamily()
-end
+local function ResolveFontFamily(key) return fut:FindFontChoice(key) and key or DefaultFontFamily() end
 
 --- Copy of a backdrop without one of its pieces.
 --- @param bd LDK_Backdrop
@@ -601,6 +600,7 @@ function o:OnLoad()
   self.OutputScrollFrame = self.StatusBar.OutputScrollFrame
   self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
   self.ConsoleSettingsButton = self.StatusBar.ConsoleSettingsButton
+  self.ClearOutputButton = self.StatusBar.ClearOutputButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
   self:_RegisterMessages()
 end
@@ -658,8 +658,13 @@ end
 --- After the OnLoad_* steps that alias each menu button.
 function o:OnLoad_MenuAutoClose()
   local buttons = {
-    self.OptionsButton, self.ThemeButton, self.FontButton, self.FontSizeButton,
-    self.DocStepper.Dropdown, self.HistoryButton, self.ConsoleSettingsButton,
+    self.OptionsButton,
+    self.ThemeButton,
+    self.FontButton,
+    self.FontSizeButton,
+    self.DocStepper.Dropdown,
+    self.HistoryButton,
+    self.ConsoleSettingsButton,
   }
   for _, button in ipairs(buttons) do
     CloseMenuOnLeave(button)
@@ -716,10 +721,12 @@ function o:OnLoad_Overlays()
     -(i - 3.3),
     i
   )
-  local settings = self.ConsoleSettingsButton
-  -- Above the output box, which would otherwise take its clicks.
-  settings:SetFrameLevel(self.EvalStatus:GetFrameLevel() + 1)
-  settings:SetAlpha(OVERLAY_ALPHA)
+  -- Above the output box, which would otherwise take their clicks.
+  local level = self.EvalStatus:GetFrameLevel() + 1
+  for _, button in ipairs({ self.ConsoleSettingsButton, self.ClearOutputButton }) do
+    button:SetFrameLevel(level)
+    button:SetAlpha(OVERLAY_ALPHA)
+  end
 end
 
 --- Starts at viewport height for a clickable area; RefreshGutter grows it.
@@ -759,7 +766,14 @@ function o:OnLoad_StatusBar()
   self:OnLoad_DividerTooltip()
   self:OnLoad_EvalStatus()
   self:OnLoad_ConsoleSettingsButton()
+  self:OnLoad_ClearOutputButton()
   self:ClearOutput()
+end
+
+function o:OnLoad_ClearOutputButton()
+  local button = self.ClearOutputButton
+  button:SetScript('OnClick', function() self:ClearOutput() end)
+  AddTooltip(button, 'Clear Output')
 end
 
 function o:OnLoad_ConsoleSettingsButton()
@@ -895,7 +909,10 @@ function o:OnLoad_HistoryButton()
   AddTooltip(button, 'Command History')
   -- Own tooltip: its width and font never leak to GameTooltip.
   self.HistoryTooltip = CreateFrame(
-    'GameTooltip', 'LDK_CommandHistoryTooltip', UIParent, 'SharedNoHeaderTooltipTemplate'
+    'GameTooltip',
+    'LDK_CommandHistoryTooltip',
+    UIParent,
+    'SharedNoHeaderTooltipTemplate' --[[@as Template]]
   )
 end
 
@@ -916,9 +933,9 @@ function o:BuildHistoryMenu(root)
     local label = entry.failed and RED_FONT_COLOR:WrapTextInColorCode(plain) or plain
     local row = root:CreateButton(label, function() self:RecallCommand(i) end)
     row:AddInitializer(CapHistoryRowWidth)
-    row:SetOnEnter(function(frame)
-      ShowTruncatedCommand(frame, row, self:SyntaxColor(plain), self.codeFont)
-    end)
+    row:SetOnEnter(
+      function(frame) ShowTruncatedCommand(frame, row, self:SyntaxColor(plain), self.codeFont) end
+    )
   end
 end
 
@@ -1452,8 +1469,9 @@ end
 --- NormalTexture only: the hover highlight stays full strength.
 --- @param output LDK_OutputTheme
 function o:ApplyToolIconAlpha(output)
-  local toolIcons = output.toolIcons or {}
-  self.ConsoleSettingsButton:GetNormalTexture():SetAlpha(toolIcons.alpha or TOOL_ICON_ALPHA)
+  local alpha = (output.toolIcons or {}).alpha or TOOL_ICON_ALPHA
+  self.ConsoleSettingsButton:GetNormalTexture():SetAlpha(alpha)
+  self.ClearOutputButton:GetNormalTexture():SetAlpha(alpha)
 end
 
 --- Places the gear, history arrow and prompt per border.

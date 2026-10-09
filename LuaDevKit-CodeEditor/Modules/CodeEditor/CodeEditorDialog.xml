@@ -346,7 +346,10 @@
 
                  StatusBar.ConsoleSettingsButton: floating gear menu for console
                  font and size; raised in Lua's OnLoad_Overlays, anchored per
-                 theme in ApplyConsoleInsets, faded in ApplyToolIconAlpha. -->
+                 theme in ApplyConsoleInsets, faded in ApplyToolIconAlpha.
+
+                 StatusBar.ClearOutputButton: empties the output panel; sits
+                 below the gear and shares its raise and fade. -->
             <Frame parentKey="StatusBar" inherits="BackdropTemplate">
                 <Size y="100"/>
                 <Anchors>
@@ -394,6 +397,14 @@
                         <NormalTexture file="Interface\Icons\INV_Misc_Gear_01"/>
                         <HighlightTexture file="Interface\Icons\INV_Misc_Gear_01" alphaMode="ADD"/>
                     </DropdownButton>
+                    <Button parentKey="ClearOutputButton">
+                        <Size x="12" y="12"/>
+                        <Anchors>
+                            <Anchor point="TOP" relativeKey="$parent.ConsoleSettingsButton" relativePoint="BOTTOM" x="0" y="-4"/>
+                        </Anchors>
+                        <NormalTexture file="interface\addons\luadevkit\assets\clear-btn"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\clear-btn" alphaMode="ADD"/>
+                    </Button>
                 </Frames>
             </Frame>
 
