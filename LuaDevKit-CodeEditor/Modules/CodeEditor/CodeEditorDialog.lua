@@ -91,6 +91,9 @@ local DROPDOWN_ARROW_SIZE = 18
 -- StaticPopupDialogs key for the unsaved-document prompt.
 local UNSAVED_PROMPT = 'LDK_CODE_EDITOR_UNSAVED'
 
+-- StaticPopupDialogs key for the delete-document confirm.
+local DELETE_PROMPT = 'LDK_CODE_EDITOR_DELETE'
+
 -- StaticPopupDialogs key for the rename and save-as prompt.
 local NAME_PROMPT = 'LDK_CODE_EDITOR_DOC_NAME'
 local DOC_NAME_MAX_LETTERS = 40
@@ -221,6 +224,7 @@ Types
 --- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
 --- @field NewButton Button                                  @Alias of TopBar.NewButton
 --- @field SaveButton Button                                 @Alias of TopBar.SaveButton
+--- @field DeleteButton Button                               @Alias of TopBar.DeleteButton
 --- @field DocStepper LDK_CodeEditorDocStepper               @Alias of TopBar.DocStepper
 --- @field docIndex number?                                  @DocumentStore index being edited; nil before the first
 --- @field dirtyShown boolean?                               @Dirty state the document menu last showed
@@ -653,6 +657,7 @@ function o:Initialize()
   self:OnLoad_MenuAutoClose()
   self:OnLoad_UnsavedPrompt()
   self:OnLoad_NamePrompt()
+  self:OnLoad_DeletePrompt()
 
   -- After OnLoad_Toolbar: the stepper menu must exist.
   self:LoadDocuments()
@@ -715,6 +720,7 @@ function o:OnLoad_NamePrompt()
     OnShow = function(dialog, data)
       local box = dialog:GetEditBox()
       box:SetText(data.name)
+      box:SetFocus()
       box:HighlightText()
     end,
     OnAccept = function(dialog, data) accept(dialog:GetEditBox(), data) end,
@@ -726,6 +732,21 @@ function o:OnLoad_NamePrompt()
     end,
     EditBoxOnTextChanged = StaticPopup_StandardNonEmptyTextHandler,
     EditBoxOnEscapePressed = StaticPopup_StandardEditBoxOnEscapePressed,
+    hideOnEscape = true,
+    timeout = 0,
+    whileDead = true,
+    preferredIndex = 3,
+  }
+end
+
+--- The prompt's data is the index of the document to delete.
+function o:OnLoad_DeletePrompt()
+  StaticPopupDialogs[DELETE_PROMPT] = {
+    text = L['Delete "%s"?'],
+    button1 = L['Delete'],
+    button2 = L['Cancel'],
+    OnAccept = function(_, index) self:DeleteDocument(index) end,
+    showAlert = true,
     hideOnEscape = true,
     timeout = 0,
     whileDead = true,
@@ -1088,6 +1109,7 @@ function o:OnLoad_Toolbar()
   self:OnLoad_Fonts()
   self:OnLoad_NewButton()
   self:OnLoad_SaveButton()
+  self:OnLoad_DeleteButton()
   self:OnLoad_DocStepper()
   self:OnLoad_ToolbarEdges()
   self:OnLoad_ToolbarIcons()
@@ -1123,7 +1145,9 @@ end
 function o:LayoutToolbarIcons(size, gap)
   PixelUtil.SetSize(self.NewButton, size, size)
   PixelUtil.SetSize(self.SaveButton, size, size)
+  PixelUtil.SetSize(self.DeleteButton, size, size)
   PixelUtil.SetPoint(self.SaveButton, 'LEFT', self.NewButton, 'RIGHT', gap, 0)
+  PixelUtil.SetPoint(self.DeleteButton, 'LEFT', self.SaveButton, 'RIGHT', gap, 0)
   local prev
   for _, button in ipairs(self:RightToolbarIcons()) do
     PixelUtil.SetSize(button, size, size)
@@ -1142,6 +1166,12 @@ function o:OnLoad_SaveButton()
   self.SaveButton = self.TopBar.SaveButton
   self.SaveButton:SetScript('OnClick', function() self:SaveDocument() end)
   AddTooltip(self.SaveButton, 'Save Document')
+end
+
+function o:OnLoad_DeleteButton()
+  self.DeleteButton = self.TopBar.DeleteButton
+  self.DeleteButton:SetScript('OnClick', function() self:PromptDeleteDocument() end)
+  AddTooltip(self.DeleteButton, 'Delete Document')
 end
 
 function o:OnLoad_DocStepper()
@@ -1164,7 +1194,7 @@ function o:OnDocDropdownMouseDown(button)
   action(self)
 end
 
---- Chains the back arrow and dropdown off SaveButton by `gap`.
+--- Chains the back arrow and dropdown off DeleteButton by `gap`.
 --- @param height number
 --- @param gap number
 function o:LayoutDocStepper(height, gap)
@@ -1178,7 +1208,7 @@ function o:LayoutDocStepper(height, gap)
   -- Replaces the mixin's back-arrow anchor to the dropdown.
   back:ClearAllPoints()
   -- Offsets on a scaled frame scale too; divide it back out.
-  PixelUtil.SetPoint(back, 'LEFT', self.SaveButton, 'RIGHT', gap / back:GetScale(), 0)
+  PixelUtil.SetPoint(back, 'LEFT', self.DeleteButton, 'RIGHT', gap / back:GetScale(), 0)
   PixelUtil.SetPoint(dropdown, 'LEFT', back, 'RIGHT', -stepper.decrementOffsetX, 0)
 end
 
@@ -2026,6 +2056,29 @@ end
 
 --- @param name string
 function o:SaveDocumentAs(name) self:OpenDocument(DS:Add(name, self:GetText())) end
+
+function o:PromptDeleteDocument()
+  if not self.docIndex then return end
+  StaticPopup_Show(DELETE_PROMPT, self:DocumentName(), nil, self.docIndex)
+end
+
+--- Deleting the current document shows its neighbor; the
+--- last one left is replaced by an empty document.
+--- @param index number
+function o:DeleteDocument(index)
+  -- Their callbacks hold indexes that are about to shift.
+  StaticPopup_Hide(UNSAVED_PROMPT)
+  StaticPopup_Hide(NAME_PROMPT)
+  DS:Remove(index)
+  local current = self.docIndex
+  if index ~= current then
+    if current and index < current then self.docIndex = current - 1 end
+    return self.DocStepper.Dropdown:GenerateMenu()
+  end
+  self.docIndex = nil
+  if DS:Count() == 0 then return self:AddDocument('') end
+  self:OpenDocument(math.min(index, DS:Count()))
+end
 
 --- One radio per document; the steppers walk the same radios.
 --- @param root RootMenuDescriptionProxy

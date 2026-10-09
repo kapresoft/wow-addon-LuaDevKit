@@ -48,3 +48,7 @@ function o:SetText(index, text) Docs()[index].text = text end
 --- @param index number
 --- @param name string
 function o:SetName(index, name) Docs()[index].name = name end
+
+--- Later documents shift down one index.
+--- @param index number
+function o:Remove(index) table.remove(Docs(), index) end

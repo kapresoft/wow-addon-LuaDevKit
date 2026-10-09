@@ -3,7 +3,6 @@ local ns = select(2, ...)
 local O = ns.O
 local THEME = O.Backdrops.theme
 
--- todo: delete document (next to save)
 -- todo: handle profile-switch
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Save Editor Anchor/Location (global)
