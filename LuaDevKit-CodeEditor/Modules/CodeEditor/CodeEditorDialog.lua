@@ -9,6 +9,8 @@ local L = ns:GetLocale()
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
+-- todo: DocStepper: shift-click rename doc with new name prompt (add to tooltip)
+-- todo: DocStepper: alt-click save-as new doc with new name prompt (add to tooltip)
 -- todo: double-click selects word
 
 --[[-----------------------------------------------------------------------------
@@ -28,8 +30,6 @@ local GUTTER = {
 
 local HEADER_HEIGHT = 28
 
--- StatusBar's initial height; clamped via MIN_CODE_HEIGHT.
-local STATUS_BAR_HEIGHT = 100
 local MIN_STATUS_HEIGHT = 40
 local MIN_CODE_HEIGHT = 60
 
@@ -439,10 +439,10 @@ end
 
 --- Tallest StatusBar that still leaves MIN_CODE_HEIGHT for the code area.
 --- @param self LDK_CodeEditorDialog
---- @return number
+--- @return number @math.huge before the first layout: no cap yet
 local function MaxStatusHeight(self)
   local top, bottom = self.TopBar:GetBottom(), self.BottomBar:GetTop()
-  if not top or not bottom then return STATUS_BAR_HEIGHT end
+  if not top or not bottom then return math.huge end
   return math.max(
     MIN_STATUS_HEIGHT,
     top - bottom - STATUS_DIVIDER_HEIGHT - COMMAND_BAR_HEIGHT - MIN_CODE_HEIGHT
@@ -671,7 +671,6 @@ function o:OnLoad_RunButton()
 end
 
 function o:OnLoad_StatusBar()
-  self.StatusBar:SetHeight(STATUS_BAR_HEIGHT)
   local divider = self.StatusDivider
   divider.MaximizeButton:SetScript('OnClick', function() self:MaximizeStatus() end)
   divider.MinimizeButton:SetScript('OnClick', function() self:MinimizeStatus() end)
@@ -1128,6 +1127,7 @@ function o:OnShow()
   self:Raise()
   -- Scale may change while hidden; re-clamp visibly on the way in.
   self:ClampToScreen(true)
+  self:SetStatusHeight(self:GetStatusHeight())
   -- SetFocus() needs the frame visible; OnLoad ran while still hidden.
   if not self.initialFocusApplied then
     self.initialFocusApplied = true
@@ -1531,7 +1531,7 @@ function o:SetWrapText(enabled, save)
   if save then ns:editor().wrapText = self.wrapText end
 end
 
---- Applies the saved text settings; doesn't write back.
+--- Applies the saved settings; doesn't write back.
 --- @see LDK_CodeEditorDialogMixin.Initialize
 function o:Configure()
   local g = ns:g()
@@ -1542,7 +1542,11 @@ function o:Configure()
   local wrapText = editor.wrapText
   if wrapText == nil then wrapText = DEFAULTS.wrapText end
   self:SetWrapText(wrapText)
+  self:ConfigureOutputHeight()
 end
+
+--- Unclamped: OnShow clamps it once the dialog has a layout.
+function o:ConfigureOutputHeight() self.StatusBar:SetHeight(ns:p().outputHeight) end
 
 --- Applies the saved theme, code font and size.
 --- @param editor LDK_DB_EditorConfig
@@ -1647,10 +1651,12 @@ Status bar: divider drag and evaluation output
 --- away. The code area needs no work of its own: GutterBackdrop and
 --- CodeBackdrop anchor their bottoms to StatusDivider, so it follows.
 --- @param height number
-function o:SetStatusHeight(height)
+--- @param save boolean? @Save to the DB (user-driven change); omit for re-clamps
+function o:SetStatusHeight(height, save)
   local maxHeight = MaxStatusHeight(self)
   height = Clamp(height, MIN_STATUS_HEIGHT, maxHeight)
   if SizeDiffers(self.StatusBar:GetHeight(), height) then self.StatusBar:SetHeight(height) end
+  if save then ns:p().outputHeight = height end
   -- Disable the arrow for whichever end the panel is already at.
   local divider = self.StatusDivider
   UpdateArrowState(divider.MaximizeButton, SizeDiffers(height, maxHeight))
@@ -1661,10 +1667,10 @@ end
 function o:GetStatusHeight() return self.StatusBar:GetHeight() end
 
 --- Grows the output panel as far as MIN_CODE_HEIGHT allows (the up arrow).
-function o:MaximizeStatus() self:SetStatusHeight(MaxStatusHeight(self)) end
+function o:MaximizeStatus() self:SetStatusHeight(MaxStatusHeight(self), true) end
 
 --- Shrinks the output panel to MIN_STATUS_HEIGHT (the down arrow).
-function o:MinimizeStatus() self:SetStatusHeight(MIN_STATUS_HEIGHT) end
+function o:MinimizeStatus() self:SetStatusHeight(MIN_STATUS_HEIGHT, true) end
 
 --- @return boolean
 function o:IsStatusMax() return not SizeDiffers(self:GetStatusHeight(), MaxStatusHeight(self)) end
@@ -1698,7 +1704,7 @@ function o:OnStatusDividerUpdate()
   local divider = self.StatusDivider
   if not divider.cursorStart then return end
   local delta = (select(2, GetCursorPosition()) - divider.cursorStart) / self:GetEffectiveScale()
-  self:SetStatusHeight(divider.heightStart + delta)
+  self:SetStatusHeight(divider.heightStart + delta, true)
 end
 
 --- @param hovered boolean

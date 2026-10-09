@@ -3,9 +3,9 @@ local ns = select(2, ...)
 local O = ns.O
 local THEME = O.Backdrops.theme
 
--- todo: remember divider position (profile)
 -- todo: Remember Last 10 commands in db (global)
 -- todo: add a clear console below settings icon
+-- todo: handle profile-switch
 
 --[[-----------------------------------------------------------------------------
 Types
@@ -26,8 +26,9 @@ Types
 
 --- @class LDK_DB_ProfileConfig
 --- @field docs LDK_Document[] @This profile's script workspace
+--- @field outputHeight number @Output panel height in UI units; clamped on show
 
---- @class LDK_DB_DefaultDatabase
+--- @class LDK_DB_DefaultDatabase : AceDB.Schema
 --- @field global LDK_DB_GlobalConfig
 --- @field profile LDK_DB_ProfileConfig
 
@@ -72,7 +73,7 @@ local DEFAULT_DB = {
       fontSize = 10,
     },
   },
-  profile = { docs = {} },
+  profile = { docs = {}, outputHeight = 100 },
 }
 
 --- AceDB defaults; registered by DatabaseAccessMixin:InitDb(). Unset
