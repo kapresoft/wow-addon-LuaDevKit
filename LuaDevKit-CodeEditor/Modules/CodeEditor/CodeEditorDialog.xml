@@ -139,6 +139,7 @@
                     </OnMouseDown>
                     <OnMouseUp>
                         self:GetParent():StopMovingOrSizing()
+                        self:GetParent():SaveWindowRect()
                     </OnMouseUp>
                 </Scripts>
             </Frame>
@@ -176,6 +177,7 @@
                     <OnMouseUp>
                         self:GetParent():StopMovingOrSizing()
                         self:GetParent():ClampToScreen()
+                        self:GetParent():SaveWindowRect()
                     </OnMouseUp>
                 </Scripts>
             </Frame>

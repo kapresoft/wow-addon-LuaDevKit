@@ -5,7 +5,6 @@ local THEME = O.Backdrops.theme
 
 -- todo: handle profile-switch
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
--- todo: Save Editor Anchor/Location (global)
 
 --[[-----------------------------------------------------------------------------
 Types
@@ -22,9 +21,16 @@ Types
 --- @field fontSize number                   @Or SAME_AS_EDITOR_SIZE
 --- @field history LDK_CommandHistoryEntry[] @Oldest first
 
+--- @class LDK_DB_WindowConfig
+--- @field left number?   @BOTTOMLEFT offset from UIParent; nil keeps the XML anchor
+--- @field bottom number?
+--- @field width number?  @nil keeps the XML size
+--- @field height number?
+
 --- @class LDK_DB_GlobalConfig
 --- @field editor LDK_DB_EditorConfig
 --- @field console LDK_DB_ConsoleConfig
+--- @field window LDK_DB_WindowConfig                @Editor position and size, saved on drag and resize
 --- @field helpTipsDismissed table<string, boolean> @Keyed by tour step key; true once closed or its action is done
 --- @field tourBaseline number?                     @Highest tour `since` at the first editor open; nil until then
 
@@ -78,6 +84,7 @@ local DEFAULT_DB = {
       fontSize = 10,
       history = {},
     },
+    window = {},
     helpTipsDismissed = {},
   },
   profile = { docs = {}, docIndex = 1, outputHeight = 100 },

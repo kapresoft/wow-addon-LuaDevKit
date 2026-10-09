@@ -10,6 +10,7 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
+-- todo: double-click frame header maximizes editor
 -- todo: double-click selects word
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
 
@@ -649,6 +650,8 @@ function o:Initialize()
   else
     self:SetMinResize(400, 250)
   end
+  -- global.window restores it; WoW's layout cache would fight that.
+  self:SetDontSavePosition(true)
 
   self:OnLoad_ScaleWatcher()
   self:OnLoad_Header()
@@ -1746,6 +1749,24 @@ function o:Configure()
   if wrapText == nil then wrapText = DEFAULTS.wrapText end
   self:SetWrapText(wrapText)
   self:ConfigureOutputHeight()
+  self:ConfigureWindow()
+end
+
+--- Unclamped: OnShow clamps it once the dialog is visible.
+function o:ConfigureWindow()
+  local window = ns:g().window
+  if window.width and window.height then PixelUtil.SetSize(self, window.width, window.height) end
+  if window.left and window.bottom then
+    self:ClearAllPoints()
+    PixelUtil.SetPoint(self, 'BOTTOMLEFT', UIParent, 'BOTTOMLEFT', window.left, window.bottom)
+  end
+end
+
+--- Saved on drag and resize ends, not on automatic clamps.
+function o:SaveWindowRect()
+  local window = ns:g().window
+  window.left, window.bottom = self:GetLeft(), self:GetBottom()
+  window.width, window.height = self:GetSize()
 end
 
 --- Unclamped: OnShow clamps it once the dialog has a layout.
