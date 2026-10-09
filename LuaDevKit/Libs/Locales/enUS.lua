@@ -63,6 +63,7 @@ L['Save Document As'] = true
 L['%s Copy'] = true
 L['Untitled'] = true
 L['Show Toolbar'] = true
+L['Options::HelpTip'] = 'More options here'
 L['Save on Run'] = true
 L['Save changes to "%s"?'] = true
 L['Save'] = true

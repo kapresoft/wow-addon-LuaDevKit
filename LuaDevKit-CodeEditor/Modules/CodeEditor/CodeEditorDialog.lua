@@ -10,6 +10,7 @@ local upk = unpack
 local libName = 'CodeEditorDialog'
 
 -- todo: double-click selects word
+-- todo: Review this file -- it's getting too large; look for things to functionally pull out
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -219,6 +220,7 @@ Types
 --- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
 --- @field TopBar Frame                                      @Toolbar: document controls left, dropdowns right
 --- @field OptionsButton DropdownButton                      @Alias of Header.OptionsButton
+--- @field OptionsTip LDK_HelpTip                            @Points at OptionsButton until dismissed
 --- @field ThemeButton DropdownButton                        @Alias of TopBar.ThemeButton
 --- @field FontButton DropdownButton                         @Alias of TopBar.FontButton
 --- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
@@ -1075,7 +1077,13 @@ function o:OnLoad_Header()
   self:OnLoad_OptionsButton()
 end
 
-function o:OnLoad_OptionsButton() PinArrowSize(self.OptionsButton, DROPDOWN_ARROW_SIZE) end
+function o:OnLoad_OptionsButton()
+  PinArrowSize(self.OptionsButton, DROPDOWN_ARROW_SIZE)
+  self.OptionsButton:RegisterCallback(
+    DropdownButtonMixin.Event.OnMenuOpen,
+    function() self.OptionsTip:Dismiss() end
+  )
+end
 
 --- @param root RootMenuDescriptionProxy
 function o:BuildOptionsMenu(root)
@@ -1319,6 +1327,7 @@ function o:OnShow()
   -- Scale may change while hidden; re-clamp visibly on the way in.
   self:ClampToScreen(true)
   self:SetStatusHeight(self:GetStatusHeight())
+  self.OptionsTip:ShowOnce(self.Header.OptionsButton)
   -- SetFocus() needs the frame visible; OnLoad ran while still hidden.
   if not self.initialFocusApplied then
     self.initialFocusApplied = true

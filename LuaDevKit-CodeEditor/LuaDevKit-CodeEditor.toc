@@ -13,6 +13,7 @@ Namespace.lua
 #@do-not-package@
 Developer\DeveloperSetup.lua
 #@end-do-not-package@
+Modules\HelpTips\HelpTips.xml
 Modules\CodeEditor\CodeEditorDialog.xml
 CodeEditor.lua
 #@do-not-package@

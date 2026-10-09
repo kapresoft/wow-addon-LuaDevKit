@@ -658,6 +658,16 @@
                  backdrop in ApplyTheme so it draws over StatusBar and
                  CommandBar; raised in Lua's OnLoad_Border. -->
             <Frame parentKey="Border" inherits="BackdropTemplate" setAllPoints="true"/>
+
+            <!-- OptionsTip: one-time tip pointing at Header.OptionsButton; shown
+                 in Lua's OnShow, dismissed by its close button or by opening
+                 the Options menu. -->
+            <Frame parentKey="OptionsTip" inherits="LDK_HelpTipTemplate">
+                <KeyValues>
+                    <KeyValue key="tipKey" value="OptionsMenu"/>
+                    <KeyValue key="textKey" value="Options::HelpTip"/>
+                </KeyValues>
+            </Frame>
         </Frames>
     </Frame>
 </Ui>

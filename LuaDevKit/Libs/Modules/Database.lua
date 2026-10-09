@@ -25,6 +25,7 @@ Types
 --- @class LDK_DB_GlobalConfig
 --- @field editor LDK_DB_EditorConfig
 --- @field console LDK_DB_ConsoleConfig
+--- @field helpTipsDismissed table<string, boolean> @Keyed by tipKey; true once closed or its action is done
 
 --- @class LDK_DB_ProfileConfig
 --- @field docs LDK_Document[] @This profile's script workspace
@@ -76,6 +77,7 @@ local DEFAULT_DB = {
       fontSize = 10,
       history = {},
     },
+    helpTipsDismissed = {},
   },
   profile = { docs = {}, docIndex = 1, outputHeight = 100 },
 }
