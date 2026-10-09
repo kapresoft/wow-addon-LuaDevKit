@@ -9,8 +9,8 @@ local L = ns:GetLocale()
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
+-- todo: remember last opened doc
 -- todo: double-click selects word
--- todo: save icon disabled/contrasted when not dirty; normal when dirty
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -225,10 +225,11 @@ Types
 --- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
 --- @field NewButton Button                                  @Alias of TopBar.NewButton
 --- @field SaveButton Button                                 @Alias of TopBar.SaveButton
+--- @field refreshSaveTooltip fun()                          @Redraws SaveButton's tooltip if showing
 --- @field DeleteButton Button                               @Alias of TopBar.DeleteButton
 --- @field DocStepper LDK_CodeEditorDocStepper               @Alias of TopBar.DocStepper
 --- @field docIndex number?                                  @DocumentStore index being edited; nil before the first
---- @field dirtyShown boolean?                               @Dirty state the document menu last showed
+--- @field dirtyShown boolean?                               @Dirty state the menu and Save button last showed
 --- @field topBarHeight number                               @TopBar height to restore after a collapse
 --- @field codeFont Font
 --- @field fontFamily string                                 @Key of the currently applied font (see FontUtil:GetFontChoices())
@@ -470,21 +471,22 @@ local function MaxStatusHeight(self)
 end
 
 --- @param frame Frame
---- @param key string                    @Locale key of the label; the description is key .. '::Desc'
---- @param hintKey (fun(): string) | nil @Returns a locale key for a green instruction line
+--- @param key string                     @Locale key of the label; the description is key .. '::Desc'
+--- @param hintKey (fun(): string?) | nil @Returns a locale key for a green instruction line, or nil for none
 local function ShowTooltip(frame, key, hintKey)
   GameTooltip_SetDefaultAnchor(GameTooltip, frame)
   GameTooltip_SetTitle(GameTooltip, L[key])
   GameTooltip_AddNormalLine(GameTooltip, L[key .. '::Desc'])
-  if hintKey then GameTooltip_AddInstructionLine(GameTooltip, L[hintKey()]) end
+  local hint = hintKey and hintKey()
+  if hint then GameTooltip_AddInstructionLine(GameTooltip, L[hint]) end
   GameTooltip:Show()
 end
 
 --- Standard hover tooltip; hooked so it composes with a frame's own OnEnter.
 --- @param frame Frame
---- @param key string                    @Locale key of the label; the description is key .. '::Desc'
---- @param hintKey (fun(): string) | nil @Re-evaluated on every show; see ShowTooltip
---- @return fun()                        @Redraws the tooltip if it is showing for frame
+--- @param key string                     @Locale key of the label; the description is key .. '::Desc'
+--- @param hintKey (fun(): string?) | nil @Re-evaluated on every show; see ShowTooltip
+--- @return fun()                         @Redraws the tooltip if it is showing for frame
 local function AddTooltip(frame, key, hintKey)
   local function show() ShowTooltip(frame, key, hintKey) end
   frame:HookScript('OnEnter', show)
@@ -1166,7 +1168,16 @@ end
 function o:OnLoad_SaveButton()
   self.SaveButton = self.TopBar.SaveButton
   self.SaveButton:SetScript('OnClick', function() self:SaveDocument() end)
-  AddTooltip(self.SaveButton, 'Save Document')
+  self.refreshSaveTooltip = AddTooltip(
+    self.SaveButton,
+    'Save Document',
+    function() return self:SaveHintKey() end
+  )
+end
+
+--- @return string? @nil while there are unsaved changes
+function o:SaveHintKey()
+  if not self.dirtyShown then return 'Save Document::Hint' end
 end
 
 function o:OnLoad_DeleteButton()
@@ -2009,11 +2020,14 @@ function o:SaveDocument()
   self:RefreshDirtyMark()
 end
 
---- Regenerates the document menu only when the dirty state flips.
+--- Updates the document menu and Save button only when the dirty state flips.
 function o:RefreshDirtyMark()
   local dirty = self:IsDirty()
   if dirty == self.dirtyShown then return end
   self.dirtyShown = dirty
+  -- Disabling inside its own OnClick breaks its textures.
+  C_Timer.After(0.1, function() self.SaveButton:SetEnabled(dirty) end)
+  self.refreshSaveTooltip()
   self.DocStepper.Dropdown:GenerateMenu()
 end
 

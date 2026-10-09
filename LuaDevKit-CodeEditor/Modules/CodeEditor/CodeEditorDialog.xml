@@ -189,7 +189,8 @@
                  stepper height and the bar height come from Lua's LayoutToolbar.
 
                  TopBar.SaveButton, TopBar.DeleteButton: each chained off the
-                 button before it in Lua.
+                 button before it in Lua. SaveButton is disabled (greyed) while
+                 the document has no unsaved changes; see RefreshDirtyMark.
 
                  TopBar.DocStepper: Blizzard's dropdown with steppers; its
                  template requires the Dropdown child declared here. Its back
@@ -209,6 +210,7 @@
                             <Anchor point="LEFT" relativeKey="$parent.NewButton" relativePoint="RIGHT"/>
                         </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\save-btn"/>
+                        <DisabledTexture file="interface\addons\luadevkit\assets\save-btn-disabled"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\save-btn" alphaMode="ADD"/>
                     </Button>
                     <Button parentKey="DeleteButton">

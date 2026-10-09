@@ -50,6 +50,7 @@ L['New Document'] = true
 L['New Document::Desc'] = 'Start a new, empty Lua document.'
 L['Save Document'] = true
 L['Save Document::Desc'] = 'Save this document.'
+L['Save Document::Hint'] = 'No unsaved changes'
 L['Delete Document'] = true
 L['Delete Document::Desc'] = 'Delete this document.'
 L['Delete "%s"?'] = true
