@@ -9,7 +9,6 @@ local L = ns:GetLocale()
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: remember last opened doc
 -- todo: double-click selects word
 
 --[[-----------------------------------------------------------------------------
@@ -1973,10 +1972,10 @@ function o:NewDocument()
   self:ConfirmLeaveDocument(function() self:AddDocument('') end)
 end
 
---- Shows the profile's first document; starts one if it has none.
+--- Reopens the profile's last document; starts one if it has none.
 function o:LoadDocuments()
   if DS:Count() == 0 then return self:AddDocument(STARTER_CODE) end
-  self:OpenDocument(1)
+  self:OpenDocument(Clamp(ns:p().docIndex, 1, DS:Count()))
 end
 
 --- Numbered past the highest in use, so a delete can't cause repeats.
@@ -2007,11 +2006,18 @@ end
 --- @param index number
 function o:ShowDocument(index)
   if index == self.docIndex then return end
-  self.docIndex = index
+  self:SetDocIndex(index)
   self:SetText(DS:Get(index).text)
   self.CodeEditBox:SetCursorPosition(0)
   -- OnTextChanged skips text equal to the last document's.
   self:RefreshDirtyMark()
+end
+
+--- Remembered per profile, so the next load reopens it.
+--- @param index number
+function o:SetDocIndex(index)
+  self.docIndex = index
+  ns:p().docIndex = index
 end
 
 --- Copies the editor text into the current document.
@@ -2097,7 +2103,7 @@ function o:DeleteDocument(index)
   DS:Remove(index)
   local current = self.docIndex
   if index ~= current then
-    if current and index < current then self.docIndex = current - 1 end
+    if current and index < current then self:SetDocIndex(current - 1) end
     return self.DocStepper.Dropdown:GenerateMenu()
   end
   self.docIndex = nil

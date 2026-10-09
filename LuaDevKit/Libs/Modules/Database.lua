@@ -28,6 +28,7 @@ Types
 
 --- @class LDK_DB_ProfileConfig
 --- @field docs LDK_Document[] @This profile's script workspace
+--- @field docIndex number     @Last opened document; clamped on load
 --- @field outputHeight number @Output panel height in UI units; clamped on show
 
 --- @class LDK_DB_DefaultDatabase : AceDB.Schema
@@ -76,7 +77,7 @@ local DEFAULT_DB = {
       history = {},
     },
   },
-  profile = { docs = {}, outputHeight = 100 },
+  profile = { docs = {}, docIndex = 1, outputHeight = 100 },
 }
 
 --- AceDB defaults; registered by DatabaseAccessMixin:InitDb(). Unset
