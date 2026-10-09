@@ -51,5 +51,5 @@ L['Save Document::Desc'] = 'Save this document.'
 L['Open Document'] = true
 L['Open Document::Desc'] = 'Switch to another document; the arrows step through them.'
 L['Untitled'] = true
-L['Hide Toolbar'] = true
 L['Show Toolbar'] = true
+L['Save on Run'] = true

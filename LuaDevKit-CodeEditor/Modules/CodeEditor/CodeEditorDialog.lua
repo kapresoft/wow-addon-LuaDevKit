@@ -90,6 +90,10 @@ local GUTTER_SLACK = 0
 -- Arrow dropdown glyph; sized by the atlas, not the button.
 local DROPDOWN_ARROW_SIZE = 18
 
+-- Seconds off a menu before it closes; covers the button gap.
+local MENU_LEAVE_DELAY = 0.3
+local MENU_LEAVE_POLL = 0.1
+
 -- Echoed commands in the output; ASCII so every code font has it.
 local COMMAND_ECHO_PREFIX = '> '
 
@@ -485,6 +489,38 @@ local function PinArrowSize(button, size)
   hooksecurefunc(arrow, 'SetAtlas', SizeArrow)
 end
 
+--- @param button DropdownButton
+--- @param menus Frame[] @The open menu and its submenus
+--- @return boolean
+local function IsMouseOverMenu(button, menus)
+  if button:IsMouseOver() then return true end
+  for _, menu in ipairs(menus) do
+    if menu:IsShown() and menu:IsMouseOver() then return true end
+  end
+  return false
+end
+
+--- Closes the menu once the mouse is off it, its submenus and the button.
+--- @param button DropdownButton
+local function CloseMenuOnLeave(button)
+  local ticker
+  local function stop()
+    if ticker then ticker:Cancel() end
+    ticker = nil
+  end
+  button:RegisterCallback(DropdownButtonMixin.Event.OnMenuOpen, function()
+    stop()
+    local menus, away = { Menu.GetManager():GetOpenMenu() }, 0
+    -- Submenus share the root's callbacks, so this sees each one open.
+    button:GetMenuDescription():AddMenuAcquiredCallback(function(menu) menus[#menus + 1] = menu end)
+    ticker = C_Timer.NewTicker(MENU_LEAVE_POLL, function()
+      away = IsMouseOverMenu(button, menus) and 0 or away + MENU_LEAVE_POLL
+      if away >= MENU_LEAVE_DELAY then button:CloseMenu() end
+    end)
+  end, button)
+  button:RegisterCallback(DropdownButtonMixin.Event.OnMenuClose, stop, button)
+end
+
 --- Runs after Blizzard's SetTextToFit, which sizes text to fit.
 --- @param button Button @Menu row with a fontString
 local function CapHistoryRowWidth(button)
@@ -602,12 +638,24 @@ function o:Initialize()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
+  self:OnLoad_MenuAutoClose()
 
   -- After OnLoad_Toolbar: the stepper menu must exist.
   self:LoadDocuments()
 
   self:RefreshGutter()
   self:Configure()
+end
+
+--- After the OnLoad_* steps that alias each menu button.
+function o:OnLoad_MenuAutoClose()
+  local buttons = {
+    self.OptionsButton, self.ThemeButton, self.FontButton, self.FontSizeButton,
+    self.DocStepper.Dropdown, self.HistoryButton, self.ConsoleSettingsButton,
+  }
+  for _, button in ipairs(buttons) do
+    CloseMenuOnLeave(button)
+  end
 end
 
 function o:_RegisterMessages()
@@ -912,17 +960,19 @@ function o:OnLoad_Header()
   self.CloseButton:SetScript('OnClick', function() self:OnClickClose() end)
 
   self.OptionsButton = header.OptionsButton
-  -- Options and Results Inspector are placeholders, no action yet.
-  self.OptionsButton:SetupMenu(function(_, rootDescription)
-    rootDescription:CreateButton('Options', function() end)
-    rootDescription:CreateButton('Results Inspector', function() end)
-    local toggle = self.TopBar:IsShown() and 'Hide Toolbar' or 'Show Toolbar'
-    rootDescription:CreateButton(L[toggle], function() self:ToggleToolbar() end)
-  end)
+  self.OptionsButton:SetupMenu(function(_, root) self:BuildOptionsMenu(root) end)
   self:OnLoad_OptionsButton()
 end
 
 function o:OnLoad_OptionsButton() PinArrowSize(self.OptionsButton, DROPDOWN_ARROW_SIZE) end
+
+--- @param root RootMenuDescriptionProxy
+function o:BuildOptionsMenu(root)
+  local function isSaveOnRun() return ns:editor().saveOnRun end
+  root:CreateCheckbox(L['Save on Run'], isSaveOnRun, function() self:ToggleSaveOnRun() end)
+  local function isToolbarShown() return self.TopBar:IsShown() end
+  root:CreateCheckbox(L['Show Toolbar'], isToolbarShown, function() self:ToggleToolbar() end)
+end
 
 function o:OnLoad_ThemeButton()
   --- @param rootDescription RootMenuDescriptionProxy
@@ -1826,9 +1876,14 @@ end
 --[[-----------------------------------------------------------------------------
 Run: evaluates the whole editor buffer
 -------------------------------------------------------------------------------]]
---- Saves the document first; output goes to the output panel.
+function o:ToggleSaveOnRun()
+  local editor = ns:editor()
+  editor.saveOnRun = not editor.saveOnRun
+end
+
+--- Saves the document first if Save on Run is on; output goes to the output panel.
 function o:Run()
-  self:SaveDocument()
+  if ns:editor().saveOnRun then self:SaveDocument() end
   local text = self:GetText()
   if str_isBlank(text) then return end
   self:AppendOutput(COMMAND_ECHO_PREFIX .. 'run ' .. self:DocumentName())

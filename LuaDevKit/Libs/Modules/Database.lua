@@ -15,6 +15,7 @@ Types
 --- @field fontFamily? string @Key into FontUtil:GetFontChoices()
 --- @field fontSize? number
 --- @field wrapText? boolean
+--- @field saveOnRun? boolean
 
 --- @class LDK_DB_ConsoleConfig
 --- @field fontFamily string @Font key, or SAME_AS_EDITOR_FONT
@@ -67,6 +68,7 @@ local DEFAULT_DB = {
       theme = THEME.DarkKnight,
       fontFamily = 'JetBrainsMono',
       fontSize = 12,
+      saveOnRun = true,
     },
     console = {
       fontFamily = 'Inconsolata',
