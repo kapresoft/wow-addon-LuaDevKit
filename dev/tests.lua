@@ -2,10 +2,10 @@
 -- cleanup via real db
 local function cleanupDb()
   local realdb = LUADEVKIT_DB
-  realdb['global'] = {}
-  realdb['profileKeys'] = {}
-  realdb['profiles'] = {}
-end
+  realdb['global'] = nil
+  realdb['profileKeys'] = nil
+  realdb['profiles'] = nil
+end; cleanupDb()
 
 local function t1()
   local db = LUADEVKIT_DB
