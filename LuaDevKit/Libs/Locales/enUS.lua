@@ -53,3 +53,7 @@ L['Open Document::Desc'] = 'Switch to another document; the arrows step through 
 L['Untitled'] = true
 L['Show Toolbar'] = true
 L['Save on Run'] = true
+L['Save changes to "%s"?'] = true
+L['Save'] = true
+L['Cancel'] = true
+L['Discard'] = true

@@ -6,6 +6,7 @@ local THEME = O.Backdrops.theme
 -- todo: Remember Last 10 commands in db (global)
 -- todo: add a clear console below settings icon
 -- todo: handle profile-switch
+-- todo: Save/Cancel/Discard prompt is ugly. Replace?
 
 --[[-----------------------------------------------------------------------------
 Types

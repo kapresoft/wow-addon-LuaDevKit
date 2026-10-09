@@ -90,12 +90,18 @@ local GUTTER_SLACK = 0
 -- Arrow dropdown glyph; sized by the atlas, not the button.
 local DROPDOWN_ARROW_SIZE = 18
 
+-- StaticPopupDialogs key for the unsaved-document prompt.
+local UNSAVED_PROMPT = 'LDK_CODE_EDITOR_UNSAVED'
+
 -- Seconds off a menu before it closes; covers the button gap.
 local MENU_LEAVE_DELAY = 0.3
 local MENU_LEAVE_POLL = 0.1
 
 -- Echoed commands in the output; ASCII so every code font has it.
 local COMMAND_ECHO_PREFIX = '> '
+
+-- Prefixed to the open document's name while it has unsaved edits.
+local DIRTY_MARK = '*'
 
 -- First document of a profile that has none.
 local STARTER_CODE = [==[
@@ -211,6 +217,7 @@ Types
 --- @field SaveButton Button                                 @Alias of TopBar.SaveButton
 --- @field DocStepper LDK_CodeEditorDocStepper               @Alias of TopBar.DocStepper
 --- @field docIndex number?                                  @DocumentStore index being edited; nil before the first
+--- @field dirtyShown boolean?                               @Dirty state the document menu last showed
 --- @field topBarHeight number                               @TopBar height to restore after a collapse
 --- @field codeFont Font
 --- @field fontFamily string                                 @Key of the currently applied font (see FontUtil:GetFontChoices())
@@ -639,6 +646,7 @@ function o:Initialize()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
   self:OnLoad_MenuAutoClose()
+  self:OnLoad_UnsavedPrompt()
 
   -- After OnLoad_Toolbar: the stepper menu must exist.
   self:LoadDocuments()
@@ -656,6 +664,28 @@ function o:OnLoad_MenuAutoClose()
   for _, button in ipairs(buttons) do
     CloseMenuOnLeave(button)
   end
+end
+
+--- The prompt's data is the switch to run after Save or Discard.
+function o:OnLoad_UnsavedPrompt()
+  StaticPopupDialogs[UNSAVED_PROMPT] = {
+    text = L['Save changes to "%s"?'],
+    button1 = L['Save'],
+    button2 = L['Cancel'],
+    button3 = L['Discard'],
+    selectCallbackByIndex = true,
+    OnButton1 = function(_, proceed)
+      self:SaveDocument()
+      proceed()
+    end,
+    -- Without a handler the button wouldn't hide the prompt.
+    OnButton2 = function() end,
+    OnButton3 = function(_, proceed) proceed() end,
+    hideOnEscape = true,
+    timeout = 0,
+    whileDead = true,
+    preferredIndex = 3,
+  }
 end
 
 function o:_RegisterMessages()
@@ -1262,6 +1292,7 @@ function o:OnCodeEditBoxTextChanged()
   self.lastGutterText = text
 
   self:RefreshGutter()
+  self:RefreshDirtyMark()
 end
 
 --- Keeps the caret's line visible by scrolling ScrollFrame just enough to
@@ -1825,7 +1856,9 @@ end
 Documents: New and the Open stepper, backed by DocumentStore
 -------------------------------------------------------------------------------]]
 --- Starts an empty document and switches to it.
-function o:NewDocument() self:AddDocument('') end
+function o:NewDocument()
+  self:ConfirmLeaveDocument(function() self:AddDocument('') end)
+end
 
 --- Shows the profile's first document; starts one if it has none.
 function o:LoadDocuments()
@@ -1846,19 +1879,43 @@ function o:OpenDocument(index)
   self.DocStepper.Dropdown:GenerateMenu()
 end
 
---- Saves the current document, then loads the one at index.
+--- Loads the document at index; unsaved edits are dropped.
+--- @see LDK_CodeEditorDialogMixin.ConfirmLeaveDocument
 --- @param index number
 function o:ShowDocument(index)
   if index == self.docIndex then return end
-  self:SaveDocument()
   self.docIndex = index
   self:SetText(DS:Get(index).text)
   self.CodeEditBox:SetCursorPosition(0)
+  -- OnTextChanged skips text equal to the last document's.
+  self:RefreshDirtyMark()
 end
 
 --- Copies the editor text into the current document.
 function o:SaveDocument()
   if self.docIndex then DS:SetText(self.docIndex, self:GetText()) end
+  self:RefreshDirtyMark()
+end
+
+--- Regenerates the document menu only when the dirty state flips.
+function o:RefreshDirtyMark()
+  local dirty = self:IsDirty()
+  if dirty == self.dirtyShown then return end
+  self.dirtyShown = dirty
+  self.DocStepper.Dropdown:GenerateMenu()
+end
+
+--- @return boolean @true if the editor text differs from the saved document
+function o:IsDirty()
+  local doc = self.docIndex and DS:Get(self.docIndex)
+  return doc ~= nil and self:GetText() ~= doc.text
+end
+
+--- Runs proceed now if the document is clean, else after the prompt.
+--- @param proceed fun()
+function o:ConfirmLeaveDocument(proceed)
+  if not self:IsDirty() then return proceed() end
+  StaticPopup_Show(UNSAVED_PROMPT, self:DocumentName(), nil, proceed)
 end
 
 --- One radio per document; the steppers walk the same radios.
@@ -1866,11 +1923,18 @@ end
 function o:BuildDocumentMenu(root)
   local function isSelected(index) return index == self.docIndex end
   local function pick(index)
-    self:ShowDocument(index)
-    -- Stepper picks have no open menu to refresh the arrows.
-    self.DocStepper.Dropdown:SignalUpdate()
+    if index == self.docIndex then return end
+    self:ConfirmLeaveDocument(function()
+      self:ShowDocument(index)
+      -- Stepper picks have no open menu to refresh the arrows.
+      self.DocStepper.Dropdown:SignalUpdate()
+    end)
   end
-  DS:Each(function(index, doc) root:CreateRadio(doc.name, isSelected, pick, index) end)
+  local function label(index, doc)
+    local dirty = index == self.docIndex and self.dirtyShown
+    return dirty and DIRTY_MARK .. doc.name or doc.name
+  end
+  DS:Each(function(index, doc) root:CreateRadio(label(index, doc), isSelected, pick, index) end)
 end
 
 --[[-----------------------------------------------------------------------------
