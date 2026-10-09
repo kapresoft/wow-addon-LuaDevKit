@@ -9,8 +9,6 @@ local L = ns:GetLocale()
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: DocStepper: shift-click rename doc with new name prompt (add to tooltip)
--- todo: DocStepper: alt-click save-as new doc with new name prompt (add to tooltip)
 -- todo: double-click selects word
 
 --[[-----------------------------------------------------------------------------
@@ -93,6 +91,10 @@ local DROPDOWN_ARROW_SIZE = 18
 -- StaticPopupDialogs key for the unsaved-document prompt.
 local UNSAVED_PROMPT = 'LDK_CODE_EDITOR_UNSAVED'
 
+-- StaticPopupDialogs key for the rename and save-as prompt.
+local NAME_PROMPT = 'LDK_CODE_EDITOR_DOC_NAME'
+local DOC_NAME_MAX_LETTERS = 40
+
 -- Seconds off a menu before it closes; covers the button gap.
 local MENU_LEAVE_DELAY = 0.3
 local MENU_LEAVE_POLL = 0.1
@@ -114,6 +116,9 @@ local MAX_COMMAND_HISTORY = 50
 
 -- History menu height before it scrolls.
 local HISTORY_MENU_MAX_HEIGHT = 150
+
+-- Document menu height before it scrolls; about 10 rows.
+local DOC_MENU_MAX_HEIGHT = 200
 
 -- History row text width cap; WoW truncates longer lines.
 local HISTORY_MENU_MAX_WIDTH = 200
@@ -647,6 +652,7 @@ function o:Initialize()
   self:OnLoad_CommandBar()
   self:OnLoad_MenuAutoClose()
   self:OnLoad_UnsavedPrompt()
+  self:OnLoad_NamePrompt()
 
   -- After OnLoad_Toolbar: the stepper menu must exist.
   self:LoadDocuments()
@@ -686,6 +692,40 @@ function o:OnLoad_UnsavedPrompt()
     -- Without a handler the button wouldn't hide the prompt.
     OnButton2 = function() end,
     OnButton3 = function(_, proceed) proceed() end,
+    hideOnEscape = true,
+    timeout = 0,
+    whileDead = true,
+    preferredIndex = 3,
+  }
+end
+
+--- The prompt's data is a LDK_DocNamePromptData.
+function o:OnLoad_NamePrompt()
+  --- @param data LDK_DocNamePromptData
+  local function accept(box, data)
+    local name = strtrim(box:GetText())
+    if name ~= '' then data.onAccept(name) end
+  end
+  StaticPopupDialogs[NAME_PROMPT] = {
+    text = '%s',
+    button1 = L['Save'],
+    button2 = L['Cancel'],
+    hasEditBox = true,
+    maxLetters = DOC_NAME_MAX_LETTERS,
+    OnShow = function(dialog, data)
+      local box = dialog:GetEditBox()
+      box:SetText(data.name)
+      box:HighlightText()
+    end,
+    OnAccept = function(dialog, data) accept(dialog:GetEditBox(), data) end,
+    EditBoxOnEnterPressed = function(box, data)
+      local dialog = box:GetParent()
+      if not dialog:GetButton1():IsEnabled() then return end
+      accept(box, data)
+      dialog:Hide()
+    end,
+    EditBoxOnTextChanged = StaticPopup_StandardNonEmptyTextHandler,
+    EditBoxOnEscapePressed = StaticPopup_StandardEditBoxOnEscapePressed,
     hideOnEscape = true,
     timeout = 0,
     whileDead = true,
@@ -1106,10 +1146,22 @@ end
 
 function o:OnLoad_DocStepper()
   self.DocStepper = self.TopBar.DocStepper
-  local stepper = self.DocStepper
-  local dropdown = stepper.Dropdown
+  local dropdown = self.DocStepper.Dropdown
   dropdown:SetupMenu(function(_, root) self:BuildDocumentMenu(root) end)
-  AddTooltip(dropdown, 'Open Document')
+  dropdown:HookScript('OnMouseDown', function(_, button) self:OnDocDropdownMouseDown(button) end)
+  AddTooltip(dropdown, 'Open Document', function() return 'Open Document::Hint' end)
+end
+
+--- Shift-click renames, alt-click saves as; the menu stays shut.
+--- @param button string
+function o:OnDocDropdownMouseDown(button)
+  if button ~= 'LeftButton' then return end
+  local action = (IsShiftKeyDown() and self.PromptRenameDocument)
+    or (IsAltKeyDown() and self.PromptSaveDocumentAs)
+  if not action then return end
+  -- An alt-click reaches here after the dropdown opened its menu.
+  self.DocStepper.Dropdown:CloseMenu()
+  action(self)
 end
 
 --- Chains the back arrow and dropdown off SaveButton by `gap`.
@@ -1937,6 +1989,44 @@ function o:ConfirmLeaveDocument(proceed)
   StaticPopup_Show(UNSAVED_PROMPT, self:DocumentName(), nil, proceed)
 end
 
+--- @param heading string
+--- @param name string                @Prefilled and selected
+--- @param onAccept fun(name: string) @Gets the trimmed, non-empty name
+local function PromptDocumentName(heading, name, onAccept)
+  --- @class LDK_DocNamePromptData
+  local data = { name = name, onAccept = onAccept }
+  StaticPopup_Show(NAME_PROMPT, heading, nil, data)
+end
+
+function o:PromptRenameDocument()
+  local index = self.docIndex
+  if not index then return end
+  PromptDocumentName(
+    L['Rename Document'],
+    self:DocumentName(),
+    function(name) self:RenameDocument(index, name) end
+  )
+end
+
+--- @param index number
+--- @param name string
+function o:RenameDocument(index, name)
+  DS:SetName(index, name)
+  self.DocStepper.Dropdown:GenerateMenu()
+end
+
+--- Unsaved edits go to the copy; the original keeps its saved text.
+function o:PromptSaveDocumentAs()
+  PromptDocumentName(
+    L['Save Document As'],
+    L['%s Copy']:format(self:DocumentName()),
+    function(name) self:SaveDocumentAs(name) end
+  )
+end
+
+--- @param name string
+function o:SaveDocumentAs(name) self:OpenDocument(DS:Add(name, self:GetText())) end
+
 --- One radio per document; the steppers walk the same radios.
 --- @param root RootMenuDescriptionProxy
 function o:BuildDocumentMenu(root)
@@ -1954,6 +2044,7 @@ function o:BuildDocumentMenu(root)
     return dirty and DIRTY_MARK .. doc.name or doc.name
   end
   DS:Each(function(index, doc) root:CreateRadio(label(index, doc), isSelected, pick, index) end)
+  root:SetScrollMode(DOC_MENU_MAX_HEIGHT)
 end
 
 --[[-----------------------------------------------------------------------------

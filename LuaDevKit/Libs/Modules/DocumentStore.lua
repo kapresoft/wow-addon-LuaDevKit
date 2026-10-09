@@ -44,3 +44,7 @@ end
 --- @param index number
 --- @param text string
 function o:SetText(index, text) Docs()[index].text = text end
+
+--- @param index number
+--- @param name string
+function o:SetName(index, name) Docs()[index].name = name end
