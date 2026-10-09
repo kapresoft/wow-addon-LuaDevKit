@@ -9,25 +9,25 @@ local ns = select(2, ...)
 local o = {}; ns.O.DocumentStore = o
 
 --[[-----------------------------------------------------------------------------
-Local Vars
+Support Functions
 -------------------------------------------------------------------------------]]
--- In memory until the saved-variables schema exists.
---- @type LDK_Document[]
-local docs = {}
+--- Looked up per call so a profile switch takes effect.
+--- @return LDK_Document[] @The active profile's documents
+local function Docs() return ns:p().docs end
 
 --[[-----------------------------------------------------------------------------
 Methods
 -------------------------------------------------------------------------------]]
 --- @return number
-function o:Count() return #docs end
+function o:Count() return #Docs() end
 
 --- @param index number
 --- @return LDK_Document? @nil past the last document
-function o:Get(index) return docs[index] end
+function o:Get(index) return Docs()[index] end
 
 --- @param fn fun(index: number, doc: LDK_Document)
 function o:Each(fn)
-  for index, doc in ipairs(docs) do
+  for index, doc in ipairs(Docs()) do
     fn(index, doc)
   end
 end
@@ -36,10 +36,11 @@ end
 --- @param text string
 --- @return number @Index of the new document
 function o:Add(name, text)
+  local docs = Docs()
   docs[#docs + 1] = { name = name, text = text }
   return #docs
 end
 
 --- @param index number
 --- @param text string
-function o:SetText(index, text) docs[index].text = text end
+function o:SetText(index, text) Docs()[index].text = text end

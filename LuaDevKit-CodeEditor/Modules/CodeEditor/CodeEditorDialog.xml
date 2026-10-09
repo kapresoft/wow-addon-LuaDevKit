@@ -188,9 +188,11 @@
                  top corners in Lua's OnLoad_ToolbarEdges. Icon sizes, the
                  stepper height and the bar height come from Lua's LayoutToolbar.
 
+                 TopBar.SaveButton: reuses NewButton's art for now; chained off NewButton in Lua.
+
                  TopBar.DocStepper: Blizzard's dropdown with steppers; its
                  template requires the Dropdown child declared here. Its back
-                 arrow and Dropdown are chained off NewButton in Lua. -->
+                 arrow and Dropdown are chained off SaveButton in Lua. -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
@@ -201,10 +203,17 @@
                         <NormalTexture file="interface\addons\luadevkit\assets\new-btn"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\new-btn" alphaMode="ADD"/>
                     </Button>
+                    <Button parentKey="SaveButton">
+                        <Anchors>
+                            <Anchor point="LEFT" relativeKey="$parent.NewButton" relativePoint="RIGHT"/>
+                        </Anchors>
+                        <NormalTexture file="interface\addons\luadevkit\assets\new-btn"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\new-btn" alphaMode="ADD"/>
+                    </Button>
                     <Frame parentKey="DocStepper" inherits="DropdownWithSteppersTemplate">
                         <Size x="200" y="26"/>
                         <Anchors>
-                            <Anchor point="LEFT" relativeKey="$parent.NewButton" relativePoint="RIGHT"/>
+                            <Anchor point="LEFT" relativeKey="$parent.SaveButton" relativePoint="RIGHT"/>
                         </Anchors>
                         <KeyValues>
                             <KeyValue key="decrementOffsetX" value="-2" type="number"/>

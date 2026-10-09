@@ -93,6 +93,12 @@ local DROPDOWN_ARROW_SIZE = 18
 -- Echoed commands in the output; ASCII so every code font has it.
 local COMMAND_ECHO_PREFIX = '> '
 
+-- First document of a profile that has none.
+local STARTER_CODE = [==[
+-- example
+print('Build Info=', GetBuildInfo())
+]==]
+
 -- Commands kept for Up/Down and the history menu.
 local MAX_COMMAND_HISTORY = 50
 
@@ -198,6 +204,7 @@ Types
 --- @field FontButton DropdownButton                         @Alias of TopBar.FontButton
 --- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
 --- @field NewButton Button                                  @Alias of TopBar.NewButton
+--- @field SaveButton Button                                 @Alias of TopBar.SaveButton
 --- @field DocStepper LDK_CodeEditorDocStepper               @Alias of TopBar.DocStepper
 --- @field docIndex number?                                  @DocumentStore index being edited; nil before the first
 --- @field topBarHeight number                               @TopBar height to restore after a collapse
@@ -596,9 +603,8 @@ function o:Initialize()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
 
-  -- Prototype-only: example code tests gutter/scroll sync on open.
   -- After OnLoad_Toolbar: the stepper menu must exist.
-  self:AddDocument(ns.EXAMPLE_CODE or '')
+  self:LoadDocuments()
 
   self:RefreshGutter()
   self:Configure()
@@ -944,6 +950,7 @@ function o:OnLoad_Toolbar()
   self:OnLoad_ThemeButton()
   self:OnLoad_Fonts()
   self:OnLoad_NewButton()
+  self:OnLoad_SaveButton()
   self:OnLoad_DocStepper()
   self:OnLoad_ToolbarEdges()
   self:OnLoad_ToolbarIcons()
@@ -978,6 +985,8 @@ end
 --- @param gap number
 function o:LayoutToolbarIcons(size, gap)
   PixelUtil.SetSize(self.NewButton, size, size)
+  PixelUtil.SetSize(self.SaveButton, size, size)
+  PixelUtil.SetPoint(self.SaveButton, 'LEFT', self.NewButton, 'RIGHT', gap, 0)
   local prev
   for _, button in ipairs(self:RightToolbarIcons()) do
     PixelUtil.SetSize(button, size, size)
@@ -992,6 +1001,12 @@ function o:OnLoad_NewButton()
   AddTooltip(self.NewButton, 'New Document')
 end
 
+function o:OnLoad_SaveButton()
+  self.SaveButton = self.TopBar.SaveButton
+  self.SaveButton:SetScript('OnClick', function() self:SaveDocument() end)
+  AddTooltip(self.SaveButton, 'Save Document')
+end
+
 function o:OnLoad_DocStepper()
   self.DocStepper = self.TopBar.DocStepper
   local stepper = self.DocStepper
@@ -1000,7 +1015,7 @@ function o:OnLoad_DocStepper()
   AddTooltip(dropdown, 'Open Document')
 end
 
---- Chains the back arrow and dropdown off NewButton by `gap`.
+--- Chains the back arrow and dropdown off SaveButton by `gap`.
 --- @param height number
 --- @param gap number
 function o:LayoutDocStepper(height, gap)
@@ -1014,7 +1029,7 @@ function o:LayoutDocStepper(height, gap)
   -- Replaces the mixin's back-arrow anchor to the dropdown.
   back:ClearAllPoints()
   -- Offsets on a scaled frame scale too; divide it back out.
-  PixelUtil.SetPoint(back, 'LEFT', self.NewButton, 'RIGHT', gap / back:GetScale(), 0)
+  PixelUtil.SetPoint(back, 'LEFT', self.SaveButton, 'RIGHT', gap / back:GetScale(), 0)
   PixelUtil.SetPoint(dropdown, 'LEFT', back, 'RIGHT', -stepper.decrementOffsetX, 0)
 end
 
@@ -1756,11 +1771,22 @@ Documents: New and the Open stepper, backed by DocumentStore
 --- Starts an empty document and switches to it.
 function o:NewDocument() self:AddDocument('') end
 
+--- Shows the profile's first document; starts one if it has none.
+function o:LoadDocuments()
+  if DS:Count() == 0 then return self:AddDocument(STARTER_CODE) end
+  self:OpenDocument(1)
+end
+
 --- @param text string
 function o:AddDocument(text)
   local name = L['Untitled'] .. ' ' .. (DS:Count() + 1)
-  self:ShowDocument(DS:Add(name, text))
-  -- Picks in the menu refresh it; programmatic switches must.
+  self:OpenDocument(DS:Add(name, text))
+end
+
+--- Programmatic switch: the menu won't refresh on its own.
+--- @param index number
+function o:OpenDocument(index)
+  self:ShowDocument(index)
   self.DocStepper.Dropdown:GenerateMenu()
 end
 
@@ -1783,15 +1809,20 @@ end
 --- @param root RootMenuDescriptionProxy
 function o:BuildDocumentMenu(root)
   local function isSelected(index) return index == self.docIndex end
-  local function pick(index) self:ShowDocument(index) end
+  local function pick(index)
+    self:ShowDocument(index)
+    -- Stepper picks have no open menu to refresh the arrows.
+    self.DocStepper.Dropdown:SignalUpdate()
+  end
   DS:Each(function(index, doc) root:CreateRadio(doc.name, isSelected, pick, index) end)
 end
 
 --[[-----------------------------------------------------------------------------
 Run: evaluates the whole editor buffer
 -------------------------------------------------------------------------------]]
---- Output goes to the output panel.
+--- Saves the document first; output goes to the output panel.
 function o:Run()
+  self:SaveDocument()
   local text = self:GetText()
   if str_isBlank(text) then return end
   self:AppendOutput(COMMAND_ECHO_PREFIX .. 'run ' .. self:DocumentName())

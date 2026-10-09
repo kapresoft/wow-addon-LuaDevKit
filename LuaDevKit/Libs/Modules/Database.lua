@@ -3,10 +3,9 @@ local ns = select(2, ...)
 local O = ns.O
 local THEME = O.Backdrops.theme
 
+-- todo: remember divider position (profile)
 -- todo: Remember Last 10 commands in db (global)
 -- todo: add a clear console below settings icon
--- todo: save docs (profile)
--- todo: remember divider position (profile)
 
 --[[-----------------------------------------------------------------------------
 Types
