@@ -3,8 +3,6 @@ local ns = select(2, ...)
 local O = ns.O
 local THEME = O.Backdrops.theme
 
--- todo: Remember Last 10 commands in db (global)
--- todo: add a clear console below settings icon
 -- todo: handle profile-switch
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 
@@ -19,8 +17,9 @@ Types
 --- @field saveOnRun? boolean
 
 --- @class LDK_DB_ConsoleConfig
---- @field fontFamily string @Font key, or SAME_AS_EDITOR_FONT
---- @field fontSize number   @Or SAME_AS_EDITOR_SIZE
+--- @field fontFamily string                 @Font key, or SAME_AS_EDITOR_FONT
+--- @field fontSize number                   @Or SAME_AS_EDITOR_SIZE
+--- @field history LDK_CommandHistoryEntry[] @Oldest first
 
 --- @class LDK_DB_GlobalConfig
 --- @field editor LDK_DB_EditorConfig
@@ -57,8 +56,7 @@ New Instance
 --- @class LDK_Database
 --- @field SAME_AS_EDITOR_FONT string @Console fontFamily that follows the editor
 --- @field SAME_AS_EDITOR_SIZE number @Console fontSize that follows the editor
-local o = {}
-O.Database = o
+local o = {}; O.Database = o
 o.SAME_AS_EDITOR_FONT = 'same-as-editor'
 o.SAME_AS_EDITOR_SIZE = 0
 
@@ -74,6 +72,7 @@ local DEFAULT_DB = {
     console = {
       fontFamily = 'Inconsolata',
       fontSize = 10,
+      history = {},
     },
   },
   profile = { docs = {}, outputHeight = 100 },

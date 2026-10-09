@@ -230,7 +230,7 @@ Types
 --- @field CommandEditBox EditBox                            @Alias of CommandBar.CommandEditBox
 --- @field HistoryButton DropdownButton                      @Alias of CommandBar.HistoryButton
 --- @field HistoryTooltip GameTooltip                        @History menu's own tooltip; shows truncated commands
---- @field commandHistory LDK_CommandHistoryEntry[]          @Entered commands, oldest first
+--- @field commandHistory LDK_CommandHistoryEntry[]          @Alias of global.console.history
 --- @field historyIndex number                               @Up/Down position; one past the end is the draft
 --- @field historyDraft string?                              @Unsent text saved when stepping into history
 --- @field StatusBar LDK_CodeEditorStatusBar                 @Output panel
@@ -893,7 +893,8 @@ end
 function o:OnLoad_CommandBar()
   self.CommandBar.Prompt:SetText('▶ ')
   self.CommandEditBox:SetAutoFocus(false)
-  self.commandHistory, self.historyIndex = {}, 1
+  self.commandHistory = ns:g().console.history
+  self.historyIndex = #self.commandHistory + 1
   self.CommandEditBox:SetScript('OnArrowPressed', function(_, key) self:StepCommandHistory(key) end)
   AddTooltip(self.CommandEditBox, 'Command Line')
   self:OnLoad_HistoryButton()
