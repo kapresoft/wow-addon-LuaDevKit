@@ -1,6 +1,6 @@
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
-local _, cO = ns:cns()
+local cO = ns:cO()
 
 --[[-----------------------------------------------------------------------------
 AddOn: LuaDevKit-CodeEditor

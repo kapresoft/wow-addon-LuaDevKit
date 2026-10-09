@@ -3,11 +3,16 @@ local ns = select(2, ...)
 local O = ns.O
 local THEME = O.Backdrops.theme
 
+-- todo: Remember Last 10 commands in db (global)
+-- todo: add a clear console below settings icon
+-- todo: save docs (profile)
+-- todo: remember divider position (profile)
+
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_DB_EditorConfig
---- @field theme? Name        @Missing name falls back to the default = true theme
+--- @field theme? Name        @Unknown names fall back to the default = true theme
 --- @field fontFamily? string @Key into FontUtil:GetFontChoices()
 --- @field fontSize? number
 --- @field wrapText? boolean
@@ -60,6 +65,8 @@ local DEFAULT_DB = {
   ['global'] = {
     editor = {
       theme = THEME.DarkKnight,
+      fontFamily = 'JetBrainsMono',
+      fontSize = 12,
     },
     console = {
       fontFamily = 'Inconsolata',
@@ -68,10 +75,6 @@ local DEFAULT_DB = {
   },
   profile = { docs = {} },
 }
-
--- todo: add a clear console below settings icon
--- todo: save docs
--- todo: remember divider position (profile)
 
 --- AceDB defaults; registered by DatabaseAccessMixin:InitDb(). Unset
 --- settings fall back to the editor's own defaults.

@@ -298,6 +298,7 @@ end
 local function _RegisterBuiltInThemes()
   _RegisterTheme({
     name = THEME.DarkKnight,
+    default = true,
     palette = { base = { 0.255, 0.380, 0.204 } },
     main = {
       backdrop = {
@@ -489,7 +490,6 @@ local function _RegisterBuiltInThemes()
   })
   _RegisterTheme({
     name = THEME.Gilded,
-    default = true,
     palette = { base = { 1.000, 0.820, 0.000 } },
     main = {
       backdrop = {
@@ -565,7 +565,7 @@ Methods & Fields
 ---@return LDK_ThemeSet
 function o:GetDefaultBorderSettings() return borderSettings[self:GetDefaultThemeName()] end
 
---- @return Name @First enabled theme if none sets default
+--- @return Name? @First enabled theme if none sets default; nil if none are enabled
 function o:GetDefaultThemeName()
   local names = self:GetThemes()
   for _, name in ipairs(names) do

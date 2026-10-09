@@ -1,18 +1,15 @@
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
-local cns, O = ns:cns(), ns:cns().O
-local bdrops, String = O.Backdrops, O.String
-local fut, FAIAP, lsm = O.FontUtil, O.FAIAP, O.LSM
-local LR, TU = O.LuaRunner, O.TextUtil
-local OutputLog = O.OutputLog
-local DS = O.DocumentStore
-local DB = O.Database
-local mt = lsm.MediaType
+local CO = ns:cO()
+local bdrops, String, fut, FAIAP = CO.Backdrops, CO.String, CO.FontUtil, CO.FAIAP
+local LR, TU = CO.LuaRunner, CO.TextUtil
+local OutputLog, DS, DB = CO.OutputLog, CO.DocumentStore, CO.Database
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
+local L = ns:GetLocale()
 local upk = unpack
-local L = cns:GetLocale()
-
 local libName = 'CodeEditorDialog'
+
+-- todo: double-click selects word
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -122,13 +119,8 @@ local TOOL_ICON_ALPHA = 0.6
 -- Breathing room on whichever axis shrinks when clamped to screen.
 local SCREEN_MARGIN = 100
 
-local fontChoices, defaultFontChoice = fut:GetFontChoices(), fut:GetDefaultFontChoice()
-
 -- Configure() fallbacks for settings the DB doesn't hold.
 local DEFAULTS = {
-  -- Literal key; cns:GetFonts() here fails SetFont too early.
-  fontFamily = defaultFontChoice and defaultFontChoice.key,
-  fontSize = 14,
   wrapText = false,
 }
 
@@ -243,7 +235,7 @@ Types
 --- @field borderStyle Name
 --- @field statusGripColor RGBA                              @Resting divider grip color, from the active theme
 --- @field statusGripHoverColor RGBA                         @Hovered divider grip color, from the active theme
-LDK_CodeEditorDialogMixin = cns:NewAceEvent()
+LDK_CodeEditorDialogMixin = ns:NewAceEvent()
 local o = LDK_CodeEditorDialogMixin
 
 
@@ -254,6 +246,17 @@ local o = LDK_CodeEditorDialogMixin
 --[[-----------------------------------------------------------------------------
 Support Functions
 -------------------------------------------------------------------------------]]
+--- Called lazily: building fonts at file load may fail SetFont.
+--- @return string @Key of the first font the client locale can render
+local function DefaultFontFamily() return fut:GetDefaultFontChoice().key end
+
+--- Falls back if the key no longer resolves (e.g. a removed font family).
+--- @param key string
+--- @return string
+local function ResolveFontFamily(key)
+  return fut:FindFontChoice(key) and key or DefaultFontFamily()
+end
+
 --- Copy of a backdrop without one of its pieces.
 --- @param bd LDK_Backdrop
 --- @param key 'bgFile'|'edgeFile'
@@ -544,13 +547,16 @@ end
 Methods
 -------------------------------------------------------------------------------]]
 function o:OnLoad()
-  -- Alias onto this dialog frame; hoisted for OnLoad_Viewports.
   self.CodeEditBox = self.ScrollFrame.CodeEditBox
   self.OutputScrollFrame = self.StatusBar.OutputScrollFrame
   self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
   self.ConsoleSettingsButton = self.StatusBar.ConsoleSettingsButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
+  self:_RegisterMessages()
+end
 
+function o:Initialize()
+  self:UnregisterMessage(ns:msg('OnEnable'))
   self.output = OutputLog:New(MAX_OUTPUT_LINES)
 
   self:OnLoad_Viewports()
@@ -558,7 +564,7 @@ function o:OnLoad()
   self:OnLoad_GripLines()
   self:OnLoad_EditBoxScrollBar()
 
-  cns:EnableLuaFormatter(self.CodeEditBox)
+  ns:EnableLuaFormatter(self.CodeEditBox)
 
   local numbers = self.Gutter.ScrollChild.Numbers
 
@@ -572,9 +578,7 @@ function o:OnLoad()
 
   self:OnLoad_Border()
 
-  self:ApplyTheme(bdrops:GetDefaultThemeName())
-  self.fontSize = DEFAULTS.fontSize
-  self:SetCodeFont(DEFAULTS.fontFamily)
+  self:ConfigureEditor(ns:editor())
 
   if self.SetResizeBounds then -- WoW 10.0+
     self:SetResizeBounds(400, 250)
@@ -591,18 +595,18 @@ function o:OnLoad()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
   self:OnLoad_CommandBar()
-  self:_RegisterMessages()
 
   -- Prototype-only: example code tests gutter/scroll sync on open.
   -- After OnLoad_Toolbar: the stepper menu must exist.
   self:AddDocument(ns.EXAMPLE_CODE or '')
 
   self:RefreshGutter()
+  self:Configure()
 end
 
 function o:_RegisterMessages()
-  -- Configure reads the DB; it's ready once LDK_CodeEditor enables.
-  self:RegisterMessage(ns:msg('OnEnable'), 'Configure')
+  -- Fonts and the DB are ready once LDK_CodeEditor enables.
+  self:RegisterMessage(ns:msg('OnEnable'), 'Initialize')
 end
 
 --- Places both scroll viewports inside their backdrops. Anchored here rather
@@ -684,7 +688,7 @@ end
 --- @param root RootMenuDescriptionProxy
 function o:BuildConsoleSettingsMenu(root)
   local fonts, sizes = {}, {}
-  for i, choice in ipairs(fontChoices) do
+  for i, choice in ipairs(fut:GetFontChoices()) do
     fonts[i] = { label = choice.label, value = choice.key }
   end
   for i, size in ipairs(fut:GetFontSizes()) do
@@ -1038,7 +1042,7 @@ function o:ToggleToolbar() self:SetToolbarShown(not self.TopBar:IsShown()) end
 
 function o:OnLoad_Fonts()
   self.FontButton:SetupMenu(function(_, rootDescription)
-    for _, choice in ipairs(fontChoices) do
+    for _, choice in ipairs(fut:GetFontChoices()) do
       -- CreateButton never checks IsSelected() -- only CreateRadio draws
       -- a checkmark for the current selection.
       rootDescription:CreateRadio(
@@ -1346,7 +1350,7 @@ function o:ApplyTheme(name, save)
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
   self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextColor))
   self:_SetHeaderBorderStyle(bs)
-  if save then cns:g().editor.theme = self.borderStyle end
+  if save then ns:editor().theme = self.borderStyle end
 end
 
 --- NormalTexture only: the hover highlight stays full strength.
@@ -1420,7 +1424,7 @@ end
 function o:ApplyCodeFont(save)
   local choice = fut:FindFontChoice(self.fontFamily)
   if not choice then return end
-  local font = choice.bySize[self.fontSize] or choice.bySize[DEFAULTS.fontSize]
+  local font = choice.bySize[self.fontSize]
   self.codeFont = font
 
   -- EditBox has its own SetFontObject/SetFont/GetFont, no GetFontString().
@@ -1440,7 +1444,7 @@ function o:ApplyCodeFont(save)
   -- RefreshGutter re-sizes the gutter for the new font's digit width.
   self:RefreshGutter()
   if not save then return end
-  local editor = cns:g().editor
+  local editor = ns:editor()
   editor.fontFamily, editor.fontSize = self.fontFamily, self.fontSize
 end
 
@@ -1451,7 +1455,7 @@ function o:SetConsoleFont(fontFamily, fontSize)
   self.consoleFontFamily = fontFamily
   self.consoleFontSize = fontSize
   self:ApplyConsoleFont()
-  local console = cns:g().console
+  local console = ns:g().console
   console.fontFamily = fontFamily or DB.SAME_AS_EDITOR_FONT
   console.fontSize = fontSize or DB.SAME_AS_EDITOR_SIZE
 end
@@ -1461,7 +1465,7 @@ function o:ApplyConsoleFont()
   local choice = fut:FindFontChoice(self.consoleFontFamily or self.fontFamily)
   if not choice then return end
   local size = self.consoleFontSize or self.fontSize
-  local font = choice.bySize[size] or choice.bySize[DEFAULTS.fontSize]
+  local font = choice.bySize[size]
 
   -- Must set justify here: SetFontObject resets it.
   self.EvalStatus:SetFontObject(font)
@@ -1509,25 +1513,28 @@ function o:SetWrapText(enabled, save)
     editBox:SetWidth(4000)
   end
   self:RefreshGutter()
-  if save then cns:g().editor.wrapText = self.wrapText end
+  if save then ns:editor().wrapText = self.wrapText end
 end
 
 --- Applies the saved text settings; doesn't write back.
---- @see LDK_CodeEditorDialogMixin._RegisterMessages
+--- @see LDK_CodeEditorDialogMixin.Initialize
 function o:Configure()
-  local editor = cns:g().editor
-  if editor.theme then self:ApplyTheme(editor.theme) end
-  -- Falls back if the key no longer resolves (e.g. a removed font family).
-  local fontFamily = editor.fontFamily or DEFAULTS.fontFamily
-  if not fut:FindFontChoice(fontFamily) then fontFamily = DEFAULTS.fontFamily end
-  self.fontFamily = fontFamily
-  self.fontSize = fut:NearestFontSize(editor.fontSize or DEFAULTS.fontSize)
-  self:ConfigureConsoleFont(cns:g().console)
+  local g = ns:g()
+  local editor = g.editor
+  -- Console first: ConfigureEditor applies its font too.
+  self:ConfigureConsoleFont(g.console)
+  self:ConfigureEditor(editor)
   local wrapText = editor.wrapText
   if wrapText == nil then wrapText = DEFAULTS.wrapText end
-
-  self:ApplyCodeFont()
   self:SetWrapText(wrapText)
+end
+
+--- Applies the saved theme, code font and size.
+--- @param editor LDK_DB_EditorConfig
+function o:ConfigureEditor(editor)
+  self:ApplyTheme(editor.theme)
+  self.fontSize = fut:NearestFontSize(editor.fontSize)
+  self:SetCodeFont(ResolveFontFamily(editor.fontFamily))
 end
 
 --- SAME_AS_EDITOR values or an unresolvable font follow the editor.
