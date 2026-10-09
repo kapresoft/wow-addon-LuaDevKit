@@ -10,6 +10,7 @@ local upk = unpack
 local libName = 'CodeEditorDialog'
 
 -- todo: double-click selects word
+-- todo: save icon disabled/contrasted when not dirty; normal when dirty
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -1967,11 +1968,21 @@ function o:LoadDocuments()
   self:OpenDocument(1)
 end
 
---- @param text string
-function o:AddDocument(text)
-  local name = L['Untitled'] .. ' ' .. (DS:Count() + 1)
-  self:OpenDocument(DS:Add(name, text))
+--- Numbered past the highest in use, so a delete can't cause repeats.
+--- @return string
+local function NextUntitledName()
+  local prefix = L['Untitled'] .. ' '
+  local highest = 0
+  DS:Each(function(_, doc)
+    local n = doc.name:sub(1, #prefix) == prefix
+      and tonumber(doc.name:sub(#prefix + 1):match('^%d+$'))
+    if n and n > highest then highest = n end
+  end)
+  return prefix .. (highest + 1)
 end
+
+--- @param text string
+function o:AddDocument(text) self:OpenDocument(DS:Add(NextUntitledName(), text)) end
 
 --- Programmatic switch: the menu won't refresh on its own.
 --- @param index number
