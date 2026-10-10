@@ -10,6 +10,16 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
+-- todo: Add 'Command History' to current helpTips
+-- todo: A Light Theme? (Non-DarkMode)
+-- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
+-- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
+-- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
+-- todo: Action icon to format current code
+-- todo: Center the documents dropdown (and arrows)
+-- todo: Rename Backdrops* files to Theme*
+-- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
+-- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
 
 --[[-----------------------------------------------------------------------------
@@ -1085,7 +1095,6 @@ function o:OnLoad_Header()
 end
 
 function o:OnLoad_OptionsButton()
-  PinArrowSize(self.OptionsButton, DROPDOWN_ARROW_SIZE)
   self.OptionsButton:RegisterCallback(
     DropdownButtonMixin.Event.OnMenuOpen,
     function() HelpTour:CompleteStep('OptionsMenu') end
@@ -1601,7 +1610,17 @@ function o:ApplyTheme(name, save)
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
   self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextColor))
   self:_SetHeaderBorderStyle(bs)
+  self:ApplyHeaderIconColor(main.header)
   if save then ns:editor().theme = self.borderStyle end
+end
+
+--- Tints the header's white glyph art; hover uses the same tint.
+--- @param header LDK_MainHeaderOverride @palette.base already resolved into iconColor
+function o:ApplyHeaderIconColor(header)
+  -- Not self.OptionsButton: OnLoad themes before aliasing it.
+  local button = self.Header.OptionsButton
+  button:GetNormalTexture():SetVertexColor(upk(header.iconColor))
+  button:GetHighlightTexture():SetVertexColor(upk(header.iconColor))
 end
 
 --- NormalTexture only: the hover highlight stays full strength.

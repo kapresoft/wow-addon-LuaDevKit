@@ -2,10 +2,14 @@
 local ns = select(2, ...)
 local L = ns:GetLocale()
 
--- Centers the arrow over the target.
-local ARROW_OFFSET_X = 34
--- Same for ArrowUp, which sits left of the close button.
-local ARROW_UP_OFFSET_X = 66
+-- Arrow's inset from the tip's side edge.
+local ARROW_INSET = 8
+-- ArrowUp on the right clears the close button in that corner.
+local ARROW_UP_RIGHT_INSET = 40
+-- Half the GlowBox arrow art; centers the arrow over the target.
+local ARROW_HALF_WIDTH = 26
+-- How far the arrow overlaps into the tip's edge.
+local ARROW_OVERLAP = 4
 -- Tip edge to target edge; leaves room for the arrow.
 local ARROW_GAP = 19
 -- Text's left inset plus room for the close button.
@@ -61,17 +65,46 @@ function o:FitToText()
 end
 
 --- Above anchorTo when it fits on screen, else below with the arrow flipped.
+--- The tip opens away from the nearer screen edge.
 --- @param anchorTo Region
 function o:PlaceAt(anchorTo)
   local below = self:RoomAbove(anchorTo) < ARROW_GAP + self:GetHeight()
+  local side = self:ArrowSide(anchorTo)
+  local inset = (below and side == 'RIGHT') and ARROW_UP_RIGHT_INSET or ARROW_INSET
   self.Arrow:SetShown(not below)
   self.ArrowUp:SetShown(below)
+  self:AnchorArrow(below and self.ArrowUp or self.Arrow, below, side, inset)
+
+  local offset = inset + ARROW_HALF_WIDTH
+  local x = side == 'LEFT' and -offset or offset
   self:ClearAllPoints()
   if below then
-    self:SetPoint('TOPRIGHT', anchorTo, 'BOTTOM', ARROW_UP_OFFSET_X, -ARROW_GAP)
+    self:SetPoint('TOP' .. side, anchorTo, 'BOTTOM', x, -ARROW_GAP)
   else
-    self:SetPoint('BOTTOMRIGHT', anchorTo, 'TOP', ARROW_OFFSET_X, ARROW_GAP)
+    self:SetPoint('BOTTOM' .. side, anchorTo, 'TOP', x, ARROW_GAP)
   end
+end
+
+--- @param arrow Frame
+--- @param below boolean     @ArrowUp on the top edge, else Arrow on the bottom edge
+--- @param side 'LEFT'|'RIGHT'
+--- @param inset number      @From that side's edge
+function o:AnchorArrow(arrow, below, side, inset)
+  local x = side == 'LEFT' and inset or -inset
+  arrow:ClearAllPoints()
+  if below then
+    arrow:SetPoint('BOTTOM' .. side, self, 'TOP' .. side, x, -ARROW_OVERLAP)
+  else
+    arrow:SetPoint('TOP' .. side, self, 'BOTTOM' .. side, x, ARROW_OVERLAP)
+  end
+end
+
+--- @param anchorTo Region
+--- @return 'LEFT'|'RIGHT' @Arrow side: the one nearer the screen edge the target is on
+function o:ArrowSide(anchorTo)
+  local anchorX = anchorTo:GetCenter() * anchorTo:GetEffectiveScale()
+  local screenX = UIParent:GetCenter() * UIParent:GetEffectiveScale()
+  return anchorX < screenX and 'LEFT' or 'RIGHT'
 end
 
 --- @param anchorTo Region

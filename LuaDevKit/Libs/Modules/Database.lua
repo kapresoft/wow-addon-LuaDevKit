@@ -3,10 +3,6 @@ local ns = select(2, ...)
 local O = ns.O
 local THEME = O.Backdrops.theme
 
--- todo: Replace options icon with a hamburger type icon?
--- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
--- todo: Save/Cancel/Discard prompt is ugly. Replace?
-
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]

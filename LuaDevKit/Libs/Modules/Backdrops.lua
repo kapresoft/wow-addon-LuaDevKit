@@ -45,6 +45,7 @@ Type Definitions
 --- @class LDK_MainHeaderOverride
 --- @field backdrop? LDK_Backdrop @Merged over main.backdrop
 --- @field height? number         @Defaults to the dialog's HEADER_HEIGHT
+--- @field iconColor? RGBA        @Tint for the header's white glyph icons; defaults to palette.base
 
 --- @class LDK_MainTheme
 --- @field backdrop LDK_Backdrop
@@ -240,6 +241,7 @@ local PALETTE_ALPHA = {
   grip = 0.7,
   gripHover = 1.0,
   arrow = 0.99,
+  headerIcon = 0.99,
 }
 
 --- @param base RGB
@@ -265,6 +267,9 @@ local function _ResolvePalette(theme)
   divider.gripColor = divider.gripColor or _tint(base, PALETTE_ALPHA.grip)
   divider.gripHoverColor = divider.gripHoverColor or _tint(base, PALETTE_ALPHA.gripHover)
   divider.arrowColor = divider.arrowColor or _tint(base, PALETTE_ALPHA.arrow)
+  t.main.header = t.main.header or {}
+  local header = t.main.header
+  header.iconColor = header.iconColor or _tint(base, PALETTE_ALPHA.headerIcon)
   return t
 end
 
@@ -286,8 +291,20 @@ local function _RegisterTheme(theme)
   local base = theme.palette and theme.palette.base
   local divider = theme.console.divider or {}
   for _, key in ipairs({ 'gripColor', 'gripHoverColor', 'arrowColor' }) do
-    assertsafe(divider[key] or base, themeReqMsg, m, 'theme.console.divider.' .. key .. ' or theme.palette.base')
+    assertsafe(
+      divider[key] or base,
+      themeReqMsg,
+      m,
+      'theme.console.divider.' .. key .. ' or theme.palette.base'
+    )
   end
+  local header = theme.main.header or {}
+  assertsafe(
+    header.iconColor or base,
+    themeReqMsg,
+    m,
+    'theme.main.header.iconColor or theme.palette.base'
+  )
   borderSettings[name] = theme
 end
 
@@ -331,8 +348,8 @@ local function _RegisterBuiltInThemes()
       },
       commandLine = {
         prompt = {
-          color = { 0.3, 0.5, 0.3, 1.0},
-          offset = { x=5, y= 0 },
+          color = { 0.3, 0.5, 0.3, 1.0 },
+          offset = { x = 5, y = 0 },
         },
       },
     },

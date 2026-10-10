@@ -81,9 +81,10 @@
                  not here, since the inherited UIPanelCloseButton_OnClick
                  hides GetParent() (CloseFrame at this depth).
 
-                 Header.OptionsButton: plain arrow-only template (no natural
-                 per-item icon, so no chrome to hide); lives here, not in
-                 TopBar, so its Show Toolbar item stays reachable. -->
+                 Header.OptionsButton: white menu glyph on the left, mirroring
+                 the close button, tinted per theme with main.header.iconColor
+                 in Lua's ApplyHeaderIconColor; lives here, not in TopBar, so
+                 its Show Toolbar item stays reachable. -->
             <Button parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
                 <Size y="28"/>
                 <Anchors>
@@ -105,13 +106,16 @@
                             </Button>
                         </Frames>
                     </Frame>
-                    <DropdownButton parentKey="OptionsButton" inherits="WowStyle1ArrowDropdownTemplate">
+                    <DropdownButton parentKey="OptionsButton">
+                        <Size x="16" y="16"/>
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.CloseFrame" relativePoint="LEFT" x="0" y="0"/>
+                            <Anchor point="LEFT" x="8" y="0"/>
                         </Anchors>
+                        <NormalTexture file="interface\addons\luadevkit\assets\options-btn"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\options-btn" alphaMode="ADD"/>
                     </DropdownButton>
                     <Frame parentKey="Title" inherits="BackdropTemplate">
                         <Anchors>
