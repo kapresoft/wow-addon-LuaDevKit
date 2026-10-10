@@ -10,7 +10,6 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: A Light Theme? (Non-DarkMode)
 -- todo: New SettingsUI/Advanced Category: 1 checkbox option: Open On Load
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
@@ -598,6 +597,14 @@ local function RotateArrow(button, radians)
   button:GetHighlightTexture():SetRotation(radians)
 end
 
+--- Once tinted, Normal no longer hides on disable by itself.
+--- @param button Button
+--- @param enabled boolean
+local function SetStepperEnabled(button, enabled)
+  button:SetEnabled(enabled)
+  button:GetNormalTexture():SetShown(enabled)
+end
+
 --- @return string @Locale key naming this client's run shortcut
 local function RunHintKey() return IsMacClient() and 'Run::Hint::Mac' or 'Run::Hint' end
 
@@ -797,7 +804,6 @@ end
 function o:OnLoad_Overlays()
   local i = OVERLAY_INSET
   self.FontSteppers:SetPoint('TOPRIGHT', self.ScrollFrame, 'TOPRIGHT', -(i - 2), -i)
-  self.FontSteppers:SetAlpha(OVERLAY_ALPHA)
   self.StatusDivider.RunButton:SetPoint(
     'BOTTOMRIGHT',
     self.ScrollFrame,
@@ -1618,6 +1624,7 @@ function o:ApplyTheme(name, save)
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
   self:ApplyThemeTextColors()
   self:ApplyOutputColors(console.output)
+  self:ApplyFontStepperColors(bs.code)
   ns:EnableLuaFormatter(self.CodeEditBox, bs.code.syntax)
   self:_SetHeaderBorderStyle(bs)
   self:ApplyHeaderIconColor(main.header)
@@ -1649,6 +1656,20 @@ function o:ApplyOutputColors(output)
     error = CreateColor(upk(output.errorColor)),
   }
   self:RefreshOutput()
+end
+
+--- Disabled art stays untinted; it's already gray.
+--- @param code LDK_CodeTheme
+function o:ApplyFontStepperColors(code)
+  local theme = code.fontSteppers or {}
+  local color = theme.color or { 1, 1, 1, 1 }
+  local steppers = self.FontSteppers
+  steppers:SetAlpha(theme.alpha or OVERLAY_ALPHA)
+  for _, button in ipairs({ steppers.PlusButton, steppers.MinusButton }) do
+    button:GetNormalTexture():SetVertexColor(upk(color))
+    button:GetHighlightTexture():SetVertexColor(upk(color))
+    SetStepperEnabled(button, button:IsEnabled())
+  end
 end
 
 --- Tints the header's white glyph art; hover uses the same tint.
@@ -1745,8 +1766,8 @@ function o:ApplyCodeFont(save)
   local sizes = fut:GetFontSizes()
   local canShrink, canGrow = self.fontSize ~= sizes[1], self.fontSize ~= sizes[#sizes]
   C_Timer.After(0.1, function()
-    self.FontSteppers.MinusButton:SetEnabled(canShrink)
-    self.FontSteppers.PlusButton:SetEnabled(canGrow)
+    SetStepperEnabled(self.FontSteppers.MinusButton, canShrink)
+    SetStepperEnabled(self.FontSteppers.PlusButton, canGrow)
   end)
 
   -- RefreshGutter re-sizes the gutter for the new font's digit width.

@@ -67,8 +67,13 @@ Type Definitions
 --- @field identifier? string
 --- @field logical? string
 
+--- @class LDK_FontSteppersTheme
+--- @field color? RGBA   @Tint for the gold +/- art; only darkens it; defaults to none
+--- @field alpha? number @Resting alpha; defaults to the other code-area buttons'
+
 --- @class LDK_CodeTheme
 --- @field gutter? LDK_GutterTheme
+--- @field fontSteppers? LDK_FontSteppersTheme
 --- @field textColor? RGBA           @Operators and other uncolored code; defaults to white
 --- @field syntax? LDK_SyntaxColors @Merged over the dark-background defaults
 
@@ -651,6 +656,7 @@ local function _RegisterBuiltInThemes()
     },
     code = {
       gutter = { textColor = { 0.192, 0.075, 0.012, 1 } },
+      fontSteppers = { color = { 0.45, 0.3, 0.12, 1 }, alpha = 0.9 },
       textColor = { 0.17, 0.12, 0.08, 1 },
       syntax = {
         keyword = '9B2C0A',
