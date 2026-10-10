@@ -34,6 +34,7 @@ ns.DB_NAME = 'LUADEVKIT_DB'
 --- @field AceAddon AceAddon-3.0
 --- @field AceConfig AceConfig-3.0
 --- @field AceConfigDialog AceConfigDialog-3.0
+--- @field AceConfigRegistry AceConfigRegistry-3.0
 --- @field AceDB AceDB-3.0
 --- @field AceDBOptions AceDBOptions-3.0
 --- @field AceEvent AceEvent-3.0
@@ -56,6 +57,7 @@ local function RegisterObjects(self)
   self.AceAddon = LibStub('AceAddon-3.0')
   self.AceConfig = LibStub('AceConfig-3.0')
   self.AceConfigDialog = LibStub('AceConfigDialog-3.0')
+  self.AceConfigRegistry = LibStub('AceConfigRegistry-3.0')
   self.AceDB = LibStub('AceDB-3.0')
   self.AceDBOptions = LibStub('AceDBOptions-3.0')
   self.AceEvent = LibStub('AceEvent-3.0')

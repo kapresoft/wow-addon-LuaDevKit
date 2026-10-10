@@ -18,23 +18,46 @@ local function ConfirmOverwrites(profiles)
   end
 end
 
+--- A checkbox bound to global.editor[field].
+--- @param field string
+--- @param key string                 @Locale key of the label; key::Desc is its tooltip
+--- @param order number
+--- @param onSet? fun(value: boolean) @Applies the change to an open editor
+--- @return table                     @AceConfig toggle
+local function EditorCheckbox(field, key, order, onSet)
+  local editor = cns:g().editor
+  return {
+    type = 'toggle',
+    name = L[key],
+    desc = L[key .. '::Desc'],
+    order = order,
+    width = 'full',
+    dialogControl = 'LuaDevKit_SettingsCheckbox',
+    get = function() return editor[field] end,
+    set = function(_, value)
+      editor[field] = value
+      if onSet then onSet(value) end
+    end,
+  }
+end
+
+--- @param shown boolean
+local function ShowToolbar(shown)
+  local editor = cns:CodeEditor()
+  if editor then editor:SetToolbarShown(shown) end
+end
+
 --- @return table @AceConfig group, listed above Profiles
 local function GeneralOptions()
-  local editor = cns:g().editor
   return {
     type = 'group',
     name = L['General'],
     order = 1,
     args = {
-      openAtStartup = {
-        type = 'toggle',
-        name = L['Open Editor at Startup'],
-        desc = L['Open Editor at Startup::Desc'],
-        width = 'full',
-        dialogControl = 'LuaDevKit_SettingsCheckbox',
-        get = function() return editor.openAtStartup end,
-        set = function(_, value) editor.openAtStartup = value end,
-      },
+      openAtStartup = EditorCheckbox('openAtStartup', 'Open Editor at Startup', 1),
+      showToolbar = EditorCheckbox('showToolbar', 'Show Toolbar', 2, ShowToolbar),
+      saveOnRun = EditorCheckbox('saveOnRun', 'Save on Run', 3),
+      escCloses = EditorCheckbox('escCloses', 'Escape Key Closes Editor', 4),
     },
   }
 end
@@ -97,9 +120,17 @@ function o:OpenProfiles() OpenGroup('profiles') end
 
 --- Closes the settings window, or opens it on the General page.
 function o:ToggleGeneral()
-  if not cO.AceConfigDialog.OpenFrames[cns.addon] then return self:OpenGeneral() end
-  cO.AceConfigDialog:Close(cns.addon)
+  if not self:IsOpen() then return self:OpenGeneral() end
+  self:Close()
 end
+
+--- @return boolean
+function o:IsOpen() return cO.AceConfigDialog.OpenFrames[cns.addon] ~= nil end
+
+function o:Close() cO.AceConfigDialog:Close(cns.addon) end
+
+--- Redraws an open settings window after a value changed elsewhere.
+function o:Refresh() cO.AceConfigRegistry:NotifyChange(cns.addon) end
 
 --- @return LDK_Settings_Namespace
 function o:ns() return ns end

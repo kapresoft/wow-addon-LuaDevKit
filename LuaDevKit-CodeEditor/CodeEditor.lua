@@ -50,5 +50,8 @@ function o:Toggle()
   dialog:Open()
 end
 
+--- @param shown boolean
+function o:SetToolbarShown(shown) dialog:SetToolbarShown(shown) end
+
 --- @return LDK_CodeEditor_Namespace
 function o:ns() return ns end

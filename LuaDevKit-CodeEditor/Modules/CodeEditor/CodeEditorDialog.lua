@@ -10,7 +10,6 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
 -- todo: General Option: 'Esc' closes Editor
 -- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
@@ -20,6 +19,12 @@ local libName = 'CodeEditorDialog'
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
 -- todo: Update replace or reset profile messaging
+-- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
+-- todo: EDITOR: alt-backspace: delete word
+-- todo: EDITOR: alt-left-arrow: back 1 word
+-- todo: EDITOR: alt-right-arrow: forward 1 word
+-- todo: EDITOR: shift-delete or Meta-backspace: delete line
+-- todo: LOCALE - add entries for all supported locales
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -598,6 +603,12 @@ local function AddSettingsButton(menu, text, open)
   end
   local requires = L['Requires %s']:format('LuaDevKit-Settings')
   menu:CreateButton(('%s (%s)'):format(text, requires)):SetEnabled(false)
+end
+
+--- Redraws an open settings window after a menu toggle.
+local function RefreshSettings()
+  local settings = ns:Settings()
+  if settings then settings:Refresh() end
 end
 
 --- CCW radians; bag-arrow art points left, so pi/2 = down, -pi/2 = up.
@@ -1313,16 +1324,21 @@ end
 
 --- Collapses or restores the toolbar; the code area follows it.
 --- @param shown boolean
-function o:SetToolbarShown(shown)
+--- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
+function o:SetToolbarShown(shown, save)
   local bar = self.TopBar
   bar:SetShown(shown)
   -- Hidden frames keep their size; 1 not 0, which drops anchors.
   bar:SetHeight(shown and self.topBarHeight or 1)
   -- Re-clamp: the output panel's max height just changed.
   self:SetStatusHeight(self:GetStatusHeight())
+  if save then ns:editor().showToolbar = shown end
 end
 
-function o:ToggleToolbar() self:SetToolbarShown(not self.TopBar:IsShown()) end
+function o:ToggleToolbar()
+  self:SetToolbarShown(not self.TopBar:IsShown(), true)
+  RefreshSettings()
+end
 
 function o:OnLoad_Fonts()
   self.FontButton:SetupMenu(function(_, rootDescription)
@@ -1457,6 +1473,22 @@ function o:OnClickClose() self:Hide() end
 function o:Open()
   if not InCombatLockdown() then return self:Show() end
   UIErrorsFrame:AddExternalErrorMessage(ERR_NOT_IN_COMBAT)
+end
+
+--- With Escape Key Closes Editor on, Esc closes Settings first.
+--- @param key string
+function o:OnKeyDown(key)
+  -- SetPropagateKeyboardInput is protected in combat.
+  if InCombatLockdown() then return end
+  local closes = key == 'ESCAPE' and ns:editor().escCloses
+  self:SetPropagateKeyboardInput(not closes)
+  if closes then self:CloseOnEscape() end
+end
+
+function o:CloseOnEscape()
+  local settings = ns:Settings()
+  if settings and settings:IsOpen() then return settings:Close() end
+  self:OnClickClose()
 end
 
 --- Syncs gutter scroll via the real API, not a manual re-anchor.
@@ -1858,6 +1890,7 @@ function o:Configure()
   local wrapText = editor.wrapText
   if wrapText == nil then wrapText = DEFAULTS.wrapText end
   self:SetWrapText(wrapText)
+  self:SetToolbarShown(editor.showToolbar)
   self:ConfigureOutputHeight()
   self:ConfigureWindow()
 end
@@ -2382,6 +2415,7 @@ Run: evaluates the whole editor buffer
 function o:ToggleSaveOnRun()
   local editor = ns:editor()
   editor.saveOnRun = not editor.saveOnRun
+  RefreshSettings()
 end
 
 --- Saves the document first if Save on Run is on; output goes to the output panel.

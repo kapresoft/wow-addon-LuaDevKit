@@ -12,6 +12,8 @@ Types
 --- @field fontSize? number
 --- @field wrapText? boolean
 --- @field saveOnRun? boolean
+--- @field showToolbar? boolean
+--- @field escCloses? boolean     @Esc closes the settings window first, then the editor
 --- @field openAtStartup? boolean @Open the editor on login or reload
 
 --- @class LDK_DB_ConsoleConfig
@@ -78,6 +80,8 @@ local DEFAULT_DB = {
       fontSize = 12,
       saveOnRun = true,
       openAtStartup = false,
+      showToolbar = true,
+      escCloses = false,
     },
     console = {
       fontFamily = 'Inconsolata',
