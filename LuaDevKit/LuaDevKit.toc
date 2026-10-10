@@ -48,6 +48,8 @@ ThirdParty\Libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
 ThirdParty\Libs\Ace3\AceLocale-3.0\AceLocale-3.0.lua
 ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\String.lua
 ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\Table.lua
+ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\ConsoleHelperMixin.lua
+ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\AddonInfoUtil.lua
 
 Libs\External\FAIAP.lua
 Libs\Namespace.lua

@@ -41,7 +41,9 @@ ns.DB_NAME = 'LUADEVKIT_DB'
 --- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0
---- @field Settings LDK_Settings? @Set when LuaDevKit-Settings loads; use ns:Settings()
+--- @field AddonInfoUtil Kapresoft-AddonInfoUtil-2-0
+--- @field CodeEditor LDK_CodeEditor? @Set when LuaDevKit-CodeEditor loads; use ns:CodeEditor()
+--- @field Settings LDK_Settings?     @Set when LuaDevKit-Settings loads; use ns:Settings()
 local O = {}; ns.O = O
 
 --- @param self LDK_Core_Objects
@@ -50,6 +52,7 @@ local function RegisterObjects(self)
   self.LSM = LibStub('LibSharedMedia-3.0')
   self.String = LibStub('Kapresoft-String-2-0')
   self.Table = LibStub('Kapresoft-Table-2-0')
+  self.AddonInfoUtil = LibStub('Kapresoft-AddonInfoUtil-2-0')
   self.AceAddon = LibStub('AceAddon-3.0')
   self.AceConfig = LibStub('AceConfig-3.0')
   self.AceConfigDialog = LibStub('AceConfigDialog-3.0')
@@ -94,6 +97,19 @@ function ns:p() return self:db().profile end
 
 --- @return AceEvent-3.0
 function ns:AceEvent() return self.O.AceEvent end
+
+local addonInfoUtil
+--- @return Kapresoft-AddonInfoUtil-2-0
+function ns:aiu()
+  if not addonInfoUtil then addonInfoUtil = self.O.AddonInfoUtil:New(self.addon) end
+  return addonInfoUtil
+end
+
+--- @return LDK_CodeEditor? @nil when LuaDevKit-CodeEditor isn't loaded or is disabled
+function ns:CodeEditor()
+  local editor = self.O.CodeEditor
+  return editor and editor:IsEnabled() and editor or nil
+end
 
 --- @return LDK_Settings? @nil when LuaDevKit-Settings isn't loaded or is disabled
 function ns:Settings()

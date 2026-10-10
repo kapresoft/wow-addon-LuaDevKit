@@ -95,5 +95,11 @@ function o:OpenGeneral() OpenGroup('general') end
 --- Opens the settings window on the Profiles page; refused in combat.
 function o:OpenProfiles() OpenGroup('profiles') end
 
+--- Closes the settings window, or opens it on the General page.
+function o:ToggleGeneral()
+  if not cO.AceConfigDialog.OpenFrames[cns.addon] then return self:OpenGeneral() end
+  cO.AceConfigDialog:Close(cns.addon)
+end
+
 --- @return LDK_Settings_Namespace
 function o:ns() return ns end

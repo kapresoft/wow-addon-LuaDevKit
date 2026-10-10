@@ -10,10 +10,9 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: New SettingsUI/Advanced Category: 1 checkbox option: Open On Load
--- todo: Console command: /ldk editor to Open()
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
+-- todo: General Option: 'Esc' closes Editor
 -- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
 -- todo: Action icon to format current code
 -- todo: Center the documents dropdown (and arrows)

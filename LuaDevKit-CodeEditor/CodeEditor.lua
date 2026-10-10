@@ -1,6 +1,6 @@
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
-local cO = ns:cO()
+local cns, cO = ns:cns()
 --- @type LDK_CodeEditorDialog
 local dialog = LDK_CodeEditorDialog
 
@@ -16,6 +16,7 @@ Methods: LDK_CodeEditor
 -------------------------------------------------------------------------------]]
 --- Called once, after LuaDevKit and all addon files are loaded.
 function o:OnInitialize()
+  cns:Register('CodeEditor', self)
   self:SendMessage(ns:msg('OnInitialize'))
   tr(libName, 'OnInitialize', 'called')
 end
@@ -37,6 +38,16 @@ function o:PLAYER_ENTERING_WORLD(evt)
   -- Silent in combat; Open() would show an error unprompted.
   if InCombatLockdown() then return end
   if ns:editor().openAtStartup then dialog:Open() end
+end
+
+--- Refused in combat.
+function o:Open() dialog:Open() end
+
+--- Opening is refused in combat.
+function o:Toggle()
+  -- Not IsShown(): in combat the secure parent hides a shown dialog.
+  if dialog:IsVisible() then return dialog:Hide() end
+  dialog:Open()
 end
 
 --- @return LDK_CodeEditor_Namespace

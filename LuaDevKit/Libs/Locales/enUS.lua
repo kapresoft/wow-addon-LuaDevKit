@@ -81,3 +81,7 @@ L['Discard'] = true
 L['General'] = true
 L['Open Editor at Startup'] = true
 L['Open Editor at Startup::Desc'] = 'Open the Code Editor when you log in or reload the UI.'
+L['Available commands:'] = true
+L['displays the addon info'] = true
+L['toggles the Code Editor'] = true
+L['toggles the settings window'] = true
