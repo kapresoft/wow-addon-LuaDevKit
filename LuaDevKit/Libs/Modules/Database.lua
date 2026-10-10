@@ -22,10 +22,11 @@ Types
 --- @field history LDK_CommandHistoryEntry[] @Oldest first
 
 --- @class LDK_DB_WindowConfig
---- @field left number?   @BOTTOMLEFT offset from UIParent; nil keeps the XML anchor
+--- @field left number?       @BOTTOMLEFT offset from UIParent; nil keeps the XML anchor
 --- @field bottom number?
---- @field width number?  @nil keeps the XML size
+--- @field width number?      @nil keeps the XML size
 --- @field height number?
+--- @field maximized boolean? @Header double-click; the rect above stays the restore size
 
 --- @class LDK_DB_GlobalConfig
 --- @field editor LDK_DB_EditorConfig

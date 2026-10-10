@@ -68,9 +68,10 @@
 
         <Frames>
             <!-- Header: full-width bar owning the title and close button;
-                 drag-to-move lives here. CloseFrame declared before Title so
-                 Title's right edge can anchor to it (fixed close, fluid
-                 title).
+                 drag-to-move lives here, and a double-click toggles maximize
+                 (a Button, since Frames get no OnDoubleClick). CloseFrame
+                 declared before Title so Title's right edge can anchor to it
+                 (fixed close, fluid title).
 
                  Header.CloseFrame: no enableMouse, so drags over its empty
                  margin fall through to Header; the button still takes its
@@ -83,7 +84,7 @@
                  Header.OptionsButton: plain arrow-only template (no natural
                  per-item icon, so no chrome to hide); lives here, not in
                  TopBar, so its Show Toolbar item stays reachable. -->
-            <Frame parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
+            <Button parentKey="Header" inherits="BackdropTemplate" enableMouse="true">
                 <Size y="28"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="$parent" x="-2" y="1"/>
@@ -131,17 +132,17 @@
                     </Frame>
                 </Frames>
                 <Scripts>
-                    <OnMouseDown>
-                        if button == "LeftButton" then
-                        self:GetParent():StartMoving()
-                        end
-                    </OnMouseDown>
-                    <OnMouseUp>
-                        self:GetParent():StopMovingOrSizing()
-                        self:GetParent():SaveWindowRect()
-                    </OnMouseUp>
+                    <OnDragStart>
+                        self:GetParent():OnHeaderDragStart()
+                    </OnDragStart>
+                    <OnDragStop>
+                        self:GetParent():OnHeaderDragStop()
+                    </OnDragStop>
+                    <OnDoubleClick>
+                        self:GetParent():ToggleMaximized()
+                    </OnDoubleClick>
                 </Scripts>
-            </Frame>
+            </Button>
 
             <!-- SizerSE: bottom-right resize grip, styled like AceGUI's Frame
                  widget sizer_se.
@@ -171,12 +172,10 @@
                 </Layers>
                 <Scripts>
                     <OnMouseDown>
-                        self:GetParent():StartSizing("BOTTOMRIGHT")
+                        self:GetParent():OnSizerMouseDown()
                     </OnMouseDown>
                     <OnMouseUp>
-                        self:GetParent():StopMovingOrSizing()
-                        self:GetParent():ClampToScreen()
-                        self:GetParent():SaveWindowRect()
+                        self:GetParent():OnSizerMouseUp()
                     </OnMouseUp>
                 </Scripts>
             </Frame>

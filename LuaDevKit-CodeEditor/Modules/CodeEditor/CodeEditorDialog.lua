@@ -10,7 +10,7 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: double-click frame header maximizes editor
+-- todo: Change Options menu items from checkbox to radio (like the output options)
 -- todo: double-click selects word
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
 
@@ -198,7 +198,7 @@ Types
 --- @class LDK_CodeEditorHeaderCloseFrame : Frame
 --- @field CloseButton Button
 
---- @class LDK_CodeEditorHeader : Frame, BackdropTemplate
+--- @class LDK_CodeEditorHeader : Button, BackdropTemplate
 --- @field Title LDK_CodeEditorHeaderTitle
 --- @field CloseFrame LDK_CodeEditorHeaderCloseFrame
 
@@ -263,6 +263,7 @@ Types
 --- @field CodeEditBox LDK_CodeEditBox
 --- @field CloseButton Button
 --- @field SizerSE Frame                                     @Bottom-right resize grip
+--- @field sizeStart number[]?                              @Width and height when the resize grip was pressed
 --- @field FontSteppers LDK_CodeEditorFontSteppers           @Floating +/- over the code area's top right
 --- @field Border Frame|BackdropTemplate                     @Main edge art; draws over StatusBar and CommandBar
 --- @field HeaderTitle FontString
@@ -1069,6 +1070,8 @@ end
 --- Title, close button and the Options menu.
 function o:OnLoad_Header()
   local header = self.Header
+  -- Drag starts only once the cursor moves, so clicks never move it.
+  header:RegisterForDrag('LeftButton')
   self.HeaderTitle = header.Title.Text
   self.HeaderTitle:SetText('Code Editor (Prototype)')
 
@@ -1755,11 +1758,90 @@ end
 --- Unclamped: OnShow clamps it once the dialog is visible.
 function o:ConfigureWindow()
   local window = ns:g().window
-  if window.width and window.height then PixelUtil.SetSize(self, window.width, window.height) end
+  if window.maximized then return self:ApplyMaximized() end
+  -- Points first: they replace a maximized two-point anchor.
   if window.left and window.bottom then
     self:ClearAllPoints()
     PixelUtil.SetPoint(self, 'BOTTOMLEFT', UIParent, 'BOTTOMLEFT', window.left, window.bottom)
   end
+  if window.width and window.height then PixelUtil.SetSize(self, window.width, window.height) end
+end
+
+--- Two-point anchors keep it fitted through scale and resolution changes.
+function o:ApplyMaximized()
+  local inset = SCREEN_MARGIN / 2
+  self:ClearAllPoints()
+  PixelUtil.SetPoint(self, 'TOPLEFT', UIParent, 'TOPLEFT', inset, -inset)
+  PixelUtil.SetPoint(self, 'BOTTOMRIGHT', UIParent, 'BOTTOMRIGHT', -inset, inset)
+end
+
+--- Header double-click; global.window keeps the rect to restore.
+function o:ToggleMaximized()
+  local window = ns:g().window
+  if window.maximized then
+    window.maximized = nil
+    self:ConfigureWindow()
+  else
+    self:SaveWindowRect()
+    window.maximized = true
+    self:ApplyMaximized()
+  end
+end
+
+--- Dragging a maximized window restores its size first, as desktop OSes do.
+function o:OnHeaderDragStart()
+  local window = ns:g().window
+  if window.maximized then
+    window.maximized = nil
+    self:RestoreUnderCursor()
+  end
+  self:StartMoving()
+end
+
+function o:OnHeaderDragStop()
+  self:StopMovingOrSizing()
+  self:ClampToScreen()
+  self:SaveWindowRect()
+end
+
+--- The saved size, keeping the cursor at the same spot across the header.
+function o:RestoreUnderCursor()
+  local window = ns:g().window
+  local cursorX = GetCursorPosition() / self:GetEffectiveScale()
+  local across = (cursorX - self:GetLeft()) / self:GetWidth()
+  local top = self:GetTop()
+  self:ClearAllPoints()
+  PixelUtil.SetPoint(self, 'TOPLEFT', UIParent, 'BOTTOMLEFT', cursorX - across * window.width, top)
+  PixelUtil.SetSize(self, window.width, window.height)
+end
+
+function o:OnSizerMouseDown()
+  self.sizeStart = { self:GetSize() }
+  self:StartSizing('BOTTOMRIGHT')
+end
+
+--- A real resize ends maximize; a plain click re-applies it, since
+--- StartSizing drops the two-point anchor.
+function o:OnSizerMouseUp()
+  self:StopMovingOrSizing()
+  local start = self.sizeStart
+  self.sizeStart = nil
+  if not start then return end
+  local window = ns:g().window
+  if not self:SizeChanged(start) then
+    if window.maximized then self:ApplyMaximized() end
+    return
+  end
+  window.maximized = nil
+  self:ClampToScreen()
+  self:SaveWindowRect()
+end
+
+--- @param size number[] @Width and height to compare against
+--- @return boolean
+function o:SizeChanged(size)
+  local width, height = self:GetSize()
+  return math.abs(width - size[1]) > 0.5 or math.abs(height - size[2]) > 0.5
 end
 
 --- Saved on drag and resize ends, not on automatic clamps.
