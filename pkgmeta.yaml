@@ -84,3 +84,4 @@ ignore:
 move-folders:
   LuaDevKit/LuaDevKit: LuaDevKit
   LuaDevKit/LuaDevKit-CodeEditor: LuaDevKit-CodeEditor
+  LuaDevKit/LuaDevKit-Settings: LuaDevKit-Settings

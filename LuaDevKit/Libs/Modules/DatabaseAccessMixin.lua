@@ -34,10 +34,16 @@ end
 --[[-----------------------------------------------------------------------------
 Methods
 -------------------------------------------------------------------------------]]
+--- @alias LDK_ProfileChange 'changed'|'copied'|'reset'
+
+--- Re-sent as one message, so modules never hook AceDB themselves.
+--- @param kind LDK_ProfileChange
+function o:SendProfileChanged(kind) self:SendMessage(ns:msg('OnProfileChanged'), kind) end
+
 function o:OnNewProfile(evt, db, profileKey) end
-function o:OnProfileChanged(evt, db, profileKey) end
-function o:OnProfileCopied(evt, db, sourceKey) end
-function o:OnProfileReset(evt, db) end
+function o:OnProfileChanged(evt, db, profileKey) self:SendProfileChanged('changed') end
+function o:OnProfileCopied(evt, db, sourceKey) self:SendProfileChanged('copied') end
+function o:OnProfileReset(evt, db) self:SendProfileChanged('reset') end
 function o:OnProfileDeleted(evt, db, profileKey) end
 
 --- Mixes these methods into the addon, then creates the AceDB.
@@ -45,7 +51,7 @@ function o:OnProfileDeleted(evt, db, profileKey) end
 function o:InitDb(addon)
   Mixin(addon, o)
   --- @type LDK_DatabaseObj
-  local db = AceDB:New(ns.DB_NAME, nil, true)
+  local db = AceDB:New(ns.DB_NAME)
   db:RegisterDefaults(Database:GetDefaultDatabase())
   Database:Sanitize(db['global'])
   RegisterCallbacks(addon, db)

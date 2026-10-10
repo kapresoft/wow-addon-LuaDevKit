@@ -404,8 +404,8 @@
                         <KeyValues>
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
-                        <NormalTexture file="Interface\Icons\INV_Misc_Gear_01"/>
-                        <HighlightTexture file="Interface\Icons\INV_Misc_Gear_01" alphaMode="ADD"/>
+                        <NormalTexture file="interface\addons\luadevkit\assets\settings-btn"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\settings-btn" alphaMode="ADD"/>
                     </DropdownButton>
                     <Button parentKey="ClearOutputButton">
                         <Size x="12" y="12"/>

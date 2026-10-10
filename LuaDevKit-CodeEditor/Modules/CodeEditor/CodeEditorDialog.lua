@@ -10,8 +10,6 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: Change Options menu items from checkbox to radio (like the output options)
--- todo: double-click selects word
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
 
 --[[-----------------------------------------------------------------------------
@@ -102,7 +100,7 @@ local NAME_PROMPT = 'LDK_CODE_EDITOR_DOC_NAME'
 local DOC_NAME_MAX_LETTERS = 40
 
 -- Seconds off a menu before it closes; covers the button gap.
-local MENU_LEAVE_DELAY = 0.3
+local MENU_LEAVE_DELAY = 0.5
 local MENU_LEAVE_POLL = 0.1
 
 -- Echoed commands in the output; ASCII so every code font has it.
@@ -123,8 +121,8 @@ local MAX_COMMAND_HISTORY = 50
 -- History menu height before it scrolls.
 local HISTORY_MENU_MAX_HEIGHT = 150
 
--- Document menu height before it scrolls; about 10 rows.
-local DOC_MENU_MAX_HEIGHT = 200
+-- Document and profile menu height before it scrolls; about 10 rows.
+local LIST_MENU_MAX_HEIGHT = 200
 
 -- History row text width cap; WoW truncates longer lines.
 local HISTORY_MENU_MAX_WIDTH = 200
@@ -232,6 +230,7 @@ Types
 --- @field DeleteButton Button                               @Alias of TopBar.DeleteButton
 --- @field DocStepper LDK_CodeEditorDocStepper               @Alias of TopBar.DocStepper
 --- @field docIndex number?                                  @DocumentStore index being edited; nil before the first
+--- @field loadedProfile LDK_DB_ProfileConfig?              @Profile the documents were loaded from
 --- @field dirtyShown boolean?                               @Dirty state the menu and Save button last showed
 --- @field topBarHeight number                               @TopBar height to restore after a collapse
 --- @field codeFont Font
@@ -766,6 +765,7 @@ end
 function o:_RegisterMessages()
   -- Fonts and the DB are ready once LDK_CodeEditor enables.
   self:RegisterMessage(ns:msg('OnEnable'), 'Initialize')
+  self:RegisterMessage(ns:cns():msg('OnProfileChanged'), 'OnProfileChanged')
 end
 
 --- Places both scroll viewports inside their backdrops. Anchored here rather
@@ -1098,6 +1098,34 @@ function o:BuildOptionsMenu(root)
   root:CreateCheckbox(L['Save on Run'], isSaveOnRun, function() self:ToggleSaveOnRun() end)
   local function isToolbarShown() return self.TopBar:IsShown() end
   root:CreateCheckbox(L['Show Toolbar'], isToolbarShown, function() self:ToggleToolbar() end)
+  self:AddProfileMenu(root)
+end
+
+--- One radio per profile; Manage Profiles only while LuaDevKit-Settings is enabled.
+--- @param root RootMenuDescriptionProxy
+function o:AddProfileMenu(root)
+  local db = ns:db()
+  local profiles = db:GetProfiles()
+  table.sort(profiles)
+  local function isCurrent(key) return key == db:GetCurrentProfile() end
+  local function switch(key)
+    if not isCurrent(key) then db:SetProfile(key) end
+  end
+  -- AceDB's own name for this character's profile, "Name - Realm".
+  local function label(key)
+    if key ~= db.keys.char then return key end
+    local marker = ('(%s %s)'):format(L['This'], CHARACTER)
+    return ('%s %s'):format(key, GRAY_FONT_COLOR:WrapTextInColorCode(marker))
+  end
+  local menu = root:CreateButton(L['Profile'])
+  for _, key in ipairs(profiles) do
+    menu:CreateRadio(label(key), isCurrent, switch, key)
+  end
+  menu:SetScrollMode(LIST_MENU_MAX_HEIGHT)
+  local settings = ns:Settings()
+  if not settings then return end
+  menu:CreateDivider()
+  menu:CreateButton(L['Manage Profiles...'], function() settings:OpenProfiles() end)
 end
 
 function o:OnLoad_ThemeButton()
@@ -2088,8 +2116,31 @@ end
 
 --- Reopens the profile's last document; starts one if it has none.
 function o:LoadDocuments()
+  self.loadedProfile = ns:p()
   if DS:Count() == 0 then return self:AddDocument(STARTER_CODE) end
   self:OpenDocument(Clamp(ns:p().docIndex, 1, DS:Count()))
+end
+
+--- Core's re-sent AceDB callback; reloads the active profile's workspace.
+--- @param kind LDK_ProfileChange
+function o:OnProfileChanged(_, kind)
+  -- Copy From and Reset were confirmed; they're meant to replace the edits.
+  if kind == 'changed' then self:SaveToLoadedProfile() end
+  -- Their callbacks hold the old profile's document indexes.
+  StaticPopup_Hide(UNSAVED_PROMPT)
+  StaticPopup_Hide(NAME_PROMPT)
+  StaticPopup_Hide(DELETE_PROMPT)
+  self.docIndex = nil
+  self:LoadDocuments()
+  self:ConfigureOutputHeight()
+  self:SetStatusHeight(self:GetStatusHeight())
+end
+
+--- Unsaved edits stay with the profile they were made in.
+function o:SaveToLoadedProfile()
+  local profile, index = self.loadedProfile, self.docIndex
+  local doc = profile and index and profile.docs[index]
+  if doc then doc.text = self:GetText() end
 end
 
 --- Numbered past the highest in use, so a delete can't cause repeats.
@@ -2242,7 +2293,7 @@ function o:BuildDocumentMenu(root)
     return dirty and DIRTY_MARK .. doc.name or doc.name
   end
   DS:Each(function(index, doc) root:CreateRadio(label(index, doc), isSelected, pick, index) end)
-  root:SetScrollMode(DOC_MENU_MAX_HEIGHT)
+  root:SetScrollMode(LIST_MENU_MAX_HEIGHT)
 end
 
 --[[-----------------------------------------------------------------------------

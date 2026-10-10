@@ -35,6 +35,9 @@ function ns:editor() return self:g().editor end
 --- @return LDK_DB_ProfileConfig
 function ns:p() return self:cns():p() end
 
+--- @return LDK_Settings? @nil when LuaDevKit-Settings isn't loaded or is disabled
+function ns:Settings() return self:cns():Settings() end
+
 --- Core's locale: the strings are registered under LuaDevKit.
 --- @return table<string, string>
 function ns:GetLocale() return self:cns():GetLocale() end
