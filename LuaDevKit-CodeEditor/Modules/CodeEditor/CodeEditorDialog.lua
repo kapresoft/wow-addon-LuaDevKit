@@ -10,7 +10,6 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: Rename Backdrops* files to Theme*
 -- todo: A Light Theme? (Non-DarkMode)
 -- todo: New SettingsUI/Advanced Category: 1 checkbox option: Open On Load
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
@@ -85,9 +84,6 @@ local MIN_GUTTER_DIGITS = 2
 -- Longest snippet this scratchpad editor holds.
 local MAX_LINES = 3000
 
--- Shared by both viewports to keep gutter/code rows aligned.
-local VIEWPORT_TOP_BOTTOM_INSET = 3
-
 -- Space between the last digit and the code panel (plus 4 visible).
 local GUTTER_TEXT_RIGHT_INSET = 10
 
@@ -141,9 +137,10 @@ local HISTORY_MENU_MAX_WIDTH = 200
 -- Truncated-command tooltip width; long commands wrap at it.
 local HISTORY_TOOLTIP_WIDTH = 400
 
--- Horizontal text padding inside CodeEditBox (left, right).
-local CODE_TEXT_INSET_LEFT = 4
-local CODE_TEXT_INSET_RIGHT = 6
+-- Left/right pad the text; top/bottom inset both viewports,
+-- so the gutter's line numbers stay level with the code.
+--- @type LDK_Insets
+local CODE_PADDING = { left = 2, right = 4, top = 4, bottom = 4 }
 
 -- Shared inset so the code area's corner buttons line up.
 local OVERLAY_INSET = 4
@@ -278,6 +275,8 @@ Types
 --- @field Border Frame|BackdropTemplate                     @Main edge art; draws over StatusBar and CommandBar
 --- @field HeaderTitle FontString
 --- @field borderStyle Name
+--- @field theme LDK_ThemeSet                                @Active theme, resolved by Themes:GetTheme()
+--- @field outputColors table<LDK_OutputKind, ColorMixin>    @From the active theme
 --- @field statusGripColor RGBA                              @Resting divider grip color, from the active theme
 --- @field statusGripHoverColor RGBA                         @Hovered divider grip color, from the active theme
 LDK_CodeEditorDialogMixin = ns:NewAceEvent()
@@ -646,8 +645,6 @@ function o:Initialize()
   self:OnLoad_GripLines()
   self:OnLoad_EditBoxScrollBar()
 
-  ns:EnableLuaFormatter(self.CodeEditBox)
-
   local numbers = self.Gutter.ScrollChild.Numbers
 
   -- SetEnabled is the real read-only switch, not enableKeyboard.
@@ -788,11 +785,11 @@ end
 --- Places both scroll viewports inside their backdrops. Anchored here rather
 --- than in XML so the shared vertical inset lives in one place.
 function o:OnLoad_Viewports()
-  local v = VIEWPORT_TOP_BOTTOM_INSET
-  self.Gutter:SetPoint('TOPLEFT', self.GutterBackdrop, 'TOPLEFT', 5, -v)
-  self.Gutter:SetPoint('BOTTOMRIGHT', self.GutterBackdrop, 'BOTTOMRIGHT', -4, v)
-  self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -v)
-  self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, v)
+  local top, bottom = CODE_PADDING.top, CODE_PADDING.bottom
+  self.Gutter:SetPoint('TOPLEFT', self.GutterBackdrop, 'TOPLEFT', 5, -top)
+  self.Gutter:SetPoint('BOTTOMRIGHT', self.GutterBackdrop, 'BOTTOMRIGHT', -4, bottom)
+  self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -top)
+  self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, bottom)
   -- OutputScrollFrame is anchored in XML; see its comment.
 end
 
@@ -822,7 +819,7 @@ function o:OnLoad_CodeEditBox()
   self.CodeEditBox:SetAutoFocus(false)
   self:SetWrapText(DEFAULTS.wrapText)
   -- Insets pad text; top/bottom must stay 0 or line 1 desyncs from gutter.
-  self.CodeEditBox:SetTextInsets(CODE_TEXT_INSET_LEFT, CODE_TEXT_INSET_RIGHT, 0, 0)
+  self.CodeEditBox:SetTextInsets(CODE_PADDING.left, CODE_PADDING.right, 0, 0)
 end
 
 function o:OnLoad_WrapCheckButton()
@@ -1031,11 +1028,11 @@ function o:BuildHistoryMenu(root)
   end
 end
 
---- Same colors as the code editor; plain if FAIAP isn't loaded.
+--- Default syntax colors: the tooltip is dark in every theme.
 --- @param text string @Escaped, as FAIAP sees editor text
---- @return string
+--- @return string @Plain if FAIAP isn't loaded
 function o:SyntaxColor(text)
-  local colors = self.CodeEditBox.faiap_colorTable
+  local colors = ns:LuaColorTable(Themes:GetDefaultSyntax())
   if not colors then return text end
   return (FAIAP.colorCodeCode(text, colors))
 end
@@ -1576,6 +1573,7 @@ function o:ApplyTheme(name, save)
   if not bs then return end
 
   local main = bs.main
+  self.theme = bs
   self.borderStyle = bs.name
   local bd = main.backdrop
   if bd then
@@ -1586,7 +1584,6 @@ function o:ApplyTheme(name, save)
     self:InsetPanels(bd.insets)
   end
 
-  local gutterTextColor = GUTTER.textColor
   local pbd = bs.panel.backdrop
   local bgColor, borderColor = pbd.bgColor, pbd.borderColor
 
@@ -1605,8 +1602,6 @@ function o:ApplyTheme(name, save)
     self.StatusBar:SetBackdropBorderColor(upk(borderColor))
     self.CommandBar:SetBackdropBorderColor(upk(borderColor))
   end
-  local gutter = bs.code and bs.code.gutter
-  if gutter and gutter.textColor then gutterTextColor = gutter.textColor end
   -- Grip color is tuned per theme; panel.backdrop.borderColor alpha is too low here.
   local console = bs.console
   local divider = console.divider
@@ -1616,21 +1611,44 @@ function o:ApplyTheme(name, save)
   self.StatusDivider.Grip:SetColorTexture(upk(divider.gripColor))
   self.StatusDivider.MaximizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self.StatusDivider.MinimizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
-  local output, commandLine = console.output, console.commandLine or {}
-  local commandColor = commandLine.textColor or output.textColor
-  local prompt = commandLine.prompt or {}
-  self.EvalStatus:SetTextColor(upk(output.textColor))
-  self.CommandBar.Prompt:SetTextColor(upk(prompt.color or commandColor))
-  self.CommandEditBox:SetTextColor(upk(commandColor))
   self:ApplyConsoleInsets(console)
-  self:ApplyToolIconAlpha(output)
+  self:ApplyToolIconAlpha(console.output)
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(GUTTER.borderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
-  self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutterTextColor))
+  self:ApplyThemeTextColors()
+  self:ApplyOutputColors(console.output)
+  ns:EnableLuaFormatter(self.CodeEditBox, bs.code.syntax)
   self:_SetHeaderBorderStyle(bs)
   self:ApplyHeaderIconColor(main.header)
   if save then ns:editor().theme = self.borderStyle end
+end
+
+--- Re-run after SetFontObject, which applies the font's own color.
+function o:ApplyThemeTextColors()
+  local theme = self.theme
+  local code, console = theme.code, theme.console
+  local gutter = code.gutter or {}
+  local output, commandLine = console.output, console.commandLine or {}
+  local commandColor = commandLine.textColor or output.textColor
+  local prompt = commandLine.prompt or {}
+  self.CodeEditBox:SetTextColor(upk(code.textColor))
+  self.Gutter.ScrollChild.Numbers:SetTextColor(upk(gutter.textColor or GUTTER.textColor))
+  self.EvalStatus:SetTextColor(upk(output.textColor))
+  self.CommandBar.Prompt:SetTextColor(upk(prompt.color or commandColor))
+  self.CommandEditBox:SetTextColor(upk(commandColor))
+  local label = theme.main.labelColor or { NORMAL_FONT_COLOR:GetRGBA() }
+  self.BottomBar.WrapCheckButton.text:SetTextColor(upk(label))
+end
+
+--- Re-colors output already in the panel, not just new lines.
+--- @param output LDK_OutputTheme @printColor and errorColor already resolved
+function o:ApplyOutputColors(output)
+  self.outputColors = {
+    print = CreateColor(upk(output.printColor)),
+    error = CreateColor(upk(output.errorColor)),
+  }
+  self:RefreshOutput()
 end
 
 --- Tints the header's white glyph art; hover uses the same tint.
@@ -1762,6 +1780,7 @@ function o:ApplyConsoleFont()
   self.EvalStatus:SetJustifyH('LEFT')
 
   self.CommandEditBox:SetFontObject(font)
+  self:ApplyThemeTextColors()
 end
 
 --- Sets the font size (snapped to the nearest supported size) and re-applies
@@ -2102,7 +2121,7 @@ function o:RefreshOutput()
   self:SyncOutputHeight()
 
   -- A divider drag re-enters this every frame.
-  local text = self.output:GetText()
+  local text = self:GetOutput()
   if box:GetText() == text then return end
   -- Raised before every SetText; see RefreshGutter for why.
   box:SetMaxLetters(strlenutf8(text))
@@ -2118,13 +2137,14 @@ end
 
 --- Appends output; embedded newlines count toward the cap.
 --- @param text string
-function o:AppendOutput(text)
-  self.output:Append(text)
+--- @param kind LDK_OutputKind? @Colored per theme; nil uses the output text color
+function o:AppendOutput(text, kind)
+  self.output:Append(text, kind)
   self:RefreshOutput()
 end
 
---- @return string
-function o:GetOutput() return self.output:GetText() end
+--- @return string @Colored with the active theme's output colors
+function o:GetOutput() return self.output:GetText(self.outputColors) end
 
 --[[-----------------------------------------------------------------------------
 Command line: single-shot eval; no multi-line continuation
@@ -2140,7 +2160,7 @@ function o:OnCommandEnterPressed(text)
   -- Escape literal '|' so the echoed input can't be read as a color/texture code.
   self:AppendOutput(COMMAND_ECHO_PREFIX .. text:gsub('|', '||'))
 
-  local ok = LR:EvalCommand(text, function(line) self:AppendOutput(line) end)
+  local ok = LR:EvalCommand(text, function(line, kind) self:AppendOutput(line, kind) end)
   self:PushCommandHistory(text, not ok)
 end
 
@@ -2349,7 +2369,7 @@ function o:Run()
   local text = self:GetText()
   if str_isBlank(text) then return end
   self:AppendOutput(COMMAND_ECHO_PREFIX .. 'run ' .. self:DocumentName())
-  LR:EvalCode(text, function(line) self:AppendOutput(line) end)
+  LR:EvalCode(text, function(line, kind) self:AppendOutput(line, kind) end)
 end
 
 --- @return string

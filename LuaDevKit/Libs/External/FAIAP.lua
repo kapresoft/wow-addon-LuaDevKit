@@ -1152,6 +1152,8 @@ function lib.enable(editbox, colorTable, tabWidth)
 
 	if enabled[editbox] then
 		if modified then
+			-- Unchanged text would hit the cache and keep the old colors.
+			editboxIndentCache[editbox] = nil
 			lib.indentEditbox(editbox)
 		end
 		return

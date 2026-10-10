@@ -1,7 +1,8 @@
 --- @type LDK_Core_Namespace
 local ns = select(2, ...)
 
---- @alias LDK_OutputFn fun(text: string)
+--- @alias LDK_OutputKind 'print'|'error'
+--- @alias LDK_OutputFn fun(text: string, kind: LDK_OutputKind?)
 
 --- @class LDK_LuaRunner
 local o = {}; ns.O.LuaRunner = o
@@ -9,14 +10,14 @@ local o = {}; ns.O.LuaRunner = o
 --[[-----------------------------------------------------------------------------
 Support Functions
 -------------------------------------------------------------------------------]]
---- Grey, space-joined print output, matching WoW's own print.
+--- Space-joined, like WoW's own print; the writer colors it.
 --- @param write LDK_OutputFn
 local function Print(write, ...)
   local parts = {}
   for i = 1, select('#', ...) do
     parts[i] = tostring(select(i, ...))
   end
-  write('|cff999999' .. table.concat(parts, ' ') .. '|r')
+  write(table.concat(parts, ' '), 'print')
 end
 
 --- Keeps trailing nils that a plain { ... } would lose.
@@ -24,10 +25,10 @@ end
 --- @return any[]
 local function Pack(...) return select('#', ...), { ... } end
 
---- Red, like a compile or runtime error.
+--- A compile or runtime error; the writer colors it.
 --- @param write LDK_OutputFn
 --- @param msg any
-local function WriteError(write, msg) write('|cffff0000' .. tostring(msg) .. '|r') end
+local function WriteError(write, msg) write(tostring(msg), 'error') end
 
 --- Runs func with print sent to write; reports a runtime error.
 --- @param func function

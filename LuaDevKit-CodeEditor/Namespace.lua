@@ -47,7 +47,12 @@ function ns:GetLocale() return self:cns():GetLocale() end
 function ns:NewAceEvent(obj) return self:cns():NewAceEvent(obj) end
 
 --- @param editBox EditBox
-function ns:EnableLuaFormatter(editBox) self:cns():EnableLuaFormatter(editBox) end
+--- @param syntax LDK_SyntaxColors
+function ns:EnableLuaFormatter(editBox, syntax) self:cns():EnableLuaFormatter(editBox, syntax) end
+
+--- @param syntax LDK_SyntaxColors
+--- @return table? @nil if FAIAP isn't loaded
+function ns:LuaColorTable(syntax) return self:cns():LuaColorTable(syntax) end
 
 --- @param message Name
 --- @return string @e.g. 'LuaDevKit-CodeEditor::OnEnable'

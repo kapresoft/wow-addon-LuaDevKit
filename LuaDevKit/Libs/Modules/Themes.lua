@@ -50,6 +50,7 @@ Type Definitions
 --- @class LDK_MainTheme
 --- @field backdrop LDK_Backdrop
 --- @field header? LDK_MainHeaderOverride
+--- @field labelColor? RGBA @Text on the main background, e.g. Wrap Text; defaults to gold
 
 --- @class LDK_GutterTheme
 --- @field textColor? RGBA @Defaults to palette.base
@@ -57,8 +58,19 @@ Type Definitions
 --- @class LDK_PanelTheme
 --- @field backdrop LDK_Backdrop @Gutter, code, output and command line boxes; borderColor defaults to palette.base
 
+--- Hex 'RRGGBB' per Lua token kind; logical is and/or/not.
+--- @class LDK_SyntaxColors
+--- @field keyword? string
+--- @field string? string
+--- @field number? string
+--- @field comment? string
+--- @field identifier? string
+--- @field logical? string
+
 --- @class LDK_CodeTheme
 --- @field gutter? LDK_GutterTheme
+--- @field textColor? RGBA           @Operators and other uncolored code; defaults to white
+--- @field syntax? LDK_SyntaxColors @Merged over the dark-background defaults
 
 --- @class LDK_DividerTheme
 --- @field gripColor? RGBA      @The resting handle color; defaults to palette.base
@@ -74,7 +86,9 @@ Type Definitions
 --- @field alpha? number @Resting alpha of every output tool icon; hover stays full
 
 --- @class LDK_OutputTheme
---- @field textColor RGBA @Evaluation output text
+--- @field textColor RGBA   @Evaluation output text
+--- @field printColor? RGBA @print() output; defaults to gray
+--- @field errorColor? RGBA @Compile and runtime errors; defaults to red
 --- @field toolIcons? LDK_ToolIconsTheme
 
 --- @class LDK_PromptTheme
@@ -108,6 +122,7 @@ Type Definitions
 --- @field ['Dark Knight'] LDK_ThemeSet
 --- @field ['Gilded'] LDK_ThemeSet
 --- @field ['Oakframe'] LDK_ThemeSet
+--- @field ['Parchment'] LDK_ThemeSet
 --- @field ['Stonecut'] LDK_ThemeSet
 --- @field ['Warband'] LDK_ThemeSet
 --- @field ['Whisper'] LDK_ThemeSet
@@ -151,10 +166,25 @@ local BORDER_MAW = [[interface\addons\luadevkit\assets\ui-tooltip-border-maw]]
 local INSETS_NONE = { left = 0, right = 0, top = 0, bottom = 0 }
 local INSETS_PAD = { left = 3, right = 3, top = 4, bottom = 3 }
 
+-- Tuned for dark code backgrounds; light themes override them.
+--- @type LDK_SyntaxColors
+local DEFAULT_SYNTAX = {
+  keyword = 'CF8E6D',
+  string = 'EFEFEF',
+  number = '2AACB8',
+  comment = '9B9EA5',
+  identifier = '56B2FF',
+  logical = 'FFB9B0',
+}
+local DEFAULT_CODE_TEXT_COLOR = { 1, 1, 1, 1 }
+local DEFAULT_PRINT_COLOR = { 0.6, 0.6, 0.6, 1 }
+local DEFAULT_ERROR_COLOR = { 1, 0, 0, 1 }
+
 --- @class LDK_ThemeNames
 --- @field DarkKnight Name
 --- @field Abyss Name
 --- @field Oakframe Name
+--- @field Parchment Name
 --- @field Whisper Name
 --- @field Stonecut Name
 --- @field Gilded Name
@@ -163,6 +193,7 @@ local THEME = {
   DarkKnight = 'Dark Knight',
   Abyss = 'Abyss',
   Oakframe = 'Oakframe',
+  Parchment = 'Parchment',
   Whisper = 'Whisper',
   Stonecut = 'Stonecut',
   Gilded = 'Gilded',
@@ -176,6 +207,7 @@ local THEME_ORDER = {
   THEME.DarkKnight,
   THEME.Gilded,
   THEME.Oakframe,
+  THEME.Parchment,
   THEME.Stonecut,
   THEME.Warband,
   THEME.Whisper,
@@ -250,12 +282,10 @@ local PALETTE_ALPHA = {
 local function _tint(base, alpha) return { base[1], base[2], base[3], alpha } end
 
 --- Fills colors a theme leaves out with palette.base tints.
---- @param theme LDK_ThemeSet
---- @return LDK_ThemeSet @A copy when tinted; the registered theme stays as written
-local function _ResolvePalette(theme)
-  local base = theme.palette and theme.palette.base
-  if not base then return theme end
-  local t = tbl_deepCopy(theme)
+--- @param t LDK_ThemeSet @A copy; filled in place
+local function _ResolvePalette(t)
+  local base = t.palette and t.palette.base
+  if not base then return end
   local pbd = t.panel.backdrop
   pbd.borderColor = pbd.borderColor or _tint(base, PALETTE_ALPHA.panelBorder)
   t.code = t.code or {}
@@ -270,7 +300,23 @@ local function _ResolvePalette(theme)
   t.main.header = t.main.header or {}
   local header = t.main.header
   header.iconColor = header.iconColor or _tint(base, PALETTE_ALPHA.headerIcon)
-  return t
+end
+
+--- Fills the code text and syntax colors a theme leaves out.
+--- @param t LDK_ThemeSet @A copy; filled in place
+local function _ResolveCode(t)
+  t.code = t.code or {}
+  local code = t.code
+  code.textColor = code.textColor or DEFAULT_CODE_TEXT_COLOR
+  code.syntax = tbl_Merge(DEFAULT_SYNTAX, code.syntax or {})
+end
+
+--- Fills the print and error colors a theme leaves out.
+--- @param t LDK_ThemeSet @A copy; filled in place
+local function _ResolveOutput(t)
+  local output = t.console.output
+  output.printColor = output.printColor or DEFAULT_PRINT_COLOR
+  output.errorColor = output.errorColor or DEFAULT_ERROR_COLOR
 end
 
 --- @package
@@ -573,6 +619,61 @@ local function _RegisterBuiltInThemes()
       },
     },
   })
+  _RegisterTheme({
+    name = THEME.Parchment,
+    palette = { base = { 0.36, 0.25, 0.13 } },
+    main = {
+      backdrop = {
+        bgFile = _bg(lbg.BLIZZARD_PARCHMENT),
+        edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
+        tile = false,
+        tileEdge = false,
+        tileSize = 1,
+        edgeSize = 12,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        bgColor = { 1, 1, 1, 1 },
+        borderColor = { 0.45, 0.33, 0.2, 1 },
+      },
+      header = {
+        backdrop = {
+          bgFile = _bg(lbg.BLIZZARD_PARCHMENT),
+          bgColor = { 0.4, 0.28, 0.16, 1 },
+        },
+        iconColor = { 1, 0.9, 0.7, 1 },
+      },
+      labelColor = { 0.25, 0.17, 0.1, 1 },
+    },
+    panel = {
+      backdrop = _panel({
+        insets = { left = 1, right = 1, top = 1, bottom = 1 },
+        bgColor = { 1, 0.98, 0.9, 0.35 },
+      }),
+    },
+    code = {
+      gutter = { textColor = { 0.192, 0.075, 0.012, 1 } },
+      textColor = { 0.17, 0.12, 0.08, 1 },
+      syntax = {
+        keyword = '9B2C0A',
+        string = '2D6A1E',
+        number = '1747C4',
+        comment = '857560',
+        identifier = '1F5F7A',
+        logical = '8E2F7A',
+      },
+    },
+    console = {
+      output = {
+        textColor = { 1.000, 0.965, 0.494, 1 },
+        printColor = { 0.278, 0.224, 0.173, 1 },
+        errorColor = { 0.7, 0.1, 0.05, 1 },
+      },
+      commandLine = {
+        prompt = {
+          color = { 0.45, 0.3, 0.1, 1 },
+        },
+      },
+    },
+  })
 end
 
 --[[-----------------------------------------------------------------------------
@@ -592,8 +693,18 @@ function o:GetDefaultThemeName()
 end
 
 ---@param name Name? @Returns the default theme if nil
----@return LDK_ThemeSet @palette.base tints already filled in
-function o:GetTheme(name) return _ResolvePalette(themes[name] or self:GetDefaultTheme()) end
+---@return LDK_ThemeSet @A copy with palette tints, code and output colors filled in
+function o:GetTheme(name)
+  local t = tbl_deepCopy(themes[name] or self:GetDefaultTheme()) --[[@as LDK_ThemeSet]]
+  _ResolvePalette(t)
+  _ResolveCode(t)
+  _ResolveOutput(t)
+  return t
+end
+
+--- For code shown on dark tooltips, whatever the theme.
+--- @return LDK_SyntaxColors
+function o:GetDefaultSyntax() return DEFAULT_SYNTAX end
 
 --- @param theme LDK_ThemeSet @Returns the default border setting if nil
 --- @return LDK_MainHeaderOverride?

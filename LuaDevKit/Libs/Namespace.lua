@@ -121,24 +121,34 @@ function ns:NewLocale(locale)
   return self.O.AceLocale:NewLocale(self.addon, locale, false, self.options.ignoreMissingKeys)
 end
 
---- Enables Lua syntax colorization (WowLua's FAIAP) on the given EditBox.
---- @param editBox EditBox
-function ns:EnableLuaFormatter(editBox)
-  if not editBox or not self.O.FAIAP then return end
-
+--- FAIAP's color table for the given syntax colors.
+--- @param syntax LDK_SyntaxColors @Every kind set, as Themes:GetTheme() resolves it
+--- @return table? @nil if FAIAP isn't loaded
+function ns:LuaColorTable(syntax)
   local f = self.O.FAIAP
-  -- todo: move to a config
-  local COLOR_DEFS = {
-    [f.tokens.TOKEN_KEYWORD] = '|cffCF8E6D', -- tan keywords
-    [f.tokens.TOKEN_STRING] = '|cffEFEFEF', -- white strings
-    [f.tokens.TOKEN_NUMBER] = '|cff2AACB8', -- teal numbers
-    [f.tokens.TOKEN_COMMENT_SHORT] = '|cff9B9EA5', -- gray comments
-    [f.tokens.TOKEN_COMMENT_LONG] = '|cff9B9EA5', -- gray comments
-    [f.tokens.TOKEN_IDENTIFIER] = '|cff56B2FF', -- light blue identifiers
-    ['and'] = '|cffFFB9B0', -- salmon
-    ['or'] = '|cffFFB9B0', -- salmon
-    ['not'] = '|cffFFB9B0', -- salmon
+  if not f then return nil end
+  local t = f.tokens
+  local function c(hex) return '|cff' .. hex end
+  return {
+    [t.TOKEN_KEYWORD] = c(syntax.keyword),
+    [t.TOKEN_STRING] = c(syntax.string),
+    [t.TOKEN_NUMBER] = c(syntax.number),
+    [t.TOKEN_COMMENT_SHORT] = c(syntax.comment),
+    [t.TOKEN_COMMENT_LONG] = c(syntax.comment),
+    [t.TOKEN_IDENTIFIER] = c(syntax.identifier),
+    ['and'] = c(syntax.logical),
+    ['or'] = c(syntax.logical),
+    ['not'] = c(syntax.logical),
     [0] = '|r', -- required: the stop code
   }
-  f.enable(editBox, COLOR_DEFS)
+end
+
+--- Enables Lua syntax colorization (WowLua's FAIAP) on the given EditBox;
+--- calling it again re-colors with the new syntax colors.
+--- @param editBox EditBox
+--- @param syntax LDK_SyntaxColors
+function ns:EnableLuaFormatter(editBox, syntax)
+  local colors = editBox and self:LuaColorTable(syntax)
+  if not colors then return end
+  self.O.FAIAP.enable(editBox, colors)
 end

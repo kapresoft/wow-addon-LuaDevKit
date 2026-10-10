@@ -3,9 +3,13 @@ local ns = select(2, ...)
 local O = ns.O
 local TU = O.TextUtil
 
+--- @class LDK_OutputLine
+--- @field text string
+--- @field kind LDK_OutputKind?
+
 --- @class LDK_OutputLog
 --- @field maxLines number
---- @field lines string[]
+--- @field lines LDK_OutputLine[]
 local o = {}; O.OutputLog = o
 
 --[[-----------------------------------------------------------------------------
@@ -26,10 +30,11 @@ function o:Clear() self.lines = {} end
 
 --- Appends text; embedded newlines count toward the cap.
 --- @param text string
-function o:Append(text)
+--- @param kind LDK_OutputKind? @Colored by GetText; nil stays plain
+function o:Append(text, kind)
   local lines = self.lines
   for line in TU:Lines(tostring(text or '')) do
-    lines[#lines + 1] = line
+    lines[#lines + 1] = { text = line, kind = kind }
   end
   local excess = #lines - self.maxLines
   if excess > 0 then
@@ -43,5 +48,14 @@ function o:Append(text)
   end
 end
 
+--- Colored at read time, so a theme switch re-colors old lines.
+--- @param colors table<LDK_OutputKind, ColorMixin>? @nil or a missing kind stays plain
 --- @return string
-function o:GetText() return table.concat(self.lines, '\n') end
+function o:GetText(colors)
+  local out = {}
+  for i, line in ipairs(self.lines) do
+    local color = colors and line.kind and colors[line.kind]
+    out[i] = color and color:WrapTextInColorCode(line.text) or line.text
+  end
+  return table.concat(out, '\n')
+end
