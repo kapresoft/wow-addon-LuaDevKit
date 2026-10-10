@@ -15,7 +15,6 @@
     <Font name="LDK_CommandPromptFont"
           font="Interface/AddOns/SharedMediaFontsMono/Assets/Fonts/JetBrainsMono-Medium.ttf" height="12"/>
 
-    <Script file="ExampleCode.lua"/>
     <Script file="CodeEditBoxMixin.lua"/>
     <Script file="MinimalScrollBarStyle.lua"/>
     <Script file="CodeEditorDialog.lua"/>

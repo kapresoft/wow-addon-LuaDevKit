@@ -4,7 +4,6 @@ local addon, xns = ...
 --- CodeEditor addon reaches core only through this namespace.
 --- @class LDK_CodeEditor_Namespace
 --- @field addon Name
---- @field EXAMPLE_CODE string
 --- @field O LDK_CodeEditor_Objects
 local ns = xns
 ns.addon = addon
