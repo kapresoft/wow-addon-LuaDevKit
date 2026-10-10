@@ -6,8 +6,6 @@ local AceEvent = LibStub('AceEvent-3.0')
 local o = AceEvent:Embed({})
 LDK_Core_Developer = o
 
-function o:OnReady(evt, ...) self:ShowCodeEditor() end
-
 function o:pf()
   if not SharedMediaFontsMono then return print('SharedMediaFontsMono is not available') end
   local loc = GetLocale()
@@ -29,5 +27,3 @@ function o:ShowCodeEditor()
   if not codeEditor then return end
   codeEditor:Open()
 end
-
-o:RegisterMessage('LDK_CodeEditor_Developer::READY', 'OnReady')

@@ -7,11 +7,12 @@ local THEME = O.Themes.theme
 Types
 -------------------------------------------------------------------------------]]
 --- @class LDK_DB_EditorConfig
---- @field theme? Name        @Unknown names fall back to the default = true theme
---- @field fontFamily? string @Key into FontUtil:GetFontChoices()
+--- @field theme? Name            @Unknown names fall back to the default = true theme
+--- @field fontFamily? string     @Key into FontUtil:GetFontChoices()
 --- @field fontSize? number
 --- @field wrapText? boolean
 --- @field saveOnRun? boolean
+--- @field openAtStartup? boolean @Open the editor on login or reload
 
 --- @class LDK_DB_ConsoleConfig
 --- @field fontFamily string                 @Font key, or SAME_AS_EDITOR_FONT
@@ -76,6 +77,7 @@ local DEFAULT_DB = {
       fontFamily = 'JetBrainsMono',
       fontSize = 12,
       saveOnRun = true,
+      openAtStartup = false,
     },
     console = {
       fontFamily = 'Inconsolata',

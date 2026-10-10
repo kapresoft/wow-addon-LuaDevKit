@@ -37,6 +37,7 @@ ns.DB_NAME = 'LUADEVKIT_DB'
 --- @field AceDB AceDB-3.0
 --- @field AceDBOptions AceDBOptions-3.0
 --- @field AceEvent AceEvent-3.0
+--- @field AceGUI AceGUI-3.0
 --- @field AceLocale AceLocale-3.0
 --- @field String Kapresoft-String-2-0
 --- @field Table Kapresoft-Table-2-0
@@ -55,6 +56,7 @@ local function RegisterObjects(self)
   self.AceDB = LibStub('AceDB-3.0')
   self.AceDBOptions = LibStub('AceDBOptions-3.0')
   self.AceEvent = LibStub('AceEvent-3.0')
+  self.AceGUI = LibStub('AceGUI-3.0')
   self.AceLocale = LibStub('AceLocale-3.0')
 end
 RegisterObjects(O)

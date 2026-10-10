@@ -68,7 +68,6 @@
             <OnLoad method="OnLoad"/>
             <OnShow method="OnShow"/>
             <OnSizeChanged method="OnSizeChanged"/>
-            <OnKeyDown method="OnKeyDown"/>
         </Scripts>
 
         <Frames>

@@ -1,6 +1,8 @@
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
 local cO = ns:cO()
+--- @type LDK_CodeEditorDialog
+local dialog = LDK_CodeEditorDialog
 
 --[[-----------------------------------------------------------------------------
 AddOn: LuaDevKit-CodeEditor
@@ -19,6 +21,7 @@ function o:OnInitialize()
 end
 
 function o:OnEnable()
+  self:RegisterEvent('PLAYER_ENTERING_WORLD')
   self:SendMessage(ns:msg('OnEnable'), self)
   tr(libName, 'OnEnable', 'enabled=', self:IsEnabled())
 end
@@ -26,6 +29,14 @@ end
 function o:OnDisable()
   self:SendMessage(ns:msg('OnDisable'), self)
   tr(libName, 'OnDisable', 'enabled=', self:IsEnabled())
+end
+
+--- First fire is the login or reload; later ones are zoning.
+function o:PLAYER_ENTERING_WORLD(evt)
+  self:UnregisterEvent(evt)
+  -- Silent in combat; Open() would show an error unprompted.
+  if InCombatLockdown() then return end
+  if ns:editor().openAtStartup then dialog:Open() end
 end
 
 --- @return LDK_CodeEditor_Namespace

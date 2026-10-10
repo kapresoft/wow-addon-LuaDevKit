@@ -10,4 +10,5 @@
 ## Dependencies: LuaDevKit
 
 Namespace.lua
+SettingsCheckboxWidget.lua
 Settings.lua

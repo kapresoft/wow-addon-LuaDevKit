@@ -11,6 +11,7 @@ local upk = unpack
 local libName = 'CodeEditorDialog'
 
 -- todo: New SettingsUI/Advanced Category: 1 checkbox option: Open On Load
+-- todo: Console command: /ldk editor to Open()
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
 -- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
@@ -587,6 +588,19 @@ local function AddConsoleSubmenu(root, key, items, getValue, setValue)
   end
 end
 
+--- Greyed out with a note while LuaDevKit-Settings is disabled.
+--- @param menu SharedMenuDescriptionProxy
+--- @param text string
+--- @param open fun(settings: LDK_Settings)
+local function AddSettingsButton(menu, text, open)
+  local settings = ns:Settings()
+  if settings then
+    return menu:CreateButton(text, function() open(settings) end)
+  end
+  local requires = L['Requires %s']:format('LuaDevKit-Settings')
+  menu:CreateButton(('%s (%s)'):format(text, requires)):SetEnabled(false)
+end
+
 --- CCW radians; bag-arrow art points left, so pi/2 = down, -pi/2 = up.
 --- @param button Button
 --- @param radians number
@@ -1121,10 +1135,12 @@ function o:BuildOptionsMenu(root)
   root:CreateCheckbox(L['Save on Run'], isSaveOnRun, function() self:ToggleSaveOnRun() end)
   local function isToolbarShown() return self.TopBar:IsShown() end
   root:CreateCheckbox(L['Show Toolbar'], isToolbarShown, function() self:ToggleToolbar() end)
+  local general = ('%s %s'):format(GENERAL, SETTINGS)
+  AddSettingsButton(root, general, function(settings) settings:OpenGeneral() end)
   self:AddProfileMenu(root)
 end
 
---- One radio per profile; Manage Profiles only while LuaDevKit-Settings is enabled.
+--- One radio per profile; Manage Profiles greyed out without LuaDevKit-Settings.
 --- @param root RootMenuDescriptionProxy
 function o:AddProfileMenu(root)
   local db = ns:db()
@@ -1145,10 +1161,8 @@ function o:AddProfileMenu(root)
     menu:CreateRadio(label(key), isCurrent, switch, key)
   end
   menu:SetScrollMode(LIST_MENU_MAX_HEIGHT)
-  local settings = ns:Settings()
-  if not settings then return end
   menu:CreateDivider()
-  menu:CreateButton(L['Manage Profiles...'], function() settings:OpenProfiles() end)
+  AddSettingsButton(menu, L['Manage Profiles...'], function(settings) settings:OpenProfiles() end)
 end
 
 function o:OnLoad_ThemeButton()
@@ -1444,18 +1458,6 @@ function o:OnClickClose() self:Hide() end
 function o:Open()
   if not InCombatLockdown() then return self:Show() end
   UIErrorsFrame:AddExternalErrorMessage(ERR_NOT_IN_COMBAT)
-end
-
---- @param key string
-function o:OnKeyDown(key)
-  -- SetPropagateKeyboardInput is protected in combat.
-  if InCombatLockdown() then return end
-  if key == 'ESCAPE' then
-    self:OnClickClose()
-    self:SetPropagateKeyboardInput(false)
-  else
-    self:SetPropagateKeyboardInput(true)
-  end
 end
 
 --- Syncs gutter scroll via the real API, not a manual re-anchor.
