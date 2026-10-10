@@ -12,12 +12,12 @@ local themeReqMsg = '%s: %s is required'
 local nameReqMsg = '%s: %s should be a string.'
 
 --[[-----------------------------------------------------------------------------
-Backdrops
+Themes
 -------------------------------------------------------------------------------]]
---- @class LDK_Backdrops
+--- @class LDK_Themes
 --- @field theme LDK_ThemeNames
-local o, libName = {}, 'Backdrops'
-O.Backdrops = o
+local o, libName = {}, 'Themes'
+O.Themes = o
 
 --[[-----------------------------------------------------------------------------
 Type Definitions
@@ -103,7 +103,7 @@ Type Definitions
 --- @field enabled? boolean @Defaults to true; set false to exclude from GetThemes()/EachTheme()
 --- @field default? boolean @The theme a new editor starts with; first enabled one wins
 
---- @class LDK_BorderSettings : table<string, LDK_ThemeSet>
+--- @class LDK_ThemeRegistry : table<string, LDK_ThemeSet>
 --- @field ['Abyss'] LDK_ThemeSet
 --- @field ['Dark Knight'] LDK_ThemeSet
 --- @field ['Gilded'] LDK_ThemeSet
@@ -111,7 +111,7 @@ Type Definitions
 --- @field ['Stonecut'] LDK_ThemeSet
 --- @field ['Warband'] LDK_ThemeSet
 --- @field ['Whisper'] LDK_ThemeSet
-local borderSettings = {}
+local themes = {}
 
 --- @see LibSharedMedia-3.0
 local LSM_BACKGROUND_NAMES = {
@@ -305,7 +305,7 @@ local function _RegisterTheme(theme)
     m,
     'theme.main.header.iconColor or theme.palette.base'
   )
-  borderSettings[name] = theme
+  themes[name] = theme
 end
 
 -- Registers every selectable border theme. Each one is a fully tuned
@@ -580,22 +580,20 @@ Methods & Fields
 -------------------------------------------------------------------------------]]
 
 ---@return LDK_ThemeSet
-function o:GetDefaultBorderSettings() return borderSettings[self:GetDefaultThemeName()] end
+function o:GetDefaultTheme() return themes[self:GetDefaultThemeName()] end
 
 --- @return Name? @First enabled theme if none sets default; nil if none are enabled
 function o:GetDefaultThemeName()
   local names = self:GetThemes()
   for _, name in ipairs(names) do
-    if borderSettings[name].default then return name end
+    if themes[name].default then return name end
   end
   return names[1]
 end
 
----@param name Name? @Returns the default border setting if nil
+---@param name Name? @Returns the default theme if nil
 ---@return LDK_ThemeSet @palette.base tints already filled in
-function o:GetBorderSettings(name)
-  return _ResolvePalette(borderSettings[name] or self:GetDefaultBorderSettings())
-end
+function o:GetTheme(name) return _ResolvePalette(themes[name] or self:GetDefaultTheme()) end
 
 --- @param theme LDK_ThemeSet @Returns the default border setting if nil
 --- @return LDK_MainHeaderOverride?
@@ -616,7 +614,7 @@ end
 function o:GetThemes()
   local names = {}
   for _, name in ipairs(THEME_ORDER) do
-    local theme = borderSettings[name]
+    local theme = themes[name]
     if theme and theme.enabled ~= false then names[#names + 1] = name end
   end
   return names

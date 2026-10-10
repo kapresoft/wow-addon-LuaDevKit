@@ -24,7 +24,7 @@ ns.DB_NAME = 'LUADEVKIT_DB'
 --- @field FAIAP? LuaDevKit-FAIAP-1-0
 --- @field LSM LibSharedMedia-3.0
 --- @field FontUtil LDK_FontUtil
---- @field Backdrops LDK_Backdrops
+--- @field Themes LDK_Themes
 --- @field Database LDK_Database
 --- @field DatabaseAccessMixin LDK_DatabaseAccessMixin
 --- @field LuaRunner LDK_LuaRunner

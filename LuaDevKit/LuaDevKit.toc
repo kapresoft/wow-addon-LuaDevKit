@@ -57,7 +57,7 @@ Libs\Developer\DeveloperSetup.lua
 #@end-do-not-package@
 
 Libs\Modules\FontUtil.lua
-Libs\Modules\Backdrops.lua
+Libs\Modules\Themes.lua
 Libs\Modules\Database.lua
 Libs\Modules\DatabaseAccessMixin.lua
 Libs\Modules\LuaRunner.lua

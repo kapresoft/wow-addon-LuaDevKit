@@ -1,7 +1,7 @@
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
 local CO = ns:cO()
-local bdrops, String, fut, FAIAP = CO.Backdrops, CO.String, CO.FontUtil, CO.FAIAP
+local Themes, String, fut, FAIAP = CO.Themes, CO.String, CO.FontUtil, CO.FAIAP
 local LR, TU = CO.LuaRunner, CO.TextUtil
 local OutputLog, DS, DB = CO.OutputLog, CO.DocumentStore, CO.Database
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
@@ -10,14 +10,14 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: Add 'Command History' to current helpTips
+-- todo: Rename Backdrops* files to Theme*
 -- todo: A Light Theme? (Non-DarkMode)
+-- todo: New SettingsUI/Advanced Category: 1 checkbox option: Open On Load
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
 -- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
 -- todo: Action icon to format current code
 -- todo: Center the documents dropdown (and arrows)
--- todo: Rename Backdrops* files to Theme*
 -- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
@@ -1158,7 +1158,7 @@ function o:OnLoad_ThemeButton()
         function() self:ApplyTheme(name, true) end
       )
     end
-    bdrops:EachTheme(addRadio, function(name) return name and name:lower() ~= 'none' end)
+    Themes:EachTheme(addRadio, function(name) return name and name:lower() ~= 'none' end)
   end)
   -- Theme names are registry keys, so menu entries stay untranslated.
   AddTooltip(self.ThemeButton, 'Theme')
@@ -1572,7 +1572,7 @@ function o:OnWrapToggled(checked) self:SetWrapText(checked, true) end
 --- @param name Name?    @Unknown names fall back to the default theme
 --- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
 function o:ApplyTheme(name, save)
-  local bs = bdrops:GetBorderSettings(name)
+  local bs = Themes:GetTheme(name)
   if not bs then return end
 
   local main = bs.main
@@ -1683,7 +1683,7 @@ function o:_SetHeaderBorderStyle(bs)
   local bgColor = bd.bgColor or { 0.73, 0.73, 0.73, 1.0 }
   local borderColor = bd.borderColor or { 0.56, 0.56, 0.56, 1.0 }
 
-  local hbo = bdrops:GetHeaderBackdropOverride(bs)
+  local hbo = Themes:GetHeaderBackdropOverride(bs)
   if hbo then
     local hbd = hbo.backdrop
     if hbd then

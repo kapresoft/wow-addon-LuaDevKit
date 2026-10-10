@@ -1,7 +1,7 @@
 --- @type LDK_Core_Namespace
 local ns = select(2, ...)
 local O = ns.O
-local THEME = O.Backdrops.theme
+local THEME = O.Themes.theme
 
 --[[-----------------------------------------------------------------------------
 Types
