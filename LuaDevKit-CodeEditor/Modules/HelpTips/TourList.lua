@@ -33,6 +33,12 @@ ns.O.TourList = {
         --- @param d LDK_CodeEditorDialog
         anchor = function(d) return d.CommandEditBox end,
       },
+      {
+        key = 'CommandHistory',
+        textKey = 'Command History::HelpTip',
+        --- @param d LDK_CodeEditorDialog
+        anchor = function(d) return d.HistoryButton end,
+      },
     },
   },
 }

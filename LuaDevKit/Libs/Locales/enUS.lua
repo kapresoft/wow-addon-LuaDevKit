@@ -35,6 +35,7 @@ L['Command Line::Desc'] = 'Run a single line of Lua and print its result to the 
 L['Command Line::HelpTip'] = 'Run one line of Lua here'
 L['Command History'] = true
 L['Command History::Desc'] = 'Pick a previous command to put it back on the command line.'
+L['Command History::HelpTip'] = 'Pick a recent command here'
 L['No Command History'] = true
 L['Console Settings'] = true
 L['Console Settings::Desc'] = 'Choose the font and size of the output panel and command line.'

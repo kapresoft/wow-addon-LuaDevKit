@@ -994,6 +994,10 @@ function o:OnLoad_HistoryButton()
   -- The command bar sits low; open the menu upward.
   button:SetMenuAnchor(AnchorUtil.CreateAnchor('BOTTOMRIGHT', button, 'TOPRIGHT'))
   button:SetupMenu(function(_, root) self:BuildHistoryMenu(root) end)
+  button:RegisterCallback(
+    DropdownButtonMixin.Event.OnMenuOpen,
+    function() HelpTour:CompleteStep('CommandHistory') end
+  )
   AddTooltip(button, 'Command History')
   -- Own tooltip: its width and font never leak to GameTooltip.
   self.HistoryTooltip = CreateFrame(
