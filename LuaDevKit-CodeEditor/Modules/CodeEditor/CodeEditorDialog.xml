@@ -48,7 +48,12 @@
         </Scripts>
     </Button>
 
-    <Frame name="LDK_CodeEditorDialog" parent="UIParent" inherits="BackdropTemplate"
+    <!-- Secure parent; its state driver hides the dialog in combat,
+         so no addon code runs then. Fills UIParent. -->
+    <Frame name="LDK_CodeEditorParent" parent="UIParent" inherits="SecureHandlerStateTemplate"
+           setAllPoints="true"/>
+
+    <Frame name="LDK_CodeEditorDialog" parent="LDK_CodeEditorParent" inherits="BackdropTemplate"
            mixin="LDK_CodeEditorDialogMixin"
            hidden="true" movable="true" resizable="true" enableMouse="true"
            enableKeyboard="true" frameStrata="DIALOG" toplevel="true"

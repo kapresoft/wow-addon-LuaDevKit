@@ -21,6 +21,7 @@ local libName = 'CodeEditorDialog'
 -- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
+-- todo: Update replace or reset profile messaging
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -627,7 +628,13 @@ function o:OnLoad()
   self.ConsoleSettingsButton = self.StatusBar.ConsoleSettingsButton
   self.ClearOutputButton = self.StatusBar.ClearOutputButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
+  self:OnLoad_CombatHide()
   self:_RegisterMessages()
+end
+
+--- Runs at load: a state driver can't be registered in combat.
+function o:OnLoad_CombatHide()
+  RegisterStateDriver(self:GetParent(), 'visibility', '[combat]hide; show')
 end
 
 function o:Initialize()
@@ -1426,8 +1433,16 @@ end
 
 function o:OnClickClose() self:Hide() end
 
+--- Refused in combat; Show() would only open it after combat.
+function o:Open()
+  if not InCombatLockdown() then return self:Show() end
+  UIErrorsFrame:AddExternalErrorMessage(ERR_NOT_IN_COMBAT)
+end
+
 --- @param key string
 function o:OnKeyDown(key)
+  -- SetPropagateKeyboardInput is protected in combat.
+  if InCombatLockdown() then return end
   if key == 'ESCAPE' then
     self:OnClickClose()
     self:SetPropagateKeyboardInput(false)

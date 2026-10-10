@@ -24,10 +24,10 @@ end
 local codeEditor
 
 function o:ShowCodeEditor()
-  if codeEditor then return codeEditor:Show() end
+  if codeEditor then return codeEditor:Open() end
   codeEditor = LDK_CodeEditorDialog
   if not codeEditor then return end
-  codeEditor:Show()
+  codeEditor:Open()
 end
 
 o:RegisterMessage('LDK_CodeEditor_Developer::READY', 'OnReady')
