@@ -11,6 +11,7 @@ local upk = unpack
 local libName = 'CodeEditorDialog'
 
 -- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
+-- todo: help tooltip (not sure where) for the built-in functions like f() and fx()
 -- todo: General Option: 'Esc' closes Editor
 -- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
 -- todo: Action icon to format current code

@@ -10,6 +10,8 @@ embedded-libraries:
   - Ace3
   - LibUtil
   - LibSharedMedia-3-0
+  - LibPrettyPrint
+  - LibTraceKit
 
 required-dependencies:
   - sharedmedia-fonts-mono
@@ -22,7 +24,7 @@ tools-used:
 
 # Ace3 keeps LibStub, CallbackHandler, AceAddon, AceEvent, AceConsole,
 # AceLocale, AceDB, AceDBOptions, AceConfig and AceGUI (AceConfigDialog
-# needs it); plus LSM and LibUtil.
+# needs it); plus LSM, LibUtil, LibPrettyPrint and LibTraceKit.
 externals:
   LuaDevKit/ThirdParty/Libs/Ace3:
     url: https://github.com/WoWUIDev/Ace3
@@ -32,6 +34,12 @@ externals:
     tag: latest
   LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil:
     url: https://github.com/kapresoft/wow-lib-util
+    tag: latest
+  LuaDevKit/ThirdParty/Libs/LibPrettyPrint:
+    url: https://github.com/kapresoft/wow-addon-LibPrettyPrint
+    tag: latest
+  LuaDevKit/ThirdParty/Libs/LibTraceKit:
+    url: https://github.com/kapresoft/wow-addon-LibTraceKit
     tag: latest
 
 ignore:
@@ -69,6 +77,20 @@ ignore:
   - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/Annotations
   - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/Assets
   - LuaDevKit/ThirdParty/Libs/Kapresoft-LibUtil/Lib-2-0/ThirdParty
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/dev
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/doc
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/Assets
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/ThirdParty
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/LibPrettyPrint.xml
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/Libs/Developer/*.xml
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/Libs/Developer/Developer*.lua
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/Libs/Annotations
+  - LuaDevKit/ThirdParty/Libs/LibPrettyPrint/*.toc
+  - LuaDevKit/ThirdParty/Libs/LibTraceKit/dev
+  - LuaDevKit/ThirdParty/Libs/LibTraceKit/*.toc
+  - LuaDevKit/ThirdParty/Libs/LibTraceKit/Libs/Assets
+  - LuaDevKit/ThirdParty/Libs/LibTraceKit/Libs/Developer.lua
+  - LuaDevKit/ThirdParty/Libs/LibTraceKit/ThirdParty
 
 # REQUIRED for CurseForge packager (non-obvious):
 # The LEFT side MUST be <repo-folder>/<addon-folder>

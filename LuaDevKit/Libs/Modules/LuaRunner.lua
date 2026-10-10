@@ -1,11 +1,44 @@
 --- @type LDK_Core_Namespace
 local ns = select(2, ...)
+local PrettyPrint, TraceKit = ns.O.LibPrettyPrint, ns.O.LibTraceKit
 
 --- @alias LDK_OutputKind 'print'|'error'
 --- @alias LDK_OutputFn fun(text: string, kind: LDK_OutputKind?)
 
 --- @class LDK_LuaRunner
 local o = {}; ns.O.LuaRunner = o
+
+--- Strings in quotes; numbers, booleans and the rest via tostring.
+--- @param value any
+--- @return string
+local function Literal(value)
+  if type(value) == 'string' then return ("'%s'"):format(value) end
+  return tostring(value)
+end
+
+--- One key=value line per entry, sorted; a non-table passes through.
+--- @param value string|table
+--- @return string
+local function KeyValues(value)
+  if type(value) ~= 'table' then return tostring(value) end
+  local lines = {}
+  for key, val in pairs(value) do
+    lines[#lines + 1] = ('%s=%s'):format(tostring(key), Literal(val))
+  end
+  table.sort(lines)
+  return table.concat(lines, '\n')
+end
+
+--- Editor code sees these helpers, then _G; its global writes go to _G.
+--- f and fx match DevSuite's fmt and fmtx; t logs to /etrace.
+local env = setmetatable({
+  -- Looked up per call: Exec swaps print while code runs.
+  p = function(...) print(...) end,
+  t = (TraceKit:New(ns.addon, 'CodeEditor')),
+  kv = KeyValues,
+  f = PrettyPrint:Formatter({ show_all = true, depth_limit = 3 }),
+  fx = PrettyPrint:Formatter({ show_all = true, depth_limit = 3, multiline_tables = true }),
+}, { __index = _G, __newindex = _G })
 
 --[[-----------------------------------------------------------------------------
 Support Functions
@@ -36,6 +69,7 @@ local function WriteError(write, msg) write(tostring(msg), 'error') end
 --- @return number @Count of results, pcall's status included
 --- @return any[]  @pcall's packed results; [1] is the status
 local function Exec(func, write)
+  setfenv(func, env)
   local oldPrint = print
   print = function(...) Print(write, ...) end
   local n, results = Pack(pcall(func))
