@@ -44,6 +44,13 @@ L['Console Font Size'] = true
 L['Same as Editor'] = true
 L['Clear Output'] = true
 L['Clear Output::Desc'] = 'Remove all text from the output panel.'
+L['Editor Helpers'] = true
+L['Editor Helpers::Desc'] = 'Built-in functions for code in the editor and on the command line.'
+L['Editor Helpers::p'] = 'Print to the output panel'
+L['Editor Helpers::t'] = 'Trace to /etrace'
+L['Editor Helpers::fm'] = 'Format a value across indented lines'
+L['Editor Helpers::fs'] = 'Format a value on one line'
+L['Editor Helpers::fv'] = "Show a table's keys and values as key=value pairs"
 L['Run'] = true
 L['Run::Desc'] = 'Run the code in the editor and print its output to the output panel.'
 L['Run::Hint'] = 'Ctrl+1 to run while cursor is in editor'
@@ -74,7 +81,8 @@ L['Profile'] = true
 L['This'] = true
 L['Manage Profiles...'] = true
 L['Requires %s'] = true
-L['Reset Profile::Confirm'] = 'Reset this profile? Its documents are deleted and replaced with the starter document.'
+L['Reset Profile::Confirm'] =
+  'Reset this profile? Its documents are deleted and replaced with the starter document.'
 L['Copy From::Confirm'] = "Copy from that profile? This profile's documents are replaced."
 L['Save changes to "%s"?'] = true
 L['Save'] = true
@@ -84,7 +92,8 @@ L['General'] = true
 L['Open Editor at Startup'] = true
 L['Open Editor at Startup::Desc'] = 'Open the Code Editor when you log in or reload the UI.'
 L['Escape Key Closes Editor'] = true
-L['Escape Key Closes Editor::Desc'] = 'Press Escape to close the Code Editor. If the settings window is open, Escape closes it first.'
+L['Escape Key Closes Editor::Desc'] =
+  'Press Escape to close the Code Editor. If the settings window is open, Escape closes it first.'
 L['Available commands:'] = true
 L['displays the addon info'] = true
 L['toggles the Code Editor'] = true

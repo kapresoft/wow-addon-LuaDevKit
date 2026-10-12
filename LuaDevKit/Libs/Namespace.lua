@@ -3,6 +3,8 @@ local libName = 'LDK_Core_Namespace'
 --- @type string, table
 local addon, xns = ...
 
+tr = tr or function() end
+
 --- @class LDK_Core_Options
 --- @field ignoreMissingKeys boolean
 

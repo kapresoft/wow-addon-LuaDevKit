@@ -10,12 +10,10 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: scoped functions in lua eval environment: f (fmt) and fx(fmtx)
--- todo: help tooltip (not sure where) for the built-in functions like f() and fx()
--- todo: General Option: 'Esc' closes Editor
--- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
+-- todo: Oak Frame Light (a light color background version)
 -- todo: Action icon to format current code
 -- todo: Center the documents dropdown (and arrows)
+-- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
 -- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
@@ -162,6 +160,33 @@ local DEFAULTS = {
   wrapText = false,
 }
 
+-- LuaRunner's env helpers: signature, then its locale key.
+local EDITOR_HELPERS = {
+  { 'p(...)', 'Editor Helpers::p' },
+  { 't(...)', 'Editor Helpers::t' },
+  { 'fm(value)', 'Editor Helpers::fm' },
+  { 'fs(value)', 'Editor Helpers::fs' },
+  { 'fv(value)', 'Editor Helpers::fv' },
+}
+
+-- Helpers tooltip's closing example; '--' lines show its output.
+local HELPERS_EXAMPLE = {
+  'local tbl = {',
+  "   hello = 'world',",
+  '   start = 1, stop = 10,',
+  '   callback = function() end }',
+  "p('tbl=', fm(tbl))",
+  '-- tbl= {',
+  '--   callback = <function: ...>,',
+  "--   hello = 'world',",
+  '--   start = 1,',
+  '--   stop = 10',
+  '-- }',
+}
+
+-- Helpers tooltip's code face, independent of the editor's pick.
+local MONO_FONT = { family = 'JetBrainsMono', size = 12 }
+
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]
@@ -177,6 +202,7 @@ Types
 
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
+--- @field HelpButton Button
 
 --- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
 --- @field Prompt FontString
@@ -256,6 +282,7 @@ Types
 --- @field CommandEditBox EditBox                            @Alias of CommandBar.CommandEditBox
 --- @field HistoryButton DropdownButton                      @Alias of CommandBar.HistoryButton
 --- @field HistoryTooltip GameTooltip                        @History menu's own tooltip; shows truncated commands
+--- @field HelpTooltip GameTooltip                           @HelpButton's own tooltip; its mono lines never leak to GameTooltip
 --- @field commandHistory LDK_CommandHistoryEntry[]          @Alias of global.console.history
 --- @field historyIndex number                               @Up/Down position; one past the end is the draft
 --- @field historyDraft string?                              @Unsent text saved when stepping into history
@@ -265,6 +292,7 @@ Types
 --- @field EvalStatus EditBox                                @Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
 --- @field ConsoleSettingsButton DropdownButton              @Alias of StatusBar.ConsoleSettingsButton
 --- @field ClearOutputButton Button                          @Alias of StatusBar.ClearOutputButton
+--- @field HelpButton Button                                 @Alias of BottomBar.HelpButton
 --- @field output LDK_OutputLog                              @Evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean
@@ -514,6 +542,66 @@ local function AddTooltip(frame, key, hintKey)
   end
 end
 
+--- A CJK client has no JetBrains Mono; fall back to its default face.
+--- @return Font
+local function MonoFont()
+  local choice = fut:FindFontChoice(MONO_FONT.family) or fut:GetDefaultFontChoice()
+  return choice.bySize[MONO_FONT.size]
+end
+
+--- Sets the newest line's left text in font, keeping its color.
+--- @param tooltip GameTooltip
+--- @param font Font
+--- @param color ColorMixin
+local function SetLastLineFont(tooltip, font, color)
+  local text = _G[tooltip:GetName() .. 'TextLeft' .. tooltip:NumLines()]
+  text:SetFontObject(font)
+  -- SetFontObject resets the color to the font's white.
+  text:SetTextColor(color:GetRGB())
+end
+
+--- Signatures in the mono face; descriptions keep the tooltip font.
+--- @param tooltip GameTooltip
+--- @param font Font
+local function AddHelperLines(tooltip, font)
+  for _, helper in ipairs(EDITOR_HELPERS) do
+    local signature, key = upk(helper)
+    GameTooltip_AddColoredDoubleLine(
+      tooltip,
+      signature,
+      L[key],
+      HIGHLIGHT_FONT_COLOR,
+      NORMAL_FONT_COLOR
+    )
+    SetLastLineFont(tooltip, font, HIGHLIGHT_FONT_COLOR)
+  end
+end
+
+--- Code in white, output in gray, both unwrapped.
+--- @param tooltip GameTooltip
+--- @param font Font
+local function AddExampleLines(tooltip, font)
+  for _, line in ipairs(HELPERS_EXAMPLE) do
+    local color = line:find('^%-%-') and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR
+    GameTooltip_AddColoredLine(tooltip, line, color, false)
+    SetLastLineFont(tooltip, font, color)
+  end
+end
+
+--- @param tooltip GameTooltip
+--- @param owner Frame
+local function ShowHelpersTooltip(tooltip, owner)
+  GameTooltip_SetDefaultAnchor(tooltip, owner)
+  GameTooltip_SetTitle(tooltip, L['Editor Helpers'])
+  GameTooltip_AddNormalLine(tooltip, L['Editor Helpers::Desc'])
+  GameTooltip_AddBlankLineToTooltip(tooltip)
+  local font = MonoFont()
+  AddHelperLines(tooltip, font)
+  GameTooltip_AddBlankLineToTooltip(tooltip)
+  AddExampleLines(tooltip, font)
+  tooltip:Show()
+end
+
 --- Keeps an arrow dropdown's glyph at `size`; each state resets it.
 --- @param button DropdownButton
 --- @param size number
@@ -658,6 +746,7 @@ function o:OnLoad()
   self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
   self.ConsoleSettingsButton = self.StatusBar.ConsoleSettingsButton
   self.ClearOutputButton = self.StatusBar.ClearOutputButton
+  self.HelpButton = self.BottomBar.HelpButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
   self:OnLoad_CombatHide()
   self:_RegisterMessages()
@@ -704,6 +793,7 @@ function o:Initialize()
   self:OnLoad_Toolbar()
   self:OnLoad_FontSteppers()
   self:OnLoad_WrapCheckButton()
+  self:OnLoad_HelpButton()
   self:OnLoad_RunButton()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
@@ -889,6 +979,19 @@ function o:OnLoad_ClearOutputButton()
   local button = self.ClearOutputButton
   button:SetScript('OnClick', function() self:ClearOutput() end)
   AddTooltip(button, 'Clear Output')
+end
+
+function o:OnLoad_HelpButton()
+  local button = self.HelpButton
+  local tooltip = CreateFrame(
+    'GameTooltip',
+    'LDK_EditorHelpersTooltip',
+    UIParent,
+    'SharedTooltipTemplate' --[[@as Template]]
+  )
+  self.HelpTooltip = tooltip
+  button:HookScript('OnEnter', function() ShowHelpersTooltip(tooltip, button) end)
+  button:HookScript('OnLeave', function() tooltip:Hide() end)
 end
 
 function o:OnLoad_ConsoleSettingsButton()

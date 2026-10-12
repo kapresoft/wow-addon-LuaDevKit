@@ -266,7 +266,10 @@
                 </Frames>
             </Frame>
 
-            <!-- BottomBar: status/action bar. -->
+            <!-- BottomBar: status/action bar.
+
+                 BottomBar.HelpButton: tooltip lists the editor's built-in
+                 helpers; inset left of SizerSE so it never blocks the grip. -->
             <Frame parentKey="BottomBar" inherits="BackdropTemplate">
                 <Size y="24"/>
                 <Anchors>
@@ -285,6 +288,14 @@
                             </OnClick>
                         </Scripts>
                     </CheckButton>
+                    <Button parentKey="HelpButton">
+                        <Size x="24" y="24"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" x="-30" y="0"/>
+                        </Anchors>
+                        <NormalTexture file="Interface\common\help-i" alpha="0.5"/>
+                        <HighlightTexture file="Interface\common\help-i" alphaMode="ADD"/>
+                    </Button>
                 </Frames>
             </Frame>
 

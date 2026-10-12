@@ -9,7 +9,7 @@
 ## DefaultState: enabled
 ## SavedVariables: LUADEVKIT_DB
 ## Dependencies: SharedMediaFontsMono
-## OptionalDeps: Ace3, DevSuite
+## OptionalDeps: Ace3, DevSuite, LibPrettyPrint, LibTraceKit, LibUtil
 
 ## Category-enUS: Development Tools
 ## Category-deDE: Entwicklungstools
