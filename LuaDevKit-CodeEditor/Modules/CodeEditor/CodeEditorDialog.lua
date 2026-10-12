@@ -16,7 +16,7 @@ local libName = 'CodeEditorDialog'
 -- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
--- todo: Update replace or reset profile messaging
+-- todo: Review replace or reset profile messaging
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: EDITOR: alt-backspace: delete word
 -- todo: EDITOR: alt-left-arrow: back 1 word

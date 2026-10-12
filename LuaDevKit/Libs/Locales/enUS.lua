@@ -84,8 +84,9 @@ L['This'] = true
 L['Manage Profiles...'] = true
 L['Requires %s'] = true
 L['Reset Profile::Confirm'] =
-  'Reset this profile? Its documents are deleted and replaced with the starter document.'
-L['Copy From::Confirm'] = "Copy from that profile? This profile's documents are replaced."
+  "Reset %s? All documents in this profile will be deleted. This can't be undone."
+L['Copy From::Confirm'] =
+  "Copy documents from %s? All documents in this profile will be replaced. This can't be undone."
 L['Save changes to "%s"?'] = true
 L['Save'] = true
 L['Cancel'] = true

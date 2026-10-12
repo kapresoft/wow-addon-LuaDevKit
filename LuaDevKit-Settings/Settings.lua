@@ -11,10 +11,14 @@ local registered = false
 --- Both replace this profile's scripts; AceDBOptions only confirms Delete.
 --- @param profiles table @AceDBOptions' options table
 local function ConfirmOverwrites(profiles)
-  local confirms = { reset = 'Reset Profile::Confirm', copyfrom = 'Copy From::Confirm' }
-  for key, textKey in pairs(confirms) do
-    profiles.args[key].confirm = true
-    profiles.args[key].confirmText = L[textKey]
+  local reset, copy = profiles.args.reset, profiles.args.copyfrom
+  reset.confirm = function(info)
+    local name = NORMAL_FONT_COLOR:WrapTextInColorCode(info.handler:GetCurrentProfile())
+    return L['Reset Profile::Confirm']:format(name)
+  end
+  copy.confirm = function(_, source)
+    local name = NORMAL_FONT_COLOR:WrapTextInColorCode(source)
+    return L['Copy From::Confirm']:format(name)
   end
 end
 
