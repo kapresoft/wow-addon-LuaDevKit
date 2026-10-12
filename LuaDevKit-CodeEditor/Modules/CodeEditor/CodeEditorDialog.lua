@@ -202,12 +202,12 @@ Types
 
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
---- @field HelpButton Button
 
 --- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
 --- @field Prompt FontString
 --- @field CommandEditBox EditBox @Single-line quick-eval input with Up/Down history
 --- @field HistoryButton DropdownButton
+--- @field HelpButton Button
 
 --- @class LDK_CodeEditorOutputScrollChild : Frame
 --- @field EvalStatus EditBox @Read-only output log; an EditBox so text can be selected and copied
@@ -292,7 +292,7 @@ Types
 --- @field EvalStatus EditBox                                @Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
 --- @field ConsoleSettingsButton DropdownButton              @Alias of StatusBar.ConsoleSettingsButton
 --- @field ClearOutputButton Button                          @Alias of StatusBar.ClearOutputButton
---- @field HelpButton Button                                 @Alias of BottomBar.HelpButton
+--- @field HelpButton Button                                 @Alias of CommandBar.HelpButton
 --- @field output LDK_OutputLog                              @Evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
 --- @field wrapText boolean
@@ -746,7 +746,7 @@ function o:OnLoad()
   self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
   self.ConsoleSettingsButton = self.StatusBar.ConsoleSettingsButton
   self.ClearOutputButton = self.StatusBar.ClearOutputButton
-  self.HelpButton = self.BottomBar.HelpButton
+  self.HelpButton = self.CommandBar.HelpButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
   self:OnLoad_CombatHide()
   self:_RegisterMessages()

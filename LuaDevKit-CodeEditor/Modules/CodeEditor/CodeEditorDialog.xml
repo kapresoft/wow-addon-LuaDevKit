@@ -266,10 +266,7 @@
                 </Frames>
             </Frame>
 
-            <!-- BottomBar: status/action bar.
-
-                 BottomBar.HelpButton: tooltip lists the editor's built-in
-                 helpers; inset left of SizerSE so it never blocks the grip. -->
+            <!-- BottomBar: status/action bar. -->
             <Frame parentKey="BottomBar" inherits="BackdropTemplate">
                 <Size y="24"/>
                 <Anchors>
@@ -288,14 +285,6 @@
                             </OnClick>
                         </Scripts>
                     </CheckButton>
-                    <Button parentKey="HelpButton">
-                        <Size x="24" y="24"/>
-                        <Anchors>
-                            <Anchor point="RIGHT" x="-30" y="0"/>
-                        </Anchors>
-                        <NormalTexture file="Interface\common\help-i" alpha="0.5"/>
-                        <HighlightTexture file="Interface\common\help-i" alphaMode="ADD"/>
-                    </Button>
                 </Frames>
             </Frame>
 
@@ -316,7 +305,11 @@
 
                  CommandBar.HistoryButton: arrow dropdown listing that history,
                  set up in Lua's OnLoad_HistoryButton; right-aligned with the
-                 console settings gear in ApplyConsoleInsets. -->
+                 console settings gear in ApplyConsoleInsets.
+
+                 CommandBar.HelpButton: tooltip lists the editor's built-in
+                 helpers; sits left of HistoryButton, and CommandEditBox ends
+                 at its left edge. -->
             <Frame parentKey="CommandBar" inherits="BackdropTemplate">
                 <Size y="22"/>
                 <Anchors>
@@ -334,12 +327,20 @@
                             <KeyValue key="menuMixin" value="MenuStyle2Mixin" type="global"/>
                         </KeyValues>
                     </DropdownButton>
+                    <Button parentKey="HelpButton">
+                        <Size x="21" y="21"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" relativeKey="$parent.HistoryButton" relativePoint="LEFT" x="4" y="0"/>
+                        </Anchors>
+                        <NormalTexture file="Interface\common\help-i" alpha="0.3" desaturated="true"/>
+                        <HighlightTexture file="Interface\common\help-i" alphaMode="ADD"/>
+                    </Button>
                     <EditBox parentKey="CommandEditBox" letters="4096"
                              autoFocus="false">
                         <Size y="22"/>
                         <Anchors>
                             <Anchor point="LEFT" relativeKey="$parent.Prompt" relativePoint="RIGHT" x="0" y="0"/>
-                            <Anchor point="RIGHT" relativeKey="$parent.HistoryButton" relativePoint="LEFT" x="-4" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.HelpButton" relativePoint="LEFT" x="-4" y="0"/>
                         </Anchors>
                         <Scripts>
                             <OnEnterPressed>
