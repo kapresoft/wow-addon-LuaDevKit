@@ -51,6 +51,8 @@ L['Editor Helpers::t'] = 'Trace to /etrace'
 L['Editor Helpers::fm'] = 'Format a value across indented lines'
 L['Editor Helpers::fs'] = 'Format a value on one line'
 L['Editor Helpers::fv'] = "Show a table's keys and values as key=value pairs"
+L['Editor Helpers::help'] = 'Print this list'
+L['Editor Helpers::Hint'] = 'Click to print this list to the output panel'
 L['Run'] = true
 L['Run::Desc'] = 'Run the code in the editor and print its output to the output panel.'
 L['Run::Hint'] = 'Ctrl+1 to run while cursor is in editor'

@@ -1,29 +1,10 @@
 --- @type LDK_Core_Namespace
 local ns = select(2, ...)
 local PrettyPrint, TraceKit = ns.O.LibPrettyPrint, ns.O.LibTraceKit
+local L = ns:GetLocale()
 
 --- @alias LDK_OutputKind 'print'|'error'
 --- @alias LDK_OutputFn fun(text: string, kind: LDK_OutputKind?)
-
---[[-----------------------------------------------------------------------------
-Local Vars
--------------------------------------------------------------------------------]]
-
-local TRACE_COLOR = 'FFAB25'
-
---- @type LibPrettyPrint_Formatter
-local formatter = PrettyPrint:Formatter({ show_all = true, depth_limit = 3 })
-
---- Editor code sees these helpers, then _G; its global writes go to _G.
---- fs/fm/fv format single-line, multi-line, key=value; t logs to /etrace.
-local env = setmetatable({
-  -- Looked up per call: Exec swaps print while code runs.
-  p = function(...) print(...) end,
-  t = (TraceKit:New(ns.addon, 'CodeEditor', TRACE_COLOR, '_')),
-  fm = formatter:MultiLine(),
-  fs = formatter,
-  fv = formatter:KeyValues(),
-}, { __index = _G, __newindex = _G })
 
 --[[-----------------------------------------------------------------------------
 LuaRunner
@@ -31,6 +12,53 @@ LuaRunner
 
 --- @class LDK_LuaRunner
 local o = {}; ns.O.LuaRunner = o
+
+--[[-----------------------------------------------------------------------------
+Local Vars
+-------------------------------------------------------------------------------]]
+
+local TRACE_COLOR = 'FFAB25'
+
+-- The env's helpers: signature, then its locale key.
+local HELPERS = {
+  { 'p(...)', 'Editor Helpers::p' },
+  { 't(...)', 'Editor Helpers::t' },
+  { 'fm(value)', 'Editor Helpers::fm' },
+  { 'fs(value)', 'Editor Helpers::fs' },
+  { 'fv(value)', 'Editor Helpers::fv' },
+  { 'help()', 'Editor Helpers::help' },
+}
+
+-- Closing example of the helpers list; '--' lines show its output.
+local HELPERS_EXAMPLE = {
+  'local tbl = {',
+  "   hello = 'world',",
+  '   start = 1, stop = 10,',
+  '   callback = function() end }',
+  "p('tbl=', fm(tbl))",
+  '-- tbl= {',
+  '--   callback = <function: ...>,',
+  "--   hello = 'world',",
+  '--   start = 1,',
+  '--   stop = 10',
+  '-- }',
+}
+
+--- @type LibPrettyPrint_Formatter
+local formatter = PrettyPrint:Formatter({ show_all = true, depth_limit = 3 })
+
+--- Editor code sees these helpers, then _G; its global writes go to _G.
+--- fs/fm/fv format single-line, multi-line, key=value; t logs to /etrace.
+--- help prints the helpers list.
+local env = setmetatable({
+  -- Looked up per call: Exec swaps print while code runs.
+  p = function(...) print(...) end,
+  t = (TraceKit:New(ns.addon, 'CodeEditor', TRACE_COLOR, '_')),
+  fm = formatter:MultiLine(),
+  fs = formatter,
+  fv = formatter:KeyValues(),
+  help = function() print(o:GetHelpText()) end,
+}, { __index = _G, __newindex = _G })
 
 --[[-----------------------------------------------------------------------------
 Support Functions
@@ -76,6 +104,28 @@ end
 --[[-----------------------------------------------------------------------------
 Methods
 -------------------------------------------------------------------------------]]
+
+--- @return string[][] @Each { signature, locale key }
+--- @return string[]   @Example code; '--' lines show its output
+function o:GetHelpers() return HELPERS, HELPERS_EXAMPLE end
+
+--- The helpers list as plain text, signatures padded into a column.
+--- @return string
+function o:GetHelpText()
+  local width = 0
+  for _, helper in ipairs(HELPERS) do
+    width = math.max(width, #helper[1])
+  end
+  local lines = { L['Editor Helpers'] }
+  for _, helper in ipairs(HELPERS) do
+    table.insert(lines, ('  %-' .. width .. 's  %s'):format(helper[1], L[helper[2]]))
+  end
+  table.insert(lines, '')
+  for _, line in ipairs(HELPERS_EXAMPLE) do
+    table.insert(lines, line)
+  end
+  return table.concat(lines, '\n')
+end
 
 --- Single-shot eval of one command line; no multi-line continuation.
 --- REPL-style, like Lua 5.3+: tried as an expression first so its

@@ -308,8 +308,8 @@
                  console settings gear in ApplyConsoleInsets.
 
                  CommandBar.HelpButton: tooltip lists the editor's built-in
-                 helpers; sits left of HistoryButton, and CommandEditBox ends
-                 at its left edge. -->
+                 helpers and a click prints them to the output; sits left of
+                 HistoryButton, and CommandEditBox ends at its left edge. -->
             <Frame parentKey="CommandBar" inherits="BackdropTemplate">
                 <Size y="22"/>
                 <Anchors>
@@ -328,12 +328,12 @@
                         </KeyValues>
                     </DropdownButton>
                     <Button parentKey="HelpButton">
-                        <Size x="21" y="21"/>
+                        <Size x="14" y="14"/>
                         <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.HistoryButton" relativePoint="LEFT" x="4" y="0"/>
+                            <Anchor point="RIGHT" relativeKey="$parent.HistoryButton" relativePoint="LEFT" x="0" y="0"/>
                         </Anchors>
-                        <NormalTexture file="Interface\common\help-i" alpha="0.3" desaturated="true"/>
-                        <HighlightTexture file="Interface\common\help-i" alphaMode="ADD"/>
+                        <NormalTexture file="interface\addons\luadevkit\assets\help-btn" alpha="0.5"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\help-btn" alphaMode="ADD"/>
                     </Button>
                     <EditBox parentKey="CommandEditBox" letters="4096"
                              autoFocus="false">

@@ -160,30 +160,6 @@ local DEFAULTS = {
   wrapText = false,
 }
 
--- LuaRunner's env helpers: signature, then its locale key.
-local EDITOR_HELPERS = {
-  { 'p(...)', 'Editor Helpers::p' },
-  { 't(...)', 'Editor Helpers::t' },
-  { 'fm(value)', 'Editor Helpers::fm' },
-  { 'fs(value)', 'Editor Helpers::fs' },
-  { 'fv(value)', 'Editor Helpers::fv' },
-}
-
--- Helpers tooltip's closing example; '--' lines show its output.
-local HELPERS_EXAMPLE = {
-  'local tbl = {',
-  "   hello = 'world',",
-  '   start = 1, stop = 10,',
-  '   callback = function() end }',
-  "p('tbl=', fm(tbl))",
-  '-- tbl= {',
-  '--   callback = <function: ...>,',
-  "--   hello = 'world',",
-  '--   start = 1,',
-  '--   stop = 10',
-  '-- }',
-}
-
 -- Helpers tooltip's code face, independent of the editor's pick.
 local MONO_FONT = { family = 'JetBrainsMono', size = 12 }
 
@@ -563,8 +539,9 @@ end
 --- Signatures in the mono face; descriptions keep the tooltip font.
 --- @param tooltip GameTooltip
 --- @param font Font
-local function AddHelperLines(tooltip, font)
-  for _, helper in ipairs(EDITOR_HELPERS) do
+--- @param helpers string[][]
+local function AddHelperLines(tooltip, font, helpers)
+  for _, helper in ipairs(helpers) do
     local signature, key = upk(helper)
     GameTooltip_AddColoredDoubleLine(
       tooltip,
@@ -580,8 +557,9 @@ end
 --- Code in white, output in gray, both unwrapped.
 --- @param tooltip GameTooltip
 --- @param font Font
-local function AddExampleLines(tooltip, font)
-  for _, line in ipairs(HELPERS_EXAMPLE) do
+--- @param example string[]
+local function AddExampleLines(tooltip, font, example)
+  for _, line in ipairs(example) do
     local color = line:find('^%-%-') and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR
     GameTooltip_AddColoredLine(tooltip, line, color, false)
     SetLastLineFont(tooltip, font, color)
@@ -595,10 +573,12 @@ local function ShowHelpersTooltip(tooltip, owner)
   GameTooltip_SetTitle(tooltip, L['Editor Helpers'])
   GameTooltip_AddNormalLine(tooltip, L['Editor Helpers::Desc'])
   GameTooltip_AddBlankLineToTooltip(tooltip)
-  local font = MonoFont()
-  AddHelperLines(tooltip, font)
+  local font, helpers, example = MonoFont(), LR:GetHelpers()
+  AddHelperLines(tooltip, font, helpers)
   GameTooltip_AddBlankLineToTooltip(tooltip)
-  AddExampleLines(tooltip, font)
+  AddExampleLines(tooltip, font, example)
+  GameTooltip_AddBlankLineToTooltip(tooltip)
+  GameTooltip_AddInstructionLine(tooltip, L['Editor Helpers::Hint'])
   tooltip:Show()
 end
 
@@ -992,6 +972,7 @@ function o:OnLoad_HelpButton()
   self.HelpTooltip = tooltip
   button:HookScript('OnEnter', function() ShowHelpersTooltip(tooltip, button) end)
   button:HookScript('OnLeave', function() tooltip:Hide() end)
+  button:SetScript('OnClick', function() self:AppendOutput(LR:GetHelpText()) end)
 end
 
 function o:OnLoad_ConsoleSettingsButton()
