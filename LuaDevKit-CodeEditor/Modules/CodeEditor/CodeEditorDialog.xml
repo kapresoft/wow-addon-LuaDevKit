@@ -202,8 +202,9 @@
                  the document has no unsaved changes; see RefreshDirtyMark.
 
                  TopBar.DocStepper: Blizzard's dropdown with steppers; its
-                 template requires the Dropdown child declared here. Its back
-                 arrow and Dropdown are chained off DeleteButton in Lua. -->
+                 template requires the Dropdown child declared here. Lua spans
+                 it between the left and right icons and centers its Dropdown
+                 there; the arrows follow the Dropdown. -->
             <Frame parentKey="TopBar" inherits="BackdropTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.Header" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
@@ -230,10 +231,7 @@
                         <HighlightTexture file="interface\addons\luadevkit\assets\delete-btn" alphaMode="ADD"/>
                     </Button>
                     <Frame parentKey="DocStepper" inherits="DropdownWithSteppersTemplate">
-                        <Size x="200" y="26"/>
-                        <Anchors>
-                            <Anchor point="LEFT" relativeKey="$parent.DeleteButton" relativePoint="RIGHT"/>
-                        </Anchors>
+                        <Size y="26"/>
                         <KeyValues>
                             <KeyValue key="decrementOffsetX" value="-2" type="number"/>
                             <KeyValue key="incrementOffsetX" value="2" type="number"/>

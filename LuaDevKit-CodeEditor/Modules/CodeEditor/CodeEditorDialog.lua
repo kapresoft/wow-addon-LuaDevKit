@@ -12,7 +12,6 @@ local libName = 'CodeEditorDialog'
 
 -- todo: Oak Frame Light (a light color background version)
 -- todo: Action icon to format current code
--- todo: Center the documents dropdown (and arrows)
 -- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
 -- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
@@ -1310,7 +1309,7 @@ function o:RightToolbarIcons() return { self.ThemeButton, self.FontButton, self.
 --- @param gap number
 function o:LayoutToolbar(size, gap)
   self:LayoutToolbarIcons(size, gap)
-  self:LayoutDocStepper(size - DOC_DROPDOWN_INSET, gap)
+  self:LayoutDocStepper(size - DOC_DROPDOWN_INSET)
   self.topBarHeight = size + TOOLBAR_ICON_LIFT + TOOLBAR_TOP_PAD
   if self.TopBar:IsShown() then self.TopBar:SetHeight(self.topBarHeight) end
 end
@@ -1380,22 +1379,20 @@ function o:OnDocDropdownMouseDown(button)
   action(self)
 end
 
---- Chains the back arrow and dropdown off DeleteButton by `gap`.
+--- Spans the stepper between the left and right icons and centers
+--- the dropdown in it; the mixin hangs the arrows off its sides.
 --- @param height number
---- @param gap number
-function o:LayoutDocStepper(height, gap)
-  local stepper = self.DocStepper
-  local back, dropdown = stepper.DecrementButton, stepper.Dropdown
+function o:LayoutDocStepper(height)
+  local stepper, dropdown = self.DocStepper, self.DocStepper.Dropdown
   PixelUtil.SetSize(dropdown, DOC_DROPDOWN_WIDTH, height)
   -- Arrow art resets to atlas size per state; scale it instead.
-  for _, arrow in ipairs({ back, stepper.IncrementButton }) do
+  for _, arrow in ipairs({ stepper.DecrementButton, stepper.IncrementButton }) do
     arrow:SetScale(height / arrow:GetHeight())
   end
-  -- Replaces the mixin's back-arrow anchor to the dropdown.
-  back:ClearAllPoints()
-  -- Offsets on a scaled frame scale too; divide it back out.
-  PixelUtil.SetPoint(back, 'LEFT', self.DeleteButton, 'RIGHT', gap / back:GetScale(), 0)
-  PixelUtil.SetPoint(dropdown, 'LEFT', back, 'RIGHT', -stepper.decrementOffsetX, 0)
+  stepper:ClearAllPoints()
+  stepper:SetPoint('LEFT', self.DeleteButton, 'RIGHT')
+  stepper:SetPoint('RIGHT', self.FontSizeButton, 'LEFT')
+  PixelUtil.SetPoint(dropdown, 'CENTER', stepper, 'CENTER', 0, 0)
 end
 
 --- Lines New and Theme up with the code area's top corners; the
