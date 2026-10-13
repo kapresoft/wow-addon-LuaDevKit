@@ -362,7 +362,8 @@
 
                  StatusBar.OutputScrollFrame: plain ScrollFrame, no template,
                  so the panel keeps its scrollbar-free look; wheel, sizing and
-                 auto scroll to bottom are wired in Lua's OnLoad_StatusBar.
+                 auto scroll to bottom are wired in Lua's OnLoad_StatusBar;
+                 inset per theme in PlaceOutputBox.
 
                  OutputScrollFrame OnMouseDown: clicks that miss EvalStatus
                  forward focus to it.
@@ -392,10 +393,6 @@
                 <Size y="100"/>
                 <Frames>
                     <ScrollFrame parentKey="OutputScrollFrame" enableMouse="true">
-                        <Anchors>
-                            <Anchor point="TOPLEFT" x="6" y="-4"/>
-                            <Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
-                        </Anchors>
                         <Scripts>
                             <OnMouseDown>
                                 self.ScrollChild.EvalStatus:SetFocus()

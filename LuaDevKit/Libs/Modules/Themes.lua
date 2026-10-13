@@ -95,6 +95,7 @@ Type Definitions
 --- @field printColor? RGBA @print() output; defaults to gray
 --- @field errorColor? RGBA @Compile and runtime errors; defaults to red
 --- @field toolIcons? LDK_ToolIconsTheme
+--- @field inset? LDK_Insets @Output box within its panel; bottom layout only
 
 --- @class LDK_PromptTheme
 --- @field color? RGBA    @Defaults to the command line's textColor
@@ -476,6 +477,12 @@ local function _RegisterBuiltInThemes()
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 9, y = 4 } },
+        inset = { left = 10, right = 4, top = 4, bottom = 4 },
+      },
+      commandLine = {
+        prompt = {
+          offset = { x = 10, y = 0 },
+        },
       },
     },
   })
@@ -513,11 +520,12 @@ local function _RegisterBuiltInThemes()
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 24, y = 4 } },
+        inset = { left = 23, right = 20, top = 4, bottom = 4 },
       },
       commandLine = {
         prompt = {
           color = { 0.435, 0.306, 0.216, 1 },
-          offset = { x = 26, y = 0 },
+          offset = { x = 24, y = 0 },
         },
       },
     },
@@ -554,6 +562,12 @@ local function _RegisterBuiltInThemes()
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 8, y = 4 } },
+        inset = { left = 8, right = 4, top = 4, bottom = 4 },
+      },
+      commandLine = {
+        prompt = {
+          offset = { x = 8, y = 0 },
+        },
       },
     },
   })
@@ -589,10 +603,12 @@ local function _RegisterBuiltInThemes()
     console = {
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
+        inset = { left = 10, right = 4, top = 4, bottom = 4 },
       },
       commandLine = {
         prompt = {
           color = { 1.000, 0.671, 0.145, 1 },
+          offset = { x = 8, y = 0 },
         },
       },
     },
@@ -622,6 +638,11 @@ local function _RegisterBuiltInThemes()
       output = {
         textColor = { 0.78, 0.82, 0.85, 1 },
         toolIcons = { inset = { x = 4, y = 4 } },
+      },
+      commandLine = {
+        prompt = {
+          offset = { x = 6, y = 0 },
+        },
       },
     },
   })

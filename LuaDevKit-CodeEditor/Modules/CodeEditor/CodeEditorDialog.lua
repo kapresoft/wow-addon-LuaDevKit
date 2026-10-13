@@ -10,7 +10,6 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: THEME: output box inset (OutputScrollFrame anchors in XML, 6/4/4/4) as a theme field, e.g. console.output.inset
 -- todo: Oak Frame Light (a light color background version)
 -- todo: Action icon to format current code
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
@@ -172,8 +171,12 @@ local CODE_PADDING = { left = 2, right = 4, top = 4, bottom = 4 }
 local OVERLAY_INSET = 4
 
 -- Fallbacks for a theme without toolIcons.inset/alpha or prompt.offset.
-local TOOL_ICON_INSET, PROMPT_OFFSET = { x = 6, y = 4 }, { x = 10, y = 0 }
+local TOOL_ICON_INSET, PROMPT_OFFSET = { x = 6, y = 4 }, { x = 5, y = 0 }
 local TOOL_ICON_ALPHA = 0.6
+
+-- Output box's inset within its panel, unless a theme sets its own.
+--- @type LDK_Insets
+local OUTPUT_INSET = { left = 6, right = 4, top = 4, bottom = 4 }
 
 -- Breathing room on whichever axis shrinks when clamped to screen.
 local SCREEN_MARGIN = 100
@@ -975,7 +978,7 @@ function o:OnLoad_Viewports()
   self.Gutter:SetPoint('BOTTOMRIGHT', self.GutterBackdrop, 'BOTTOMRIGHT', -4, bottom)
   self.ScrollFrame:SetPoint('TOPLEFT', self.CodeBackdrop, 'TOPLEFT', 2, -top)
   self.ScrollFrame:SetPoint('BOTTOMRIGHT', self.ScrollBarGap, 'BOTTOMRIGHT', -5, bottom)
-  -- OutputScrollFrame is anchored in XML; see its comment.
+  -- OutputScrollFrame is inset per theme in PlaceOutputBox.
 end
 
 --- Pins the floating buttons to the code area's right corners.
@@ -2054,7 +2057,7 @@ function o:ApplyConsoleIconColor(console)
   end
 end
 
---- Places the gear, history arrow and prompt per border.
+--- Places the gear, history arrow, prompt and output box per border.
 --- @param console LDK_ConsoleTheme
 function o:ApplyConsoleInsets(console)
   local toolIcons = console.output.toolIcons or {}
@@ -2080,6 +2083,18 @@ function o:ApplyConsoleInsets(console)
   local prompt = bar.Prompt
   prompt:ClearAllPoints()
   prompt:SetPoint('LEFT', bar, 'LEFT', offset.x, offset.y)
+  self:PlaceOutputBox(console.output)
+end
+
+--- Insets the output box in its panel.
+--- @param output LDK_OutputTheme
+function o:PlaceOutputBox(output)
+  -- Like toolIcons.inset: clears a border that only covers the bottom layout.
+  local inset = not self:IsOutputRight() and output.inset or OUTPUT_INSET
+  local scroll, status = self.OutputScrollFrame, self.StatusBar
+  scroll:ClearAllPoints()
+  scroll:SetPoint('TOPLEFT', status, 'TOPLEFT', inset.left, -inset.top)
+  scroll:SetPoint('BOTTOMRIGHT', status, 'BOTTOMRIGHT', -inset.right, inset.bottom)
 end
 
 --- @private
