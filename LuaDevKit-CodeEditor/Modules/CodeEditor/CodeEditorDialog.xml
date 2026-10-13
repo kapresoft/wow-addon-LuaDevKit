@@ -193,8 +193,10 @@
                  font and theme dropdowns on the right. Hideable: Lua's
                  SetToolbarShown collapses it and the code area moves up.
 
-                 TopBar.NewButton and TopBar.ThemeButton are pinned above CodeBackdrop's
-                 top corners in Lua's OnLoad_ToolbarEdges. Icon sizes, the
+                 TopBar.NewButton is pinned above CodeBackdrop's top left corner
+                 in Lua's OnLoad_ToolbarEdges; TopBar.ThemeButton above the top
+                 right corner of the code area or, in the right layout, of
+                 StatusBar (PinThemeButton). Icon sizes, the
                  stepper height and the bar height come from Lua's LayoutToolbar.
 
                  TopBar.SaveButton, TopBar.DeleteButton: each chained off the
@@ -355,7 +357,8 @@
             </Frame>
 
             <!-- StatusBar: output panel, results appended run after run;
-                 StatusDivider sets its height.
+                 placed below or right of the code area in Lua's
+                 LayoutOutputPanel; StatusDivider sets its size.
 
                  StatusBar.OutputScrollFrame: plain ScrollFrame, no template,
                  so the panel keeps its scrollbar-free look; wheel, sizing and
@@ -377,14 +380,16 @@
                  font and size; raised in Lua's OnLoad_Overlays, anchored per
                  theme in ApplyConsoleInsets, faded in ApplyToolIconAlpha.
 
-                 StatusBar.ClearOutputButton: empties the output panel; sits
-                 below the gear and shares its raise and fade. -->
+                 StatusBar.OutputLayoutButton: moves the panel between the
+                 bottom and right layouts; its art shows the current one
+                 (Lua's RefreshOutputLayoutButton). Sits below the gear and
+                 shares its raise and fade.
+
+                 StatusBar.ClearOutputButton: empties the output panel; last
+                 in the column, below the layout button, with the same raise
+                 and fade. -->
             <Frame parentKey="StatusBar" inherits="BackdropTemplate">
                 <Size y="100"/>
-                <Anchors>
-                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.CommandBar" relativePoint="TOPLEFT" x="0" y="0"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.CommandBar" relativePoint="TOPRIGHT" x="0" y="0"/>
-                </Anchors>
                 <Frames>
                     <ScrollFrame parentKey="OutputScrollFrame" enableMouse="true">
                         <Anchors>
@@ -426,10 +431,18 @@
                         <NormalTexture file="interface\addons\luadevkit\assets\settings-btn"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\settings-btn" alphaMode="ADD"/>
                     </DropdownButton>
+                    <Button parentKey="OutputLayoutButton">
+                        <Size x="14" y="14"/>
+                        <Anchors>
+                            <Anchor point="TOP" relativeKey="$parent.ConsoleSettingsButton" relativePoint="BOTTOM" x="0" y="-4"/>
+                        </Anchors>
+                        <NormalTexture file="interface\addons\luadevkit\assets\output-bottom-btn"/>
+                        <HighlightTexture file="interface\addons\luadevkit\assets\output-bottom-btn" alphaMode="ADD"/>
+                    </Button>
                     <Button parentKey="ClearOutputButton">
                         <Size x="12" y="12"/>
                         <Anchors>
-                            <Anchor point="TOP" relativeKey="$parent.ConsoleSettingsButton" relativePoint="BOTTOM" x="0" y="-4"/>
+                            <Anchor point="TOP" relativeKey="$parent.OutputLayoutButton" relativePoint="BOTTOM" x="0" y="-4"/>
                         </Anchors>
                         <NormalTexture file="interface\addons\luadevkit\assets\clear-btn"/>
                         <HighlightTexture file="interface\addons\luadevkit\assets\clear-btn" alphaMode="ADD"/>
@@ -438,25 +451,22 @@
             </Frame>
 
             <!-- StatusDivider: drag handle, resizes StatusBar;
-                 double-click toggles it between max and min.
-                 GutterBackdrop/CodeBackdrop anchor to its top.
+                 double-click toggles it between max and min. Lua's
+                 LayoutOutputPanel places it between StatusBar and the code
+                 area, which anchors its bottom or right edge to it.
 
                  StatusDivider.Grip: colored in Lua's ApplyTheme, like every
-                 other border here.
+                 other border here; turned upright for the right layout.
 
                  StatusDivider.MinimizeButton/MaximizeButton: jump the output
-                 panel to its max/min height; rotated and wired in Lua's
-                 OnLoad_StatusBar. They flank the Grip, Minimize on its left.
+                 panel to its min/max size; wired in Lua's OnLoad_StatusBar,
+                 placed and rotated around the Grip in LayoutDividerControls.
 
                  StatusDivider.RunButton: runs the buffer; same arrow art
                  turned into a play icon in Lua's OnLoad_RunButton;
                  anchored over the code area in OnLoad_Overlays. -->
             <Button parentKey="StatusDivider" enableMouse="true">
                 <Size y="10"/>
-                <Anchors>
-                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.StatusBar" relativePoint="TOPLEFT" x="0" y="0"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.StatusBar" relativePoint="TOPRIGHT" x="0" y="0"/>
-                </Anchors>
                 <Layers>
                     <Layer level="ARTWORK">
                         <Texture parentKey="Grip">
@@ -470,9 +480,6 @@
                 <Frames>
                     <Button parentKey="MinimizeButton">
                         <Size x="8" y="15"/>
-                        <Anchors>
-                            <Anchor point="RIGHT" relativeKey="$parent.Grip" relativePoint="LEFT" x="-8" y="-0.5"/>
-                        </Anchors>
                         <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
                         <PushedTexture atlas="bag-arrow"/>
                         <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>
@@ -480,9 +487,6 @@
                     </Button>
                     <Button parentKey="MaximizeButton">
                         <Size x="8" y="15"/>
-                        <Anchors>
-                            <Anchor point="LEFT" relativeKey="$parent.Grip" relativePoint="RIGHT" x="8" y="0.5"/>
-                        </Anchors>
                         <NormalTexture parentKey="NormalTexture" atlas="bag-arrow"/>
                         <PushedTexture atlas="bag-arrow"/>
                         <DisabledTexture atlas="bag-arrow" desaturated="true" alpha="0.58"/>
@@ -535,12 +539,13 @@
                 </Layers>
             </Frame>
 
-            <!-- Border backing frame: keep its top inset equal to code's or rows drift. -->
+            <!-- Border backing frame: keep its top inset equal to code's or rows
+                 drift. Its bottom is anchored per layout in Lua's
+                 LayoutOutputPanel. -->
             <Frame parentKey="GutterBackdrop" inherits="BackdropTemplate">
                 <Size x="34" y="1"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.TopBar" relativePoint="BOTTOMLEFT" x="16" y="0"/>
-                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.StatusDivider" relativePoint="TOPLEFT" x="16" y="0"/>
                 </Anchors>
             </Frame>
 
@@ -575,7 +580,8 @@
             </ScrollFrame>
 
             <!-- CodeBackdrop: x=-1 overlaps the gutter's border (avoids a
-                 double border).
+                 double border); its bottom right corner is anchored per
+                 layout in Lua's LayoutOutputPanel.
 
                  ScrollBarGap: widening its Size x opens a real gap before
                  the scrollbar.
@@ -598,7 +604,6 @@
             <Frame parentKey="CodeBackdrop" inherits="BackdropTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeKey="$parent.GutterBackdrop" relativePoint="TOPRIGHT" x="-1" y="0"/>
-                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.StatusDivider" relativePoint="TOPRIGHT" x="-29" y="0"/>
                 </Anchors>
             </Frame>
 

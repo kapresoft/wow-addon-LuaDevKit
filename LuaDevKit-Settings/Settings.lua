@@ -51,6 +51,32 @@ local function ShowToolbar(shown)
   if editor then editor:SetToolbarShown(shown) end
 end
 
+--- @param location LDK_OutputLocation
+local function MoveOutput(location)
+  local editor = cns:CodeEditor()
+  if editor then editor:SetOutputLocation(location) end
+end
+
+--- A dropdown bound to global.editor.outputLocation.
+--- @param order number
+--- @return table @AceConfig select
+local function OutputLocationSelect(order)
+  local editor = cns:g().editor
+  return {
+    type = 'select',
+    name = L['Output Panel'],
+    desc = L['Output Panel::Desc'],
+    order = order,
+    values = { bottom = L['Bottom'], right = L['Right'] },
+    sorting = { 'bottom', 'right' },
+    get = function() return editor.outputLocation end,
+    set = function(_, value)
+      editor.outputLocation = value
+      MoveOutput(value)
+    end,
+  }
+end
+
 --- @return table @AceConfig group, listed above Profiles
 local function GeneralOptions()
   return {
@@ -60,8 +86,9 @@ local function GeneralOptions()
     args = {
       openAtStartup = EditorCheckbox('openAtStartup', 'Open Editor at Startup', 1),
       showToolbar = EditorCheckbox('showToolbar', 'Show Toolbar', 2, ShowToolbar),
-      saveOnRun = EditorCheckbox('saveOnRun', 'Save on Run', 3),
-      escCloses = EditorCheckbox('escCloses', 'Escape Key Closes Editor', 4),
+      outputLocation = OutputLocationSelect(3),
+      saveOnRun = EditorCheckbox('saveOnRun', 'Save on Run', 4),
+      escCloses = EditorCheckbox('escCloses', 'Escape Key Closes Editor', 5),
     },
   }
 end

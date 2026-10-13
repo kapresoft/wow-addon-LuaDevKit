@@ -6,15 +6,18 @@ local THEME = O.Themes.theme
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]
+--- @alias LDK_OutputLocation 'bottom'|'right'
+
 --- @class LDK_DB_EditorConfig
---- @field theme? Name            @Unknown names fall back to the default = true theme
---- @field fontFamily? string     @Key into FontUtil:GetFontChoices()
+--- @field theme? Name                       @Unknown names fall back to the default = true theme
+--- @field fontFamily? string                @Key into FontUtil:GetFontChoices()
 --- @field fontSize? number
 --- @field wrapText? boolean
 --- @field saveOnRun? boolean
 --- @field showToolbar? boolean
---- @field escCloses? boolean     @Esc closes the settings window first, then the editor
---- @field openAtStartup? boolean @Open the editor on login or reload
+--- @field escCloses? boolean                @Esc closes the settings window first, then the editor
+--- @field openAtStartup? boolean            @Open the editor on login or reload
+--- @field outputLocation? LDK_OutputLocation @Output panel below or right of the code area
 
 --- @class LDK_DB_ConsoleConfig
 --- @field fontFamily string                 @Font key, or SAME_AS_EDITOR_FONT
@@ -39,6 +42,7 @@ Types
 --- @field docs LDK_Document[] @This profile's script workspace
 --- @field docIndex number     @Last opened document; clamped on load
 --- @field outputHeight number @Output panel height in UI units; clamped on show
+--- @field outputWidth number  @Right layout's output panel width; clamped on show
 
 --- @class LDK_DB_DefaultDatabase : AceDB.Schema
 --- @field global LDK_DB_GlobalConfig
@@ -82,6 +86,7 @@ local DEFAULT_DB = {
       openAtStartup = false,
       showToolbar = true,
       escCloses = false,
+      outputLocation = 'bottom',
     },
     console = {
       fontFamily = 'Inconsolata',
@@ -91,7 +96,7 @@ local DEFAULT_DB = {
     window = {},
     helpTipsDismissed = {},
   },
-  profile = { docs = {}, docIndex = 1, outputHeight = 100 },
+  profile = { docs = {}, docIndex = 1, outputHeight = 100, outputWidth = 300 },
 }
 
 --- AceDB defaults; registered by DatabaseAccessMixin:InitDb(). Unset

@@ -87,7 +87,7 @@ Type Definitions
 --- @field y number
 
 --- @class LDK_ToolIconsTheme
---- @field inset? LDK_XY @The icon row's corner, in from the output panel's top right
+--- @field inset? LDK_XY @The icon row's corner, in from the output panel's top right; bottom layout only
 --- @field alpha? number @Resting alpha of every output tool icon; hover stays full
 
 --- @class LDK_OutputTheme
@@ -106,6 +106,7 @@ Type Definitions
 
 --- @class LDK_ConsoleTheme
 --- @field output LDK_OutputTheme
+--- @field iconColor? RGBA @Tint for the console's white glyph icons; defaults to white
 --- @field commandLine? LDK_CommandLineTheme
 --- @field divider? LDK_DividerTheme
 
@@ -668,6 +669,7 @@ local function _RegisterBuiltInThemes()
       },
     },
     console = {
+      iconColor = { 0.45, 0.3, 0.12, 1 },
       output = {
         textColor = { 1.000, 0.965, 0.494, 1 },
         printColor = { 0.278, 0.224, 0.173, 1 },

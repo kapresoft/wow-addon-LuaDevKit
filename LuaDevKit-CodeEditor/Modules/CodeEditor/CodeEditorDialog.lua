@@ -10,13 +10,11 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
+-- todo: THEME: output box inset (OutputScrollFrame anchors in XML, 6/4/4/4) as a theme field, e.g. console.output.inset
 -- todo: Oak Frame Light (a light color background version)
 -- todo: Action icon to format current code
--- todo: Toggle Output Panel Location (does not include command line); Default (where it is now) and Side of CodeEditor MainFrame
--- todo: detect dirty on profile-switch; prompt for save/cancel/discard?
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
--- todo: Review replace or reset profile messaging
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: EDITOR: alt-backspace: delete word
 -- todo: EDITOR: alt-left-arrow: back 1 word
@@ -44,8 +42,34 @@ local HEADER_HEIGHT = 28
 local MIN_STATUS_HEIGHT = 40
 local MIN_CODE_HEIGHT = 60
 
--- Matches StatusDivider's Size y in XML.
-local STATUS_DIVIDER_HEIGHT = 10
+-- Right layout: narrowest output panel and code area.
+local MIN_STATUS_WIDTH, MIN_CODE_WIDTH = 120, 120
+
+-- Matches StatusDivider's Size y in XML; its width in the right layout.
+local STATUS_DIVIDER_SIZE = 10
+
+-- Code area's insets: left matches GutterBackdrop's XML anchor;
+-- right leaves room for the scrollbar.
+local CODE_INSET = { left = 16, right = 29 }
+
+-- Header, and TopBar under it, overhang the dialog's right edge.
+local HEADER_OVERHANG = 2
+
+-- Right layout: gap between the output panel and the dialog's right edge.
+local OUTPUT_RIGHT_PAD = 12
+
+-- Panels on the command bar sink their bottom border row onto its top
+-- border, then hide it (HideSharedEdges): one line, no gap.
+local BORDER_OVERLAP = 1
+
+-- Divider arrows: gap to the grip, and the bottom layout's y nudge.
+local DIVIDER_ARROW_GAP, DIVIDER_ARROW_NUDGE = 8, 0.5
+
+-- OutputLayoutButton art per layout; each shows its own layout.
+local OUTPUT_LAYOUT_ART = {
+  bottom = [[interface\addons\luadevkit\assets\output-bottom-btn]],
+  right = [[interface\addons\luadevkit\assets\output-right-btn]],
+}
 
 -- Matches CommandBar's Size y in XML; fixed, never resizes.
 local COMMAND_BAR_HEIGHT = 22
@@ -194,6 +218,7 @@ Types
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Clips the output box; wheel-scrolled, no scrollbar
 --- @field ConsoleSettingsButton DropdownButton
 --- @field ClearOutputButton Button
+--- @field OutputLayoutButton Button
 
 --- @class LDK_CodeEditorStatusDivider : Button
 --- @field owner LDK_CodeEditorDialog
@@ -201,8 +226,8 @@ Types
 --- @field MaximizeButton Button
 --- @field MinimizeButton Button
 --- @field RunButton Button
---- @field cursorStart number|nil @Screen Y at drag start
---- @field heightStart number|nil @StatusBar height at drag start
+--- @field cursorStart number? @Cursor along the drag axis at drag start
+--- @field sizeStart number?   @StatusBar size at drag start
 
 --- @class LDK_CodeEditorHeaderTitle : Frame
 --- @field Text FontString
@@ -262,11 +287,16 @@ Types
 --- @field historyIndex number                               @Up/Down position; one past the end is the draft
 --- @field historyDraft string?                              @Unsent text saved when stepping into history
 --- @field StatusBar LDK_CodeEditorStatusBar                 @Output panel
---- @field StatusDivider LDK_CodeEditorStatusDivider         @Drag handle that sets StatusBar's height
+--- @field StatusDivider LDK_CodeEditorStatusDivider         @Drag handle that sets StatusBar's size
+--- @field outputLocation LDK_OutputLocation                 @Where StatusBar sits next to the code area
+--- @field panelInsets LDK_Insets?                           @Main backdrop insets the panels start at
+--- @field gripSize number[]                                 @Grip's XML width and height, for the bottom layout
 --- @field OutputScrollFrame LDK_CodeEditorOutputScrollFrame @Alias of StatusBar.OutputScrollFrame
 --- @field EvalStatus EditBox                                @Alias of StatusBar.OutputScrollFrame.ScrollChild.EvalStatus
 --- @field ConsoleSettingsButton DropdownButton              @Alias of StatusBar.ConsoleSettingsButton
 --- @field ClearOutputButton Button                          @Alias of StatusBar.ClearOutputButton
+--- @field OutputLayoutButton Button                         @Alias of StatusBar.OutputLayoutButton
+--- @field refreshOutputLayoutTooltip fun()                  @Redraws OutputLayoutButton's tooltip if showing
 --- @field HelpButton Button                                 @Alias of CommandBar.HelpButton
 --- @field output LDK_OutputLog                              @Evaluation output, capped at MAX_OUTPUT_LINES
 --- @field WrapMeasure LDK_CodeEditorWrapMeasure
@@ -487,8 +517,50 @@ local function MaxStatusHeight(self)
   if not top or not bottom then return math.huge end
   return math.max(
     MIN_STATUS_HEIGHT,
-    top - bottom - STATUS_DIVIDER_HEIGHT - COMMAND_BAR_HEIGHT - MIN_CODE_HEIGHT
+    top - bottom - STATUS_DIVIDER_SIZE - COMMAND_BAR_HEIGHT - MIN_CODE_HEIGHT
   )
+end
+
+--- Widest StatusBar that still leaves MIN_CODE_WIDTH for the code area.
+--- @param self LDK_CodeEditorDialog
+--- @return number @math.huge before the first layout: no cap yet
+local function MaxStatusWidth(self)
+  local left, right = self.GutterBackdrop:GetRight(), self.StatusBar:GetRight()
+  if not left or not right then return math.huge end
+  return math.max(
+    MIN_STATUS_WIDTH,
+    right - left - STATUS_DIVIDER_SIZE - CODE_INSET.right - MIN_CODE_WIDTH
+  )
+end
+
+--- Shortest StatusBar that still fits its column of tool icons.
+--- @param self LDK_CodeEditorDialog
+--- @return number
+local function MinStatusHeight(self)
+  local icons = self:OutputToolIcons()
+  local top, bottom = self.StatusBar:GetTop(), icons[#icons]:GetBottom()
+  if not top or not bottom then return MIN_STATUS_HEIGHT end
+  return math.max(MIN_STATUS_HEIGHT, top - bottom + TOOL_ICON_INSET.y)
+end
+
+--- @param self LDK_CodeEditorDialog
+--- @return number @Width in the right layout, height in the bottom one
+local function MinStatusSize(self)
+  return self:IsOutputRight() and MIN_STATUS_WIDTH or MinStatusHeight(self)
+end
+
+--- @param self LDK_CodeEditorDialog
+--- @return number @Width in the right layout, height in the bottom one
+local function MaxStatusSize(self)
+  return self:IsOutputRight() and MaxStatusWidth(self) or MaxStatusHeight(self)
+end
+
+--- Cursor along the drag axis, signed so a positive move grows the panel.
+--- @param self LDK_CodeEditorDialog
+--- @return number
+local function DividerCursor(self)
+  local x, y = GetCursorPosition()
+  return (self:IsOutputRight() and -x or y) / self:GetEffectiveScale()
 end
 
 --- @param frame Frame
@@ -708,6 +780,17 @@ local function UpdateArrowState(button, enabled)
   button:SetAlpha(enabled and ARROW_ENABLED_ALPHA or ARROW_DISABLED_ALPHA)
 end
 
+--- The bottom edge and its two corners, so side borders end flush.
+--- @param panel Frame|BackdropTemplate
+--- @param shown boolean
+local function SetBottomBorderShown(panel, shown)
+  for _, key in ipairs({ 'BottomEdge', 'BottomLeftCorner', 'BottomRightCorner' }) do
+    -- nil until the first SetBackdrop.
+    local piece = panel[key]
+    if piece then piece:SetShown(shown) end
+  end
+end
+
 --- Width the EditBox actually wraps text at: viewport minus its text insets.
 --- @param self LDK_CodeEditorDialog
 --- @return number
@@ -725,6 +808,7 @@ function o:OnLoad()
   self.EvalStatus = self.OutputScrollFrame.ScrollChild.EvalStatus
   self.ConsoleSettingsButton = self.StatusBar.ConsoleSettingsButton
   self.ClearOutputButton = self.StatusBar.ClearOutputButton
+  self.OutputLayoutButton = self.StatusBar.OutputLayoutButton
   self.HelpButton = self.CommandBar.HelpButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
   self:OnLoad_CombatHide()
@@ -907,7 +991,7 @@ function o:OnLoad_Overlays()
   )
   -- Above the output box, which would otherwise take their clicks.
   local level = self.EvalStatus:GetFrameLevel() + 1
-  for _, button in ipairs({ self.ConsoleSettingsButton, self.ClearOutputButton }) do
+  for _, button in ipairs(self:OutputToolIcons()) do
     button:SetFrameLevel(level)
     button:SetAlpha(OVERLAY_ALPHA)
   end
@@ -943,15 +1027,34 @@ function o:OnLoad_StatusBar()
   local divider = self.StatusDivider
   divider.MaximizeButton:SetScript('OnClick', function() self:MaximizeStatus() end)
   divider.MinimizeButton:SetScript('OnClick', function() self:MinimizeStatus() end)
-  RotateArrow(divider.MinimizeButton, math.pi / 2)
-  RotateArrow(divider.MaximizeButton, -math.pi / 2)
   AddTooltip(divider.MaximizeButton, 'Maximize Output')
   AddTooltip(divider.MinimizeButton, 'Minimize Output')
   self:OnLoad_DividerTooltip()
   self:OnLoad_EvalStatus()
   self:OnLoad_ConsoleSettingsButton()
+  self:OnLoad_OutputLayoutButton()
   self:OnLoad_ClearOutputButton()
   self:ClearOutput()
+end
+
+--- @return Button[] @The output panel's column of tool icons, top first
+function o:OutputToolIcons()
+  return { self.ConsoleSettingsButton, self.OutputLayoutButton, self.ClearOutputButton }
+end
+
+function o:OnLoad_OutputLayoutButton()
+  local button = self.OutputLayoutButton
+  button:SetScript('OnClick', function() self:ToggleOutputLocation() end)
+  self.refreshOutputLayoutTooltip = AddTooltip(
+    button,
+    'Output Panel',
+    function() return self:OutputLayoutHintKey() end
+  )
+end
+
+--- @return string @Locale key for where a click moves the panel
+function o:OutputLayoutHintKey()
+  return self:IsOutputRight() and 'Output Panel::Hint::Bottom' or 'Output Panel::Hint::Right'
 end
 
 function o:OnLoad_ClearOutputButton()
@@ -1079,12 +1182,129 @@ function o:InsetPanels(insets)
   bar:ClearAllPoints()
   bar:SetPoint('BOTTOMLEFT', self.BottomBar, 'TOPLEFT', left, 0)
   bar:SetPoint('BOTTOMRIGHT', self.BottomBar, 'TOPRIGHT', -right, 0)
+  self.panelInsets = insets
+  self:LayoutOutputPanel()
+end
 
-  -- Divider stays full width; the code area anchors to it.
-  local divider = self.StatusDivider
+--- Places StatusBar below or right of the code area, with the divider
+--- between them. The command bar stays full width either way.
+function o:LayoutOutputPanel()
+  local insets = self.panelInsets or {}
+  local left, right = insets.left or 0, insets.right or 0
+  if self:IsOutputRight() then
+    self:LayoutOutputRight(left, right)
+  else
+    self:LayoutOutputBottom(left, right)
+  end
+  self:LayoutDividerControls()
+  self:HideSharedEdges()
+end
+
+--- Panels resting on the command bar skip their bottom border, so the
+--- bar's translucent top border draws that line once, not doubled.
+function o:HideSharedEdges()
+  SetBottomBorderShown(self.StatusBar, false)
+  SetBottomBorderShown(self.CodeBackdrop, not self:IsOutputRight())
+end
+
+--- Output under the code area; the divider spans the dialog.
+--- @param left number  @Main backdrop's left inset
+--- @param right number @Main backdrop's right inset
+function o:LayoutOutputBottom(left, right)
+  local status, divider, bar = self.StatusBar, self.StatusDivider, self.CommandBar
+  status:ClearAllPoints()
+  status:SetPoint('BOTTOMLEFT', bar, 'TOPLEFT', 0, -BORDER_OVERLAP)
+  status:SetPoint('BOTTOMRIGHT', bar, 'TOPRIGHT', 0, -BORDER_OVERLAP)
   divider:ClearAllPoints()
-  divider:SetPoint('BOTTOMLEFT', self.StatusBar, 'TOPLEFT', -left, 0)
-  divider:SetPoint('BOTTOMRIGHT', self.StatusBar, 'TOPRIGHT', right, 0)
+  divider:SetPoint('BOTTOMLEFT', status, 'TOPLEFT', -left, 0)
+  divider:SetPoint('BOTTOMRIGHT', status, 'TOPRIGHT', right, 0)
+  divider:SetHeight(STATUS_DIVIDER_SIZE)
+  self.GutterBackdrop:SetPoint('BOTTOMLEFT', divider, 'TOPLEFT', CODE_INSET.left, 0)
+  self.CodeBackdrop:SetPoint('BOTTOMRIGHT', divider, 'TOPRIGHT', -CODE_INSET.right, 0)
+  self:PinThemeButton(self.CodeBackdrop)
+end
+
+--- Output right of the code area, from the toolbar to the command bar.
+--- @param left number  @Main backdrop's left inset
+--- @param right number @Main backdrop's right inset
+function o:LayoutOutputRight(left, right)
+  local status, divider, bar = self.StatusBar, self.StatusDivider, self.CommandBar
+  status:ClearAllPoints()
+  local pad = OUTPUT_RIGHT_PAD
+  status:SetPoint('TOPRIGHT', self.TopBar, 'BOTTOMRIGHT', -(right + HEADER_OVERHANG + pad), 0)
+  status:SetPoint('BOTTOMRIGHT', bar, 'TOPRIGHT', -pad, -BORDER_OVERLAP)
+  divider:ClearAllPoints()
+  divider:SetPoint('TOPRIGHT', status, 'TOPLEFT')
+  divider:SetPoint('BOTTOMRIGHT', status, 'BOTTOMLEFT')
+  divider:SetWidth(STATUS_DIVIDER_SIZE)
+  local x = CODE_INSET.left - left
+  self.GutterBackdrop:SetPoint('BOTTOMLEFT', bar, 'TOPLEFT', x, -BORDER_OVERLAP)
+  self.CodeBackdrop:SetPoint('BOTTOMRIGHT', divider, 'BOTTOMLEFT', -CODE_INSET.right, 0)
+  -- Across the full width, so the toolbar keeps its bottom-layout room.
+  self:PinThemeButton(status)
+end
+
+--- Lines ThemeButton up with the top right corner of `panel`.
+--- @param panel Frame
+function o:PinThemeButton(panel)
+  -- Not self.ThemeButton: OnLoad themes before aliasing it.
+  local button = self.TopBar.ThemeButton
+  button:ClearAllPoints()
+  button:SetPoint('BOTTOMRIGHT', panel, 'TOPRIGHT', 2, TOOLBAR_ICON_LIFT)
+end
+
+--- Grip and arrows run across the divider in the bottom layout and
+--- down it in the right one. bag-arrow art points left.
+function o:LayoutDividerControls()
+  local divider = self.StatusDivider
+  local grip, min, max = divider.Grip, divider.MinimizeButton, divider.MaximizeButton
+  self.gripSize = self.gripSize or { grip:GetSize() }
+  local length, thickness = upk(self.gripSize)
+  local gap, nudge = DIVIDER_ARROW_GAP, DIVIDER_ARROW_NUDGE
+  min:ClearAllPoints()
+  max:ClearAllPoints()
+  if self:IsOutputRight() then
+    grip:SetSize(thickness, length)
+    max:SetPoint('BOTTOM', grip, 'TOP', 0, gap)
+    min:SetPoint('TOP', grip, 'BOTTOM', 0, -gap)
+    RotateArrow(max, 0)
+    RotateArrow(min, math.pi)
+  else
+    grip:SetSize(length, thickness)
+    min:SetPoint('RIGHT', grip, 'LEFT', -gap, -nudge)
+    max:SetPoint('LEFT', grip, 'RIGHT', gap, nudge)
+    RotateArrow(min, math.pi / 2)
+    RotateArrow(max, -math.pi / 2)
+  end
+end
+
+--- @return boolean
+function o:IsOutputRight() return self.outputLocation == 'right' end
+
+--- @param location LDK_OutputLocation
+--- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
+function o:SetOutputLocation(location, save)
+  self.outputLocation = location == 'right' and 'right' or 'bottom'
+  self:LayoutOutputPanel()
+  self:ApplyConsoleInsets(self.theme.console)
+  self:ConfigureOutputSize()
+  self:SetStatusSize(self:GetStatusSize())
+  self:RefreshOutputLayoutButton()
+  if save then ns:editor().outputLocation = self.outputLocation end
+end
+
+--- OutputLayoutButton click: moves the panel to the other layout.
+function o:ToggleOutputLocation()
+  self:SetOutputLocation(self:IsOutputRight() and 'bottom' or 'right', true)
+  self.refreshOutputLayoutTooltip()
+  RefreshSettings()
+end
+
+--- Shows the current layout's art.
+function o:RefreshOutputLayoutButton()
+  local art, button = OUTPUT_LAYOUT_ART[self.outputLocation], self.OutputLayoutButton
+  button:GetNormalTexture():SetTexture(art)
+  button:GetHighlightTexture():SetTexture(art)
 end
 
 --- Editable, unlike EvalStatus; native focus/keyboard.
@@ -1229,9 +1449,22 @@ function o:BuildOptionsMenu(root)
   root:CreateCheckbox(L['Save on Run'], isSaveOnRun, function() self:ToggleSaveOnRun() end)
   local function isToolbarShown() return self.TopBar:IsShown() end
   root:CreateCheckbox(L['Show Toolbar'], isToolbarShown, function() self:ToggleToolbar() end)
+  self:AddOutputLocationMenu(root)
   local general = ('%s %s'):format(GENERAL, SETTINGS)
   AddSettingsButton(root, general, function(settings) settings:OpenGeneral() end)
   self:AddProfileMenu(root)
+end
+
+--- @param root RootMenuDescriptionProxy
+function o:AddOutputLocationMenu(root)
+  local function isCurrent(location) return self.outputLocation == location end
+  local function move(location)
+    self:SetOutputLocation(location, true)
+    RefreshSettings()
+  end
+  local menu = root:CreateButton(L['Output Panel'])
+  menu:CreateRadio(L['Bottom'], isCurrent, move, 'bottom')
+  menu:CreateRadio(L['Right'], isCurrent, move, 'right')
 end
 
 --- One radio per profile; Manage Profiles greyed out without LuaDevKit-Settings.
@@ -1383,7 +1616,8 @@ end
 --- the dropdown in it; the mixin hangs the arrows off its sides.
 --- @param height number
 function o:LayoutDocStepper(height)
-  local stepper, dropdown = self.DocStepper, self.DocStepper.Dropdown
+  local stepper = self.DocStepper
+  local dropdown = stepper.Dropdown
   PixelUtil.SetSize(dropdown, DOC_DROPDOWN_WIDTH, height)
   -- Arrow art resets to atlas size per state; scale it instead.
   for _, arrow in ipairs({ stepper.DecrementButton, stepper.IncrementButton }) do
@@ -1395,13 +1629,11 @@ function o:LayoutDocStepper(height)
   PixelUtil.SetPoint(dropdown, 'CENTER', stepper, 'CENTER', 0, 0)
 end
 
---- Lines New and Theme up with the code area's top corners; the
---- stepper and font buttons chain off them. CodeBackdrop comes
---- later in the XML, so anchored here.
+--- Lines New up with the code area's top left corner; the stepper
+--- chains off it. CodeBackdrop comes later in the XML, so anchored
+--- here. ThemeButton is pinned per layout in LayoutOutputPanel.
 function o:OnLoad_ToolbarEdges()
-  local code, lift = self.CodeBackdrop, TOOLBAR_ICON_LIFT
-  self.NewButton:SetPoint('BOTTOMLEFT', code, 'TOPLEFT', 2, lift)
-  self.ThemeButton:SetPoint('BOTTOMRIGHT', code, 'TOPRIGHT', 2, lift)
+  self.NewButton:SetPoint('BOTTOMLEFT', self.CodeBackdrop, 'TOPLEFT', 2, TOOLBAR_ICON_LIFT)
 end
 
 --- Collapses or restores the toolbar; the code area follows it.
@@ -1413,7 +1645,7 @@ function o:SetToolbarShown(shown, save)
   -- Hidden frames keep their size; 1 not 0, which drops anchors.
   bar:SetHeight(shown and self.topBarHeight or 1)
   -- Re-clamp: the output panel's max height just changed.
-  self:SetStatusHeight(self:GetStatusHeight())
+  self:SetStatusSize(self:GetStatusSize())
   if save then ns:editor().showToolbar = shown end
 end
 
@@ -1495,7 +1727,7 @@ function o:OnShow()
   self:Raise()
   -- Scale may change while hidden; re-clamp visibly on the way in.
   self:ClampToScreen(true)
-  self:SetStatusHeight(self:GetStatusHeight())
+  self:SetStatusSize(self:GetStatusSize())
   HelpTour:OnHostShown('CodeEditor', self, self.HelpTip)
   -- SetFocus() needs the frame visible; OnLoad ran while still hidden.
   if not self.initialFocusApplied then
@@ -1542,11 +1774,11 @@ function o:ClampToScreen(withMargin)
   end
 end
 
---- Dialog resized; re-clamp status height in case it's now under the min.
+--- Dialog resized; re-clamp the output panel in case it's now past its max.
 function o:OnSizeChanged()
   -- Can fire mid-construction, before StatusBar/StatusDivider are aliased.
   if not self.StatusBar or not self.StatusDivider then return end
-  self:SetStatusHeight(self.StatusBar:GetHeight())
+  self:SetStatusSize(self:GetStatusSize())
 end
 
 function o:OnClickClose() self:Hide() end
@@ -1712,6 +1944,8 @@ function o:ApplyTheme(name, save)
   self.CodeBackdrop:SetBackdrop(pbd)
   self.StatusBar:SetBackdrop(pbd)
   self.CommandBar:SetBackdrop(pbd)
+  -- SetBackdrop rebuilds every edge piece.
+  self:HideSharedEdges()
 
   if bgColor then
     self.CodeBackdrop:SetBackdropColor(upk(bgColor))
@@ -1734,6 +1968,7 @@ function o:ApplyTheme(name, save)
   self.StatusDivider.MinimizeButton.NormalTexture:SetVertexColor(upk(divider.arrowColor))
   self:ApplyConsoleInsets(console)
   self:ApplyToolIconAlpha(console.output)
+  self:ApplyConsoleIconColor(console)
   -- gutter borderColor is alpha 0 (hidden)
   self.GutterBackdrop:SetBackdropBorderColor(upk(GUTTER.borderColor))
   self.GutterBackdrop:SetBackdropColor(upk(GUTTER.bgColor))
@@ -1800,15 +2035,31 @@ end
 --- @param output LDK_OutputTheme
 function o:ApplyToolIconAlpha(output)
   local alpha = (output.toolIcons or {}).alpha or TOOL_ICON_ALPHA
-  self.ConsoleSettingsButton:GetNormalTexture():SetAlpha(alpha)
-  self.ClearOutputButton:GetNormalTexture():SetAlpha(alpha)
+  for _, button in ipairs(self:OutputToolIcons()) do
+    button:GetNormalTexture():SetAlpha(alpha)
+  end
+end
+
+--- Tints the console's white glyph icons; hover uses the same tint.
+--- @param console LDK_ConsoleTheme
+function o:ApplyConsoleIconColor(console)
+  local r, g, b = upk(console.iconColor or { 1, 1, 1 })
+  for _, button in ipairs({ self.OutputLayoutButton, self.HelpButton }) do
+    for _, texture in ipairs({ button:GetNormalTexture(), button:GetHighlightTexture() }) do
+      -- SetVertexColor resets alpha; keep the XML or theme value.
+      local alpha = texture:GetAlpha()
+      texture:SetVertexColor(r, g, b)
+      texture:SetAlpha(alpha)
+    end
+  end
 end
 
 --- Places the gear, history arrow and prompt per border.
 --- @param console LDK_ConsoleTheme
 function o:ApplyConsoleInsets(console)
   local toolIcons = console.output.toolIcons or {}
-  local gear = toolIcons.inset or TOOL_ICON_INSET
+  -- A theme's inset clears its border, which only covers the bottom layout.
+  local gear = not self:IsOutputRight() and toolIcons.inset or TOOL_ICON_INSET
   local settings = self.ConsoleSettingsButton
   settings:ClearAllPoints()
   settings:SetPoint('TOPRIGHT', self.StatusBar, 'TOPRIGHT', -gear.x, -gear.y)
@@ -1816,7 +2067,9 @@ function o:ApplyConsoleInsets(console)
   -- Not self.HistoryButton: OnLoad themes before aliasing it.
   local bar = self.CommandBar
   local history, nudge = bar.HistoryButton, 4.7
-  local x = -gear.x + nudge
+  -- Under the gear, which the right layout pads in from the edge.
+  local pad = self:IsOutputRight() and OUTPUT_RIGHT_PAD or 0
+  local x = -gear.x + nudge - pad
   history:ClearAllPoints()
   history:SetPoint('TOPRIGHT', bar, 'TOPRIGHT', x, 0)
   history:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', x, 0)
@@ -1973,7 +2226,7 @@ function o:Configure()
   if wrapText == nil then wrapText = DEFAULTS.wrapText end
   self:SetWrapText(wrapText)
   self:SetToolbarShown(editor.showToolbar)
-  self:ConfigureOutputHeight()
+  self:SetOutputLocation(editor.outputLocation)
   self:ConfigureWindow()
 end
 
@@ -2073,8 +2326,12 @@ function o:SaveWindowRect()
   window.width, window.height = self:GetSize()
 end
 
---- Unclamped: OnShow clamps it once the dialog has a layout.
-function o:ConfigureOutputHeight() self.StatusBar:SetHeight(ns:p().outputHeight) end
+--- Unclamped: OnShow clamps it once the dialog has a layout. Anchors
+--- override whichever dimension the layout doesn't use.
+function o:ConfigureOutputSize()
+  local profile = ns:p()
+  self.StatusBar:SetSize(profile.outputWidth, profile.outputHeight)
+end
 
 --- Applies the saved theme, code font and size.
 --- @param editor LDK_DB_EditorConfig
@@ -2175,33 +2432,43 @@ end
 --[[-----------------------------------------------------------------------------
 Status bar: divider drag and evaluation output
 -------------------------------------------------------------------------------]]
---- Sets the output panel's height, clamped so neither panel can be squeezed
---- away. The code area needs no work of its own: GutterBackdrop and
---- CodeBackdrop anchor their bottoms to StatusDivider, so it follows.
---- @param height number
+--- Sets the output panel's height, or its width in the right layout,
+--- clamped so neither panel can be squeezed away. The code area
+--- follows: its edge is anchored to StatusDivider.
+--- @param size number
 --- @param save boolean? @Save to the DB (user-driven change); omit for re-clamps
-function o:SetStatusHeight(height, save)
-  local maxHeight = MaxStatusHeight(self)
-  height = Clamp(height, MIN_STATUS_HEIGHT, maxHeight)
-  if SizeDiffers(self.StatusBar:GetHeight(), height) then self.StatusBar:SetHeight(height) end
-  if save then ns:p().outputHeight = height end
+function o:SetStatusSize(size, save)
+  local minSize, maxSize = MinStatusSize(self), MaxStatusSize(self)
+  local clamped = Clamp(size, minSize, maxSize)
+  local right, status = self:IsOutputRight(), self.StatusBar
+  if SizeDiffers(self:GetStatusSize(), clamped) then
+    if right then
+      status:SetWidth(clamped)
+    else
+      status:SetHeight(clamped)
+    end
+  end
+  if save then ns:p()[right and 'outputWidth' or 'outputHeight'] = clamped end
   -- Disable the arrow for whichever end the panel is already at.
   local divider = self.StatusDivider
-  UpdateArrowState(divider.MaximizeButton, SizeDiffers(height, maxHeight))
-  UpdateArrowState(divider.MinimizeButton, SizeDiffers(height, MIN_STATUS_HEIGHT))
+  UpdateArrowState(divider.MaximizeButton, SizeDiffers(clamped, maxSize))
+  UpdateArrowState(divider.MinimizeButton, SizeDiffers(clamped, minSize))
 end
 
---- @return number
-function o:GetStatusHeight() return self.StatusBar:GetHeight() end
+--- @return number @Width in the right layout, height in the bottom one
+function o:GetStatusSize()
+  local status = self.StatusBar
+  return self:IsOutputRight() and status:GetWidth() or status:GetHeight()
+end
 
---- Grows the output panel as far as MIN_CODE_HEIGHT allows (the up arrow).
-function o:MaximizeStatus() self:SetStatusHeight(MaxStatusHeight(self), true) end
+--- Grows the output panel as far as the code area's minimum allows.
+function o:MaximizeStatus() self:SetStatusSize(MaxStatusSize(self), true) end
 
---- Shrinks the output panel to MIN_STATUS_HEIGHT (the down arrow).
-function o:MinimizeStatus() self:SetStatusHeight(MIN_STATUS_HEIGHT, true) end
+--- Shrinks the output panel to its minimum.
+function o:MinimizeStatus() self:SetStatusSize(MinStatusSize(self), true) end
 
 --- @return boolean
-function o:IsStatusMax() return not SizeDiffers(self:GetStatusHeight(), MaxStatusHeight(self)) end
+function o:IsStatusMax() return not SizeDiffers(self:GetStatusSize(), MaxStatusSize(self)) end
 
 --- @return string @Locale key for what a double-click does next
 function o:DividerHintKey()
@@ -2220,19 +2487,19 @@ end
 --- Tracked by hand; StartSizing only resizes the dialog, not a child.
 function o:OnStatusDividerMouseDown()
   local divider = self.StatusDivider
-  divider.cursorStart = select(2, GetCursorPosition())
-  divider.heightStart = self.StatusBar:GetHeight()
+  divider.cursorStart = DividerCursor(self)
+  divider.sizeStart = self:GetStatusSize()
   divider:SetScript('OnUpdate', function() self:OnStatusDividerUpdate() end)
 end
 
 function o:OnStatusDividerMouseUp() self.StatusDivider:SetScript('OnUpdate', nil) end
 
---- Drag moves StatusBar's top edge; divides by scale (pixels vs UI units).
+--- Drag moves StatusBar's divider edge: its top, or its left side.
 function o:OnStatusDividerUpdate()
   local divider = self.StatusDivider
   if not divider.cursorStart then return end
-  local delta = (select(2, GetCursorPosition()) - divider.cursorStart) / self:GetEffectiveScale()
-  self:SetStatusHeight(divider.heightStart + delta, true)
+  local delta = DividerCursor(self) - divider.cursorStart
+  self:SetStatusSize(divider.sizeStart + delta, true)
 end
 
 --- @param hovered boolean
@@ -2327,8 +2594,8 @@ function o:OnProfileChanged(_, kind)
   StaticPopup_Hide(DELETE_PROMPT)
   self.docIndex = nil
   self:LoadDocuments()
-  self:ConfigureOutputHeight()
-  self:SetStatusHeight(self:GetStatusHeight())
+  self:ConfigureOutputSize()
+  self:SetStatusSize(self:GetStatusSize())
 end
 
 --- Unsaved edits stay with the profile they were made in.
