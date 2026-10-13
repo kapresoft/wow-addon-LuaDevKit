@@ -94,6 +94,7 @@ Type Definitions
 --- @field textColor RGBA   @Evaluation output text
 --- @field printColor? RGBA @print() output; defaults to gray
 --- @field errorColor? RGBA @Compile and runtime errors; defaults to red
+--- @field bgColor? RGBA    @Output panel fill; defaults to panel.backdrop.bgColor
 --- @field toolIcons? LDK_ToolIconsTheme
 --- @field inset? LDK_Insets @Output box within its panel; bottom layout only
 
@@ -131,6 +132,7 @@ Type Definitions
 --- @field ['Oakframe'] LDK_ThemeSet
 --- @field ['Parchment'] LDK_ThemeSet
 --- @field ['Stonecut'] LDK_ThemeSet
+--- @field ['Stonecut Light'] LDK_ThemeSet
 --- @field ['Warband'] LDK_ThemeSet
 --- @field ['Whisper'] LDK_ThemeSet
 local themes = {}
@@ -194,6 +196,7 @@ local DEFAULT_ERROR_COLOR = { 1, 0, 0, 1 }
 --- @field Parchment Name
 --- @field Whisper Name
 --- @field Stonecut Name
+--- @field StonecutLight Name
 --- @field Gilded Name
 --- @field Warband Name
 local THEME = {
@@ -203,6 +206,7 @@ local THEME = {
   Parchment = 'Parchment',
   Whisper = 'Whisper',
   Stonecut = 'Stonecut',
+  StonecutLight = 'Stonecut Light',
   Gilded = 'Gilded',
   Warband = 'Warband',
 }
@@ -216,6 +220,7 @@ local THEME_ORDER = {
   THEME.Oakframe,
   THEME.Parchment,
   THEME.Stonecut,
+  THEME.StonecutLight,
   THEME.Warband,
   THEME.Whisper,
 }
@@ -318,12 +323,13 @@ local function _ResolveCode(t)
   code.syntax = tbl_Merge(DEFAULT_SYNTAX, code.syntax or {})
 end
 
---- Fills the print and error colors a theme leaves out.
+--- Fills the output colors a theme leaves out.
 --- @param t LDK_ThemeSet @A copy; filled in place
 local function _ResolveOutput(t)
   local output = t.console.output
   output.printColor = output.printColor or DEFAULT_PRINT_COLOR
   output.errorColor = output.errorColor or DEFAULT_ERROR_COLOR
+  output.bgColor = output.bgColor or t.panel.backdrop.bgColor
 end
 
 --- @package
@@ -482,6 +488,66 @@ local function _RegisterBuiltInThemes()
       commandLine = {
         prompt = {
           offset = { x = 10, y = 0 },
+        },
+      },
+    },
+  })
+  _RegisterTheme({
+    name = THEME.StonecutLight,
+    palette = { base = { 0.29, 0.42, 0.55 } },
+    main = {
+      backdrop = {
+        edgeFile = _border(lbn.BLIZZARD_DIALOG),
+        bgFile = BG_WHITE,
+        tile = false,
+        tileEdge = false,
+        edgeSize = 24,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        bgColor = { 0.74, 0.79, 0.85, 1 },
+        borderColor = { 1, 1, 1, 1.0 },
+      },
+      header = {
+        backdrop = {
+          bgFile = BG_WHITE,
+          bgColor = { 0.27, 0.36, 0.46, 1 },
+        },
+        height = 35,
+        iconColor = { 0.9, 0.95, 1, 1 },
+      },
+      labelColor = { 0.15, 0.22, 0.3, 1 },
+    },
+    panel = {
+      backdrop = _panel({
+        insets = INSETS_NONE,
+        bgColor = { 1, 1, 1, 0.35 },
+      }),
+    },
+    code = {
+      fontSteppers = { color = { 0.29, 0.42, 0.55, 1 }, alpha = 0.9 },
+      textColor = { 0.12, 0.16, 0.22, 1 },
+      syntax = {
+        keyword = '2B3FA8',
+        string = '2E7D32',
+        number = '7A3FB8',
+        comment = '6F7F8F',
+        identifier = '00788A',
+        logical = 'A0306E',
+      },
+    },
+    console = {
+      iconColor = { 0.85, 0.85, 0.85, 1 },
+      output = {
+        textColor = { 0.694, 0.710, 0.059, 1 },
+        bgColor = { 0.212, 0.255, 0.325, 0.85 },
+        printColor = { 0.72, 0.88, 0.98, 1 },
+        errorColor = { 1, 0.45, 0.45, 1 },
+        toolIcons = { inset = { x = 8, y = 4 } },
+        inset = { left = 8, right = 4, top = 4, bottom = 4 },
+      },
+      commandLine = {
+        prompt = {
+          color = { 0.2, 0.4, 0.6, 1 },
+          offset = { x = 8, y = 0 },
         },
       },
     },

@@ -10,15 +10,17 @@ local HelpTour = ns.O.HelpTour
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: Oak Frame Light (a light color background version)
--- todo: Action icon to format current code
--- todo: Save/Cancel/Discard prompt is ugly. Replace?
+-- todo: Action icon to format current code (deferred, needs more thought)
+--       FAIAP only re-indents (FAIAP.indentEditbox) and already does so on
+--       Tab and on line-count change, so a button would add little.
+--       Full formatting (spacing, wrapping) would need a Lua formatter.
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
 -- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: EDITOR: alt-backspace: delete word
 -- todo: EDITOR: alt-left-arrow: back 1 word
 -- todo: EDITOR: alt-right-arrow: forward 1 word
 -- todo: EDITOR: shift-delete or Meta-backspace: delete line
+-- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: LOCALE - add entries for all supported locales
 
 --[[-----------------------------------------------------------------------------
@@ -1952,9 +1954,10 @@ function o:ApplyTheme(name, save)
 
   if bgColor then
     self.CodeBackdrop:SetBackdropColor(upk(bgColor))
-    self.StatusBar:SetBackdropColor(upk(bgColor))
     self.CommandBar:SetBackdropColor(upk(bgColor))
   end
+  local outputBgColor = bs.console.output.bgColor
+  if outputBgColor then self.StatusBar:SetBackdropColor(upk(outputBgColor)) end
   if borderColor then
     self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
     self.StatusBar:SetBackdropBorderColor(upk(borderColor))
@@ -2798,8 +2801,14 @@ function o:DocumentName()
   return doc and doc.name or L['Untitled']
 end
 
+--- Decoded fresh; FAIAP's GetText cache lags edits.
 --- @return string
-function o:GetText() return self.CodeEditBox:GetText() end
+function o:GetText()
+  local box = self.CodeEditBox
+  -- FAIAP.enable sets faiap_colorTable; native until then.
+  if not box.faiap_colorTable then return box:GetText() end
+  return FAIAP.decode(FAIAP.coloredGetText(box))
+end
 
 --- Text past MAX_LINES is dropped; unbounded truncated the gutter before.
 --- @param text string
