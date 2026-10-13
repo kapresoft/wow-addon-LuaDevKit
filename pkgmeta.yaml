@@ -14,7 +14,7 @@ embedded-libraries:
   - LibTraceKit
 
 required-dependencies:
-  - sharedmedia-fonts-mono
+  - sharedmediafontsmono
 
 tools-used:
   - DevSuite
