@@ -1,52 +1,60 @@
 # CodeEditor
 
-Line-numbered code editor dialog prototype; settings persist through LuaDevKit's
-AceDB. Not wired into the DevSuite namespace/module registry -- see [issue #90](https://github.com/kapresoft/wow-DevSuite/issues/90).
+The LuaDevKit-CodeEditor addon: a line-numbered code editor dialog with an
+output panel and a one-line command prompt. Settings persist through
+LuaDevKit's AceDB.
 
 ## Files
 
 | File | Role |
 |---|---|
+| [`CodeEditor.lua`](CodeEditor.lua) | `LDK_CodeEditor` -- the AceAddon: registers the module, opens the dialog at startup if set, and exposes `Open`/`Toggle` |
 | [`CodeEditorDialog.xml`](Modules/CodeEditor/CodeEditorDialog.xml) | Frame layout (`LDK_CodeEditorDialog`) |
-| [`CodeEditorDialog.lua`](Modules/CodeEditor/CodeEditorDialog.lua) | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, font switching, toolbar, documents; eval via [`LuaRunner`](../LuaDevKit/Libs/Modules/LuaRunner.lua), documents kept in [`DocumentStore`](../LuaDevKit/Libs/Modules/DocumentStore.lua) |
+| [`CodeEditorDialog.lua`](Modules/CodeEditor/CodeEditorDialog.lua) | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, fonts, themes, toolbar, output layout, window state, documents; eval via [`LuaRunner`](../LuaDevKit/Libs/Modules/LuaRunner.lua), output kept in [`OutputLog`](../LuaDevKit/Libs/Modules/OutputLog.lua), documents kept in [`DocumentStore`](../LuaDevKit/Libs/Modules/DocumentStore.lua) |
 | [`CodeEditBoxMixin.lua`](Modules/CodeEditor/CodeEditBoxMixin.lua) | Mixin for the `CodeEditBox` EditBox |
 | [`CommandBarMixin.lua`](Modules/CodeEditor/CommandBarMixin.lua) | `LDK_CodeEditorCommandBarMixin` -- command line, Up/Down history, history menu, helpers button |
 | [`DialogSupport.lua`](Modules/CodeEditor/DialogSupport.lua) | `ns.O.DialogSupport` -- helpers shared by the dialog and its frame mixins (`AddTooltip`) |
 | [`MinimalScrollBarStyle.lua`](Modules/CodeEditor/MinimalScrollBarStyle.lua) | `ns.O.MinimalScrollBarStyle` -- restyles the code area scrollbar after MinimalScrollBar |
+| [`HelpTips.xml`](Modules/HelpTips/HelpTips.xml) | `LDK_HelpTipTemplate` (a `GlowBoxTemplate` tip); loads the files below |
+| [`HelpTip.lua`](Modules/HelpTips/HelpTip.lua) | `LDK_HelpTipMixin` -- the tip view: places it and its arrow at a target |
+| [`HelpTour.lua`](Modules/HelpTips/HelpTour.lua) | Picks which tour step the dialog's help tip shows; one tour per session |
+| [`TourList.lua`](Modules/HelpTips/TourList.lua) | Every help tour, in priority order |
 
-Fonts are not declared in this library.
+Fonts are not declared in this addon.
 [`FontUtil`](../LuaDevKit/Libs/Modules/FontUtil.lua) builds them at runtime with
 `CreateFont`/`SetFont` from the `SharedMediaFontsMono` catalog -- one font object
-per face per size in `FONT_SIZES` (10/12/14/16/18/20/24/28) -- and offers a face
-only when it covers the client's locale, so a CJK client sees just its Noto Sans
-Mono variant. `CodeEditorDialog.xml` declares one `LDK_CodeEditorFont` placeholder
-so its FontStrings have a valid font at load time; `ApplyCodeFont()` replaces it
-as soon as the dialog configures. The font files themselves are vendored under
-`../LuaDevKit/ThirdParty/Libs/SharedMediaFontsMono/` (gitignored, so it is not
-linked here), not under this library.
+per face per size in `FONT_SIZES` -- and offers a face only when it covers the
+client's locale, so a CJK client sees just its Noto Sans Mono variant.
+`CodeEditorDialog.xml` declares one `LDK_CodeEditorFont` placeholder so its
+FontStrings have a valid font at load time; `ApplyCodeFont()` replaces it as
+soon as the dialog configures. The font files come from the
+[SharedMediaFontsMono](https://www.curseforge.com/wow/addons/sharedmediafontsmono)
+addon, a required dependency of LuaDevKit; they are not vendored here.
 
 ## Visual layout
 
-The dialog is a fixed-header/footer frame with a scrollable body row in between,
-and an output/eval stack sitting above the footer. Row order, top to bottom:
+The dialog is a fixed-header/footer frame with the code area in between. The
+output panel docks either below the code area (the default) or to its right;
+the command line stays full width above the footer in both layouts. Row
+order in the bottom layout, top to bottom:
 
 ```mermaid
 
 block-beta
 columns 1
-  Header["Header — full-width bar (drag-to-move)\nTitle (fluid) · OptionsButton · CloseFrame (28px, pinned right)"]
-  TopBar["TopBar — toolbar (hideable)\n· left: NewButton · DocStepper\n· right: FontSizeButton · FontButton · ThemeButton"]
+  Header["Header — full-width bar (drag-to-move, double-click to maximize)\nOptionsButton (left) · Title (fluid) · CloseFrame (pinned right)"]
+  TopBar["TopBar — toolbar (hideable)\n· left: NewButton · SaveButton · DeleteButton · DocStepper\n· right: FontSizeButton · FontButton · ThemeButton"]
   block:body
     Gutter["GutterBackdrop → Gutter\n(line #s)"]
     Code["CodeBackdrop → ScrollFrame\n· CodeEditBox (EditBox)\n· FontSteppers (+/−, top right)\n· RunButton (▶, bottom right)"]
   end
   Divider["StatusDivider — drag handle\nMinimizeButton · Grip · MaximizeButton"]
-  Status["StatusBar — output panel\nOutputScrollFrame → ScrollChild → EvalStatus (EditBox, read-only)"]
-  Command["CommandBar — single-line REPL prompt\nPrompt · CommandEditBox"]
+  Status["StatusBar — output panel\nOutputScrollFrame → ScrollChild → EvalStatus (EditBox, read-only)\n· tool icons: ConsoleSettingsButton · OutputLayoutButton · ClearOutputButton"]
+  Command["CommandBar — single-line REPL prompt\nPrompt · CommandEditBox · HelpButton · HistoryButton"]
   BottomBar["BottomBar — status/action bar\nWrapCheckButton"]
   Sizer["SizerSE (resize grip, bottom-right corner)"]
   classDef left text-align:left
-  class Code,TopBar left
+  class Code,TopBar,Status left
 ```
 
 <details>
@@ -54,9 +62,9 @@ columns 1
 
 ```
 +-----------------------------------------------------------+
-|             LuaDevKit Code Editor                [v] [X]  |  <- Header: Title (fluid) + OptionsButton + CloseFrame (28px)
+| [=]          LuaDevKit Code Editor                   [X]  |  <- Header: OptionsButton + Title (fluid) + CloseFrame
 +-----------------------------------------------------------+
-|      [+] < Untitled 1 >        [Size][Font][Theme]        |  <- TopBar (hideable): New + DocStepper over the code's left edge, font/theme icons over its right edge
+|  [+][S][D] < Untitled 1 >         [Size][Font][Theme]     |  <- TopBar (hideable): New/Save/Delete + DocStepper, font/theme icons
 +-----------------------------------------------------------+
 |   1 | CodeEditBox (EditBox)               [-][+] |  ^     |  <- body: gutter (line #s) + code area; scrollbar outside it
 |   2 | ScrollFrame, inside CodeBackdrop           |  |     |
@@ -64,9 +72,9 @@ columns 1
 +-----------------------------------------------------------+
 |                    [v] =========== [^]                    |  <- StatusDivider: MinimizeButton, Grip, MaximizeButton
 +-----------------------------------------------------------+
-| EvalStatus (output, selectable; appended run after run)   |  <- StatusBar: output panel (full width)
+| EvalStatus (output, selectable; appended run after run)   |  <- StatusBar: output panel, tool icons in a column
 +-----------------------------------------------------------+
-| > CommandEditBox                                          |  <- CommandBar: single-line REPL prompt
+| > CommandEditBox                                  [?][v]  |  <- CommandBar: prompt, helpers button, history menu
 +-----------------------------------------------------------+
 | [x] Wrap                                                  |  <- BottomBar: status/action bar
 +-----------------------------------------------------------+
@@ -75,24 +83,32 @@ columns 1
 
 </details>
 
-`Header` splits its width by anchoring rather than arithmetic: `CloseFrame` is a
-fixed 28px pinned to the right, and `Title`'s `BOTTOMRIGHT` anchors to
+`Header` splits its width by anchoring rather than arithmetic: `CloseFrame` is
+pinned to the right at a fixed width, and `Title`'s `BOTTOMRIGHT` anchors to
 `CloseFrame`'s `BOTTOMLEFT`, so the title absorbs whatever width is left at any
-dialog size. `OptionsButton` sits just left of `CloseFrame`, in the header rather
-than the toolbar, so its Show Toolbar item stays reachable. `TopBar` anchors to
-`Header`'s bottom, making the header's height the only place the header size is
-expressed. Only `Header` sets `enableMouse`
-(for drag-to-move) -- `Title`/`CloseFrame` leave it off so a drag started
-anywhere but the close button still reaches `Header`.
+dialog size. `OptionsButton` sits at the header's left edge, in the header
+rather than the toolbar, so its Show Toolbar item stays reachable. `TopBar`
+anchors to `Header`'s bottom, making the header's height the only place the
+header size is expressed. Only `Header` sets `enableMouse` (for drag-to-move
+and double-click to maximize) -- `Title`/`CloseFrame` leave it off so a drag
+started anywhere but the close button still reaches `Header`.
 
-The bottom stack chains the same way, bottom-up: `BottomBar` pins to the dialog's
-bottom edge, then `CommandBar`, `StatusBar`, and `StatusDivider` each anchor to
-the top of the one below it. `GutterBackdrop`/`CodeBackdrop` then span from
-`TopBar`'s bottom down to `StatusDivider`'s top, which leaves the code area as
-the only row with no height of its own -- it absorbs whatever the fixed rows and
-the user's chosen `StatusBar` height leave behind. `SetStatusHeight` clamps a
-divider drag between `MIN_STATUS_HEIGHT` and `MaxStatusHeight()` (derived from
-`MIN_CODE_HEIGHT`), so neither panel can be squeezed out of existence.
+The bottom stack chains bottom-up: `BottomBar` pins to the dialog's bottom
+edge and `CommandBar` sits on top of it. `LayoutOutputPanel()` places the rest
+per layout:
+
+- **Bottom**: `StatusBar` sits on `CommandBar` and `StatusDivider` on
+  `StatusBar`, spanning the dialog. `GutterBackdrop`/`CodeBackdrop` span from
+  `TopBar`'s bottom down to the divider's top.
+- **Right**: `StatusBar` runs from `TopBar` down to `CommandBar` along the
+  dialog's right side, with `StatusDivider` on its left edge. The code area
+  spans from `TopBar` to `CommandBar` and ends at the divider.
+
+Either way the code area is the only panel with no size of its own -- it
+absorbs whatever the fixed rows and the user's chosen `StatusBar` size leave
+behind. `SetStatusSize` clamps a divider drag between `MinStatusSize()` and
+`MaxStatusSize()` (height in the bottom layout, width in the right one), so
+neither panel can be squeezed out of existence.
 
 ## Gutter / EditBox sync
 
@@ -103,13 +119,12 @@ all in `RefreshGutter()` and its scroll/size hooks:
 1. **Same font, same pitch.** `Numbers` (the gutter's EditBox) and
    `CodeEditBox` always share one font object. `ApplyCodeFont()` is the only
    place either is set, and it calls `SetFontObject` on both -- plus the
-   `WrapMeasure` string, the output panel, and the command bar -- in one pass.
-   Since line height comes entirely from the font/text engine, rendering both
-   columns' text in the identical font guarantees identical line pitch -- no
-   per-line Y math is needed. This holds across font-size changes too: family
-   and size together resolve to one font object via
-   `FontUtil:FindFontChoice(family).bySize[size]`, so a size change is the
-   same single-object swap as a family change.
+   `WrapMeasure` string -- in one pass. Since line height comes entirely from
+   the font/text engine, rendering both columns' text in the identical font
+   guarantees identical line pitch -- no per-line Y math is needed. This holds
+   across font-size changes too: family and size together resolve to one font
+   object via `FontUtil:FindFontChoice(family).bySize[size]`, so a size change
+   is the same single-object swap as a family change.
 
 2. **Same content height.** `RefreshGutter()` multiplies the rendered row
    count by `WrapMeasure.Text:GetLineHeight()` (an EditBox has no
@@ -154,57 +169,55 @@ logical line count, so numbers still land next to the correct wrapped text.
 
 ## Configuration
 
-The dialog is designed to be usable as a future standalone library, before
-any settings source (SavedVariables DB, AceConfig, etc.) exists. It never
-reaches into one itself -- the host addon owns reading/writing settings and
-just calls into these two methods:
+The dialog reads and writes LuaDevKit's AceDB directly:
 
-- **`o:Configure(options)`** -- applies initial or programmatic settings.
-  `options` is a partial table (`fontFamily`, `fontSize`, `wrapText`); any
-  omitted field keeps its current value, merged over `DEFAULTS` on first
-  call. Safe to call before or after `:Show()`. Does **not** fire
-  `OnConfigChanged` -- the caller already knows what it just set.
-- **`o:SetOnConfigChanged(callback)`** -- registers `callback(self, options)`,
-  fired once per *user-driven* change (font dropdown pick, wrap checkbox
-  click). `options` is always a **full snapshot** of `GetOptions()` --
-  `fontFamily`, `fontSize`, and `wrapText` together, regardless of which one
-  the user actually changed. Callers that persist settings can just do
-  `DB.profile.codeEditor = options` with no merge logic of their own.
+- **`o:Configure()`** -- applies the saved settings: the console font, the
+  editor's theme, font, size and wrap mode, toolbar visibility, output panel
+  location, and the window rect (or maximized state). It never writes back.
+- **`save` flag** -- `SetCodeFont`, `SetFontSize`, `SetWrapText`, `ApplyTheme`,
+  `SetToolbarShown`, `SetOutputLocation` and `SetStatusSize` take an optional
+  `save` argument. `true` writes the new value to the DB (user-driven changes:
+  menu picks, checkbox clicks, steppers, divider drags); it is omitted for
+  internal and initial sets (`OnLoad`, `Configure`, re-clamps).
 
 `fontFamily` is a stable key into `FontUtil:GetFontChoices()` (e.g.
 `'UbuntuMono'`, the catalog face name with spaces and parens stripped),
 independent of the dropdown's display label so relabeling a font later won't
-break persisted config. `fontSize` is one of `FONT_SIZES`
-(10/12/14/16/18/20/24/28) -- `FontUtil` builds one font object per family *per
-size* rather than resizing at runtime, so any other value passed to
-`Configure`/`SetFontSize` snaps to the nearest supported size
-(`NearestFontSize`).
+break persisted config; an unknown key falls back to the default face.
+`fontSize` is one of `FONT_SIZES` -- `FontUtil` builds one font object per
+family *per size* rather than resizing at runtime, so any other value passed
+to `SetFontSize` snaps to the nearest supported size (`NearestFontSize`).
+
+The output panel and command line share a console font. Each of its family
+and size either follows the editor's (`SAME_AS_EDITOR_FONT` /
+`SAME_AS_EDITOR_SIZE` in the DB) or is set on its own from the console
+settings menu (`SetConsoleFont`).
 
 ## Behavior notes
 
-- **No-wrap mode** (default): `CodeEditBox` is fixed at 4000px wide, wider than
-  the viewport, so lines never reach a wrap boundary.
+- **No-wrap mode** (default): `CodeEditBox` is fixed wider than the viewport,
+  so lines never reach a wrap boundary.
 - **Wrap mode**: `CodeEditBox` is pinned to the `ScrollFrame` width; the gutter
   emits a blank line per extra wrapped row so numbering stays visually aligned.
 - **Fonts**: changing family or size routes through `ApplyCodeFont()`, which
-  calls `SetFontObject` on `CodeEditBox`, `Gutter.ScrollChild.Numbers`,
-  `WrapMeasure.Text`, `EvalStatus`, `CommandBar.Prompt`, and `CommandEditBox`
-  together, since `inherits="..."` in XML only binds once at load. It also
-  re-applies `EvalStatus`'s justification, which `SetFontObject` resets.
+  calls `SetFontObject` on `CodeEditBox`, `Gutter.ScrollChild.Numbers`, and
+  `WrapMeasure.Text`, then `ApplyConsoleFont()` for `EvalStatus` and
+  `CommandEditBox`, since `inherits="..."` in XML only binds once at load.
+  `ApplyConsoleFont()` also re-applies `EvalStatus`'s justification, which
+  `SetFontObject` resets.
 - **Output panel**: `EvalStatus` is a read-only multi-line `EditBox` in a plain
   `ScrollFrame` (`OutputScrollFrame`), not a `ScrollingMessageFrame`, since a
-  `ScrollingMessageFrame` offers no way to select text. `RefreshOutput()`
-  rewrites it from `outputLines` on every append, resize, and stray keystroke
-  (the read-only guard in `OnEvalStatusTextChanged`). The panel has no
-  scrollbar: the wheel scrolls it by `OUTPUT_SCROLL_LINES` rows, and
-  `OnScrollRangeChanged` snaps back to the newest line whenever content or
-  size changes.
+  `ScrollingMessageFrame` offers no way to select text. Output lines live in an
+  `OutputLog` capped at `MAX_OUTPUT_LINES`; `RefreshOutput()` rewrites the box
+  from it on every append, resize, and stray keystroke (the read-only guard in
+  `OnEvalStatusTextChanged`). The panel has no scrollbar: the wheel scrolls it
+  by `OUTPUT_SCROLL_LINES` rows, and `OnOutputScrollRangeChanged` snaps back to
+  the newest line whenever content or size changes.
 - **Output panel, bottom alignment**: the box hangs off the bottom of
   `OutputScrollFrame.ScrollChild`, which `SyncOutputHeight()` floors at the
-  viewport height, so short output still sits on the panel's bottom edge the
-  way the old frame's `SetJustifyV('BOTTOM')` put it there. An `EditBox` sizes
-  itself to its own text, so without that floor there is no blank space for
-  vertical justification to act in.
+  viewport height, so short output still sits on the panel's bottom edge. An
+  `EditBox` sizes itself to its own text, so without that floor there is no
+  blank space for vertical justification to act in.
 - **Output panel, colors**: output keeps its `|cRRGGBBAA`/`|r` coloring, and a
   selection still pastes as plain text -- the client strips escape sequences
   when copying out of an `EditBox`, so the panel does not have to choose.
@@ -212,40 +225,3 @@ size* rather than resizing at runtime, so any other value passed to
   `FONT_SIZES` (`CreateFont`/`SetFont`, named e.g.
   `LDK_CodeEditorFont_UbuntuMono_12`) and memoizes the set, so a size change is
   a font-object swap rather than a runtime resize.
-- **Notify flag**: `SetCodeFont`/`SetFontSize`/`SetWrapText` take an optional
-  `notify` argument -- `true` fires `OnConfigChanged` (used by the
-  dropdown/checkbox handlers), omitted for internal/initial sets (`OnLoad`,
-  `Configure`).
-
-## Standalone library extraction
-
-This prototype has proven out per #90's acceptance criteria (line numbers
-stay correct with no-wrap, gutter sync holds up, font/size/wrap are
-user-configurable). Next step: extract it into its own repo, mirroring
-`LibIconPicker`'s structure (`LibStub:NewLibrary`, own `.toc`, `pkgmeta.yaml`,
-`dev/deployer-config.lua`).
-
-The final library covers two jobs, not just editing:
-
-- **Edit or view code** -- everything this prototype already does (gutter,
-  no-wrap/scroll, font/size/wrap switching)
-- **Evaluate code** -- running the buffer's contents, the way the Debug
-  Dialog's eval popup does today
-
-Candidate names, evaluated on how well they signal *both* jobs rather than
-reading as a plain text-editing widget:
-
-1. **`LibCodeConsole`** (favored) -- "console" implies an edit-then-run loop
-   (like a REPL or dev console), capturing edit *and* eval in one word
-   without overpromising either way.
-2. **`LibLuaConsole`** -- same framing as #1, names the language explicitly.
-   Slightly narrows scope (Lua-only) but reads more concretely from a repo
-   list.
-3. **`LibCodeEditor`** -- the working name from #90. Accurate for edit/view,
-   silent on eval; undersells the eval half given it's a first-class
-   capability, not an add-on.
-4. **`LibEvalPad`** -- "pad" implies a lightweight edit surface, "eval"
-   front-loads the run capability. Shorter, more casual tone than the others.
-5. **`LibDevPad`** -- generic dev-scratchpad framing, doesn't name "code" or
-   "eval" specifically. Least descriptive, but most open-ended if scope grows
-   beyond edit+eval later (e.g. FAIAP.lua-style syntax highlighting).
