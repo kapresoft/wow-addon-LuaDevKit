@@ -7,6 +7,8 @@ local ns = select(2, ...)
 local L = ns.O.AceLocale:NewLocale(ns.addon, 'enUS', true, ns.options.ignoreMissingKeys)
 if not L then return end
 
+L['LuaDevKit Code Editor'] = true
+
 -- Label/description pairs: the label key is the short text itself (= true),
 -- and 'Label::Desc' holds its longer tooltip description.
 L['Wrap Text'] = true

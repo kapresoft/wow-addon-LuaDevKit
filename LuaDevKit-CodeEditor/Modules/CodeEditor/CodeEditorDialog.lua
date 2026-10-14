@@ -7,21 +7,22 @@ local OutputLog, DS, DB = CO.OutputLog, CO.DocumentStore, CO.Database
 local str_eq, str_isBlank = String.EqualsIgnoreCase, String.IsBlank
 local L = ns:GetLocale()
 local HelpTour = ns.O.HelpTour
+local AddTooltip = ns.O.DialogSupport.AddTooltip
 local upk = unpack
 local libName = 'CodeEditorDialog'
 
--- todo: Action icon to format current code (deferred, needs more thought)
---       FAIAP only re-indents (FAIAP.indentEditbox) and already does so on
---       Tab and on line-count change, so a button would add little.
---       Full formatting (spacing, wrapping) would need a Lua formatter.
 -- todo: Review this file -- it's getting too large; look for things to functionally pull out
--- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 -- todo: EDITOR: alt-backspace: delete word
 -- todo: EDITOR: alt-left-arrow: back 1 word
 -- todo: EDITOR: alt-right-arrow: forward 1 word
 -- todo: EDITOR: shift-delete or Meta-backspace: delete line
 -- todo: Save/Cancel/Discard prompt is ugly. Replace?
 -- todo: LOCALE - add entries for all supported locales
+-- todo: Action icon to format current code (deferred, needs more thought)
+--       FAIAP only re-indents (FAIAP.indentEditbox) and already does so on
+--       Tab and on line-count change, so a button would add little.
+--       Full formatting (spacing, wrapping) would need a Lua formatter.
+-- todo: An action icon to toggle left (top-bottom maxed) and toggle right (next to hamburger icon)
 
 --[[-----------------------------------------------------------------------------
 Blizzard Vars
@@ -120,9 +121,6 @@ local GUTTER_PADDING = 5 + 4 + GUTTER_TEXT_RIGHT_INSET + 4
 -- Extra room an EditBox needs beyond the measured digit width.
 local GUTTER_SLACK = 0
 
--- Arrow dropdown glyph; sized by the atlas, not the button.
-local DROPDOWN_ARROW_SIZE = 18
-
 -- StaticPopupDialogs key for the unsaved-document prompt.
 local UNSAVED_PROMPT = 'LDK_CODE_EDITOR_UNSAVED'
 
@@ -149,20 +147,8 @@ local STARTER_CODE = [==[
 print('Build Info=', GetBuildInfo())
 ]==]
 
--- Commands kept for Up/Down and the history menu.
-local MAX_COMMAND_HISTORY = 50
-
--- History menu height before it scrolls.
-local HISTORY_MENU_MAX_HEIGHT = 150
-
 -- Document and profile menu height before it scrolls; about 10 rows.
 local LIST_MENU_MAX_HEIGHT = 200
-
--- History row text width cap; WoW truncates longer lines.
-local HISTORY_MENU_MAX_WIDTH = 200
-
--- Truncated-command tooltip width; long commands wrap at it.
-local HISTORY_TOOLTIP_WIDTH = 400
 
 -- Left/right pad the text; top/bottom inset both viewports,
 -- so the gutter's line numbers stay level with the code.
@@ -188,9 +174,6 @@ local DEFAULTS = {
   wrapText = false,
 }
 
--- Helpers tooltip's code face, independent of the editor's pick.
-local MONO_FONT = { family = 'JetBrainsMono', size = 12 }
-
 --[[-----------------------------------------------------------------------------
 Types
 -------------------------------------------------------------------------------]]
@@ -206,12 +189,6 @@ Types
 
 --- @class LDK_CodeEditorBottomBar : Frame
 --- @field WrapCheckButton CheckButton
-
---- @class LDK_CodeEditorCommandBar : Frame, BackdropTemplate
---- @field Prompt FontString
---- @field CommandEditBox EditBox @Single-line quick-eval input with Up/Down history
---- @field HistoryButton DropdownButton
---- @field HelpButton Button
 
 --- @class LDK_CodeEditorOutputScrollChild : Frame
 --- @field EvalStatus EditBox @Read-only output log; an EditBox so text can be selected and copied
@@ -256,10 +233,6 @@ Types
 --- @field DecrementButton Button
 --- @field IncrementButton Button
 
---- @class LDK_CommandHistoryEntry
---- @field text string
---- @field failed boolean? @Last run hit a compile or runtime error
-
 --- @class LDK_CodeEditorDialogMixin : Frame, BackdropTemplate, AceEvent-3.0
 --- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
 --- @field TopBar Frame                                      @Toolbar: document controls left, dropdowns right
@@ -286,11 +259,6 @@ Types
 --- @field CommandBar LDK_CodeEditorCommandBar
 --- @field CommandEditBox EditBox                            @Alias of CommandBar.CommandEditBox
 --- @field HistoryButton DropdownButton                      @Alias of CommandBar.HistoryButton
---- @field HistoryTooltip GameTooltip                        @History menu's own tooltip; shows truncated commands
---- @field HelpTooltip GameTooltip                           @HelpButton's own tooltip; its mono lines never leak to GameTooltip
---- @field commandHistory LDK_CommandHistoryEntry[]          @Alias of global.console.history
---- @field historyIndex number                               @Up/Down position; one past the end is the draft
---- @field historyDraft string?                              @Unsent text saved when stepping into history
 --- @field StatusBar LDK_CodeEditorStatusBar                 @Output panel
 --- @field StatusDivider LDK_CodeEditorStatusDivider         @Drag handle that sets StatusBar's size
 --- @field outputLocation LDK_OutputLocation                 @Where StatusBar sits next to the code area
@@ -568,107 +536,6 @@ local function DividerCursor(self)
   return (self:IsOutputRight() and -x or y) / self:GetEffectiveScale()
 end
 
---- @param frame Frame
---- @param key string                     @Locale key of the label; the description is key .. '::Desc'
---- @param hintKey (fun(): string?) | nil @Returns a locale key for a green instruction line, or nil for none
-local function ShowTooltip(frame, key, hintKey)
-  GameTooltip_SetDefaultAnchor(GameTooltip, frame)
-  GameTooltip_SetTitle(GameTooltip, L[key])
-  GameTooltip_AddNormalLine(GameTooltip, L[key .. '::Desc'])
-  local hint = hintKey and hintKey()
-  if hint then GameTooltip_AddInstructionLine(GameTooltip, L[hint]) end
-  GameTooltip:Show()
-end
-
---- Standard hover tooltip; hooked so it composes with a frame's own OnEnter.
---- @param frame Frame
---- @param key string                     @Locale key of the label; the description is key .. '::Desc'
---- @param hintKey (fun(): string?) | nil @Re-evaluated on every show; see ShowTooltip
---- @return fun()                         @Redraws the tooltip if it is showing for frame
-local function AddTooltip(frame, key, hintKey)
-  local function show() ShowTooltip(frame, key, hintKey) end
-  frame:HookScript('OnEnter', show)
-  frame:HookScript('OnLeave', function() GameTooltip:Hide() end)
-  return function()
-    if GameTooltip:IsOwned(frame) then show() end
-  end
-end
-
---- A CJK client has no JetBrains Mono; fall back to its default face.
---- @return Font
-local function MonoFont()
-  local choice = fut:FindFontChoice(MONO_FONT.family) or fut:GetDefaultFontChoice()
-  return choice.bySize[MONO_FONT.size]
-end
-
---- Sets the newest line's left text in font, keeping its color.
---- @param tooltip GameTooltip
---- @param font Font
---- @param color ColorMixin
-local function SetLastLineFont(tooltip, font, color)
-  local text = _G[tooltip:GetName() .. 'TextLeft' .. tooltip:NumLines()]
-  text:SetFontObject(font)
-  -- SetFontObject resets the color to the font's white.
-  text:SetTextColor(color:GetRGB())
-end
-
---- Signatures in the mono face; descriptions keep the tooltip font.
---- @param tooltip GameTooltip
---- @param font Font
---- @param helpers string[][]
-local function AddHelperLines(tooltip, font, helpers)
-  for _, helper in ipairs(helpers) do
-    local signature, key = upk(helper)
-    GameTooltip_AddColoredDoubleLine(
-      tooltip,
-      signature,
-      L[key],
-      HIGHLIGHT_FONT_COLOR,
-      NORMAL_FONT_COLOR
-    )
-    SetLastLineFont(tooltip, font, HIGHLIGHT_FONT_COLOR)
-  end
-end
-
---- Code in white, output in gray, both unwrapped.
---- @param tooltip GameTooltip
---- @param font Font
---- @param example string[]
-local function AddExampleLines(tooltip, font, example)
-  for _, line in ipairs(example) do
-    local color = line:find('^%-%-') and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR
-    GameTooltip_AddColoredLine(tooltip, line, color, false)
-    SetLastLineFont(tooltip, font, color)
-  end
-end
-
---- @param tooltip GameTooltip
---- @param owner Frame
-local function ShowHelpersTooltip(tooltip, owner)
-  GameTooltip_SetDefaultAnchor(tooltip, owner)
-  GameTooltip_SetTitle(tooltip, L['Editor Helpers'])
-  GameTooltip_AddNormalLine(tooltip, L['Editor Helpers::Desc'])
-  GameTooltip_AddBlankLineToTooltip(tooltip)
-  local font, helpers, example = MonoFont(), LR:GetHelpers()
-  AddHelperLines(tooltip, font, helpers)
-  GameTooltip_AddBlankLineToTooltip(tooltip)
-  AddExampleLines(tooltip, font, example)
-  GameTooltip_AddBlankLineToTooltip(tooltip)
-  GameTooltip_AddInstructionLine(tooltip, L['Editor Helpers::Hint'])
-  tooltip:Show()
-end
-
---- Keeps an arrow dropdown's glyph at `size`; each state resets it.
---- @param button DropdownButton
---- @param size number
-local function PinArrowSize(button, size)
-  local arrow = button.Arrow
-  if not arrow then return end
-  local function SizeArrow() arrow:SetSize(size, size) end
-  SizeArrow()
-  hooksecurefunc(arrow, 'SetAtlas', SizeArrow)
-end
-
 --- @param button DropdownButton
 --- @param menus Frame[] @The open menu and its submenus
 --- @return boolean
@@ -699,27 +566,6 @@ local function CloseMenuOnLeave(button)
     end)
   end, button)
   button:RegisterCallback(DropdownButtonMixin.Event.OnMenuClose, stop, button)
-end
-
---- Runs after Blizzard's SetTextToFit, which sizes text to fit.
---- @param button Button @Menu row with a fontString
-local function CapHistoryRowWidth(button)
-  local text = button.fontString
-  text:SetWidth(math.min(text:GetWidth(), HISTORY_MENU_MAX_WIDTH))
-end
-
---- Full command in a tooltip, only when the row cut it short.
---- @param frame Button @Menu row
---- @param row ElementMenuDescriptionProxy
---- @param label string
---- @param font Font    @Editor's code font
-local function ShowTruncatedCommand(frame, row, label, font)
-  if not frame.fontString:IsTruncated() then return end
-  MenuUtil.ShowTooltipEx(frame, row:GetTooltipFrame(), function(tooltip)
-    tooltip:SetMinimumWidth(HISTORY_TOOLTIP_WIDTH)
-    tooltip.TextLeft1:SetFontObject(font)
-    GameTooltip_AddHighlightLine(tooltip, label, true)
-  end)
 end
 
 --- Radio submenu led by Same as Editor, whose value is nil.
@@ -816,6 +662,7 @@ function o:OnLoad()
   self.OutputLayoutButton = self.StatusBar.OutputLayoutButton
   self.HelpButton = self.CommandBar.HelpButton
   self.CommandEditBox = self.CommandBar.CommandEditBox
+  self.HistoryButton = self.CommandBar.HistoryButton
   self:OnLoad_CombatHide()
   self:_RegisterMessages()
 end
@@ -861,11 +708,10 @@ function o:Initialize()
   self:OnLoad_Toolbar()
   self:OnLoad_FontSteppers()
   self:OnLoad_WrapCheckButton()
-  self:OnLoad_HelpButton()
   self:OnLoad_RunButton()
   self:OnLoad_CodeEditBox()
   self:OnLoad_StatusBar()
-  self:OnLoad_CommandBar()
+  self.CommandBar:Initialize(self)
   self:OnLoad_MenuAutoClose()
   self:OnLoad_UnsavedPrompt()
   self:OnLoad_NamePrompt()
@@ -1066,20 +912,6 @@ function o:OnLoad_ClearOutputButton()
   local button = self.ClearOutputButton
   button:SetScript('OnClick', function() self:ClearOutput() end)
   AddTooltip(button, 'Clear Output')
-end
-
-function o:OnLoad_HelpButton()
-  local button = self.HelpButton
-  local tooltip = CreateFrame(
-    'GameTooltip',
-    'LDK_EditorHelpersTooltip',
-    UIParent,
-    'SharedTooltipTemplate' --[[@as Template]]
-  )
-  self.HelpTooltip = tooltip
-  button:HookScript('OnEnter', function() ShowHelpersTooltip(tooltip, button) end)
-  button:HookScript('OnLeave', function() tooltip:Hide() end)
-  button:SetScript('OnClick', function() self:AppendOutput(LR:GetHelpText()) end)
 end
 
 function o:OnLoad_ConsoleSettingsButton()
@@ -1312,110 +1144,6 @@ function o:RefreshOutputLayoutButton()
   button:GetHighlightTexture():SetTexture(art)
 end
 
---- Editable, unlike EvalStatus; native focus/keyboard.
-function o:OnLoad_CommandBar()
-  self.CommandBar.Prompt:SetText('▶ ')
-  self.CommandEditBox:SetAutoFocus(false)
-  self.commandHistory = ns:g().console.history
-  self.historyIndex = #self.commandHistory + 1
-  self.CommandEditBox:SetScript('OnArrowPressed', function(_, key) self:StepCommandHistory(key) end)
-  AddTooltip(self.CommandEditBox, 'Command Line')
-  self:OnLoad_HistoryButton()
-end
-
-function o:OnLoad_HistoryButton()
-  local button = self.CommandBar.HistoryButton
-  self.HistoryButton = button
-  PinArrowSize(button, DROPDOWN_ARROW_SIZE)
-  -- The command bar sits low; open the menu upward.
-  button:SetMenuAnchor(AnchorUtil.CreateAnchor('BOTTOMRIGHT', button, 'TOPRIGHT'))
-  button:SetupMenu(function(_, root) self:BuildHistoryMenu(root) end)
-  button:RegisterCallback(
-    DropdownButtonMixin.Event.OnMenuOpen,
-    function() HelpTour:CompleteStep('CommandHistory') end
-  )
-  AddTooltip(button, 'Command History')
-  -- Own tooltip: its width and font never leak to GameTooltip.
-  self.HistoryTooltip = CreateFrame(
-    'GameTooltip',
-    'LDK_CommandHistoryTooltip',
-    UIParent,
-    'SharedNoHeaderTooltipTemplate' --[[@as Template]]
-  )
-end
-
---- Newest first; picking an entry puts it back on the command line.
---- @param root RootMenuDescriptionProxy
-function o:BuildHistoryMenu(root)
-  local history = self.commandHistory
-  if #history == 0 then
-    root:CreateTitle(L['No Command History'])
-    return
-  end
-  root:SetScrollMode(HISTORY_MENU_MAX_HEIGHT)
-  root:SetTooltipFrame(self.HistoryTooltip)
-  for i = #history, 1, -1 do
-    local entry = history[i]
-    -- Escape '|' so a command can't render as a color/texture code.
-    local plain = entry.text:gsub('|', '||')
-    local label = entry.failed and RED_FONT_COLOR:WrapTextInColorCode(plain) or plain
-    local row = root:CreateButton(label, function() self:RecallCommand(i) end)
-    row:AddInitializer(CapHistoryRowWidth)
-    row:SetOnEnter(
-      function(frame) ShowTruncatedCommand(frame, row, self:SyntaxColor(plain), self.codeFont) end
-    )
-  end
-end
-
---- Default syntax colors: the tooltip is dark in every theme.
---- @param text string @Escaped, as FAIAP sees editor text
---- @return string @Plain if FAIAP isn't loaded
-function o:SyntaxColor(text)
-  local colors = ns:LuaColorTable(Themes:GetDefaultSyntax())
-  if not colors then return text end
-  return (FAIAP.colorCodeCode(text, colors))
-end
-
---- @param index number @Position in commandHistory
-function o:RecallCommand(index)
-  self:SaveCommandDraft()
-  self.historyIndex = index
-  self.CommandEditBox:SetText(self.commandHistory[index].text)
-  self.CommandEditBox:SetFocus()
-end
-
---- @param key 'UP'|'DOWN'|'LEFT'|'RIGHT'
-function o:StepCommandHistory(key)
-  local history = self.commandHistory
-  local step = (key == 'UP' and -1) or (key == 'DOWN' and 1)
-  if not step or #history == 0 then return end
-  self:SaveCommandDraft()
-  self.historyIndex = Clamp(self.historyIndex + step, 1, #history + 1)
-  local entry = history[self.historyIndex]
-  self.CommandEditBox:SetText(entry and entry.text or self.historyDraft or '')
-end
-
---- Keeps unsent text when leaving the draft slot for history.
-function o:SaveCommandDraft()
-  if self.historyIndex ~= #self.commandHistory + 1 then return end
-  self.historyDraft = self.CommandEditBox:GetText()
-end
-
---- A repeat of the last command updates it instead of adding.
---- @param text string
---- @param failed boolean
-function o:PushCommandHistory(text, failed)
-  local history = self.commandHistory
-  local last = history[#history]
-  if last and last.text == text then
-    last.failed = failed or nil
-  else
-    table.insert(history, { text = text, failed = failed or nil })
-  end
-  if #history > MAX_COMMAND_HISTORY then table.remove(history, 1) end
-  self.historyIndex, self.historyDraft = #history + 1, nil
-end
-
 --- A too-wide dialog must shrink to fit; clampedToScreen can't move it in.
 function o:OnLoad_ScaleWatcher()
   self.ScaleWatcher = CreateFrame('Frame')
@@ -1430,7 +1158,7 @@ function o:OnLoad_Header()
   -- Drag starts only once the cursor moves, so clicks never move it.
   header:RegisterForDrag('LeftButton')
   self.HeaderTitle = header.Title.Text
-  self.HeaderTitle:SetText('Code Editor (Prototype)')
+  self.HeaderTitle:SetText(L['LuaDevKit Code Editor'])
 
   self.CloseButton = header.CloseFrame.CloseButton
   -- Wired in Lua: inherited OnClick hides CloseFrame, not the dialog.
@@ -2070,9 +1798,8 @@ function o:ApplyConsoleInsets(console)
   settings:ClearAllPoints()
   settings:SetPoint('TOPRIGHT', self.StatusBar, 'TOPRIGHT', -gear.x, -gear.y)
 
-  -- Not self.HistoryButton: OnLoad themes before aliasing it.
   local bar = self.CommandBar
-  local history, nudge = bar.HistoryButton, 4.7
+  local history, nudge = self.HistoryButton, 4.7
   -- Under the gear, which the right layout pads in from the edge.
   local pad = self:IsOutputRight() and OUTPUT_RIGHT_PAD or 0
   local x = -gear.x + nudge - pad
@@ -2568,23 +2295,8 @@ end
 --- @return string @Colored with the active theme's output colors
 function o:GetOutput() return self.output:GetText(self.outputColors) end
 
---[[-----------------------------------------------------------------------------
-Command line: single-shot eval; no multi-line continuation
--------------------------------------------------------------------------------]]
---- Runs one line from the command bar and appends every outcome -- the echoed
---- input, a compile error, a runtime error, or printed output -- to the same
---- output panel a full Run uses.
---- @param text string
-function o:OnCommandEnterPressed(text)
-  if str_isBlank(text) then return end
-  HelpTour:CompleteStep('CommandLine')
-
-  -- Escape literal '|' so the echoed input can't be read as a color/texture code.
-  self:AppendOutput(COMMAND_ECHO_PREFIX .. text:gsub('|', '||'))
-
-  local ok = LR:EvalCommand(text, function(line, kind) self:AppendOutput(line, kind) end)
-  self:PushCommandHistory(text, not ok)
-end
+--- @param text string @Command, or run plus the document name
+function o:EchoCommand(text) self:AppendOutput(COMMAND_ECHO_PREFIX .. text) end
 
 --[[-----------------------------------------------------------------------------
 Documents: New and the Open stepper, backed by DocumentStore
@@ -2791,7 +2503,7 @@ function o:Run()
   if ns:editor().saveOnRun then self:SaveDocument() end
   local text = self:GetText()
   if str_isBlank(text) then return end
-  self:AppendOutput(COMMAND_ECHO_PREFIX .. 'run ' .. self:DocumentName())
+  self:EchoCommand('run ' .. self:DocumentName())
   LR:EvalCode(text, function(line, kind) self:AppendOutput(line, kind) end)
 end
 

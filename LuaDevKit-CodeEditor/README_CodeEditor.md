@@ -10,6 +10,8 @@ AceDB. Not wired into the DevSuite namespace/module registry -- see [issue #90](
 | [`CodeEditorDialog.xml`](Modules/CodeEditor/CodeEditorDialog.xml) | Frame layout (`LDK_CodeEditorDialog`) |
 | [`CodeEditorDialog.lua`](Modules/CodeEditor/CodeEditorDialog.lua) | `LDK_CodeEditorDialogMixin` -- gutter sync, wrap mode, font switching, toolbar, documents; eval via [`LuaRunner`](../LuaDevKit/Libs/Modules/LuaRunner.lua), documents kept in [`DocumentStore`](../LuaDevKit/Libs/Modules/DocumentStore.lua) |
 | [`CodeEditBoxMixin.lua`](Modules/CodeEditor/CodeEditBoxMixin.lua) | Mixin for the `CodeEditBox` EditBox |
+| [`CommandBarMixin.lua`](Modules/CodeEditor/CommandBarMixin.lua) | `LDK_CodeEditorCommandBarMixin` -- command line, Up/Down history, history menu, helpers button |
+| [`DialogSupport.lua`](Modules/CodeEditor/DialogSupport.lua) | `ns.O.DialogSupport` -- helpers shared by the dialog and its frame mixins (`AddTooltip`) |
 | [`MinimalScrollBarStyle.lua`](Modules/CodeEditor/MinimalScrollBarStyle.lua) | `ns.O.MinimalScrollBarStyle` -- restyles the code area scrollbar after MinimalScrollBar |
 
 Fonts are not declared in this library.
@@ -52,7 +54,7 @@ columns 1
 
 ```
 +-----------------------------------------------------------+
-|            Code Editor (Prototype)               [v] [X]  |  <- Header: Title (fluid) + OptionsButton + CloseFrame (28px)
+|             LuaDevKit Code Editor                [v] [X]  |  <- Header: Title (fluid) + OptionsButton + CloseFrame (28px)
 +-----------------------------------------------------------+
 |      [+] < Untitled 1 >        [Size][Font][Theme]        |  <- TopBar (hideable): New + DocStepper over the code's left edge, font/theme icons over its right edge
 +-----------------------------------------------------------+

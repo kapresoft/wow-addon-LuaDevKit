@@ -15,8 +15,10 @@
     <Font name="LDK_CommandPromptFont"
           font="Interface/AddOns/SharedMediaFontsMono/Assets/Fonts/JetBrainsMono-Medium.ttf" height="12"/>
 
+    <Script file="DialogSupport.lua"/>
     <Script file="CodeEditBoxMixin.lua"/>
     <Script file="MinimalScrollBarStyle.lua"/>
+    <Script file="CommandBarMixin.lua"/>
     <Script file="CodeEditorDialog.lua"/>
 
     <!-- Copy of Blizzard_EventTrace's EventTraceMenuButtonTemplate; that
@@ -288,29 +290,9 @@
                 </Frames>
             </Frame>
 
-            <!-- CommandBar: single-line quick-eval input, mirroring WowLua's
-                 own prompt (third-party/wowlua/WowLua.lua); sits on
-                 BottomBar, below the output panel.
-
-                 CommandBar.CommandEditBox: plain EditBox, not
-                 LDK_CodeEditBoxMixin, wired straight to the dialog like
-                 WrapCheckButton. No native history (no historyLines): Lua's
-                 commandHistory is the only list, stepped by StepCommandHistory.
-                 It's the bar's height and centered on Prompt, so its text lines
-                 up with the prompt at any font size.
-
-                 CommandBar.Prompt: fixed LDK_CommandPromptFont, not the code
-                 font, so the arrow keeps one shape; ApplyCodeFont leaves it alone.
-                 Anchored per theme in Lua's ApplyConsoleInsets.
-
-                 CommandBar.HistoryButton: arrow dropdown listing that history,
-                 set up in Lua's OnLoad_HistoryButton; right-aligned with the
-                 console settings gear in ApplyConsoleInsets.
-
-                 CommandBar.HelpButton: tooltip lists the editor's built-in
-                 helpers and a click prints them to the output; sits left of
-                 HistoryButton, and CommandEditBox ends at its left edge. -->
-            <Frame parentKey="CommandBar" inherits="BackdropTemplate">
+            <!-- CommandBar: single-line quick-eval input on BottomBar; see CommandBarMixin.lua. -->
+            <Frame parentKey="CommandBar" inherits="BackdropTemplate"
+                   mixin="LDK_CodeEditorCommandBarMixin">
                 <Size y="22"/>
                 <Anchors>
                     <Anchor point="BOTTOMLEFT" relativeKey="$parent.BottomBar" relativePoint="TOPLEFT" x="0" y="0"/>
@@ -346,7 +328,7 @@
                             <OnEnterPressed>
                                 local text = self:GetText()
                                 self:SetText('')
-                                self:GetParent():GetParent():OnCommandEnterPressed(text)
+                                self:GetParent():OnEnterPressed(text)
                             </OnEnterPressed>
                             <OnEscapePressed>
                                 self:ClearFocus()
