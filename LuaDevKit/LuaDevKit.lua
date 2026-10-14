@@ -26,6 +26,7 @@ Methods: LuaDevKit
 function o:OnInitialize()
   DatabaseAccessMixin:InitDb(self)
   self:RegisterChatCommand('ldk', 'OnSlashCommand')
+  self:RegisterChatCommand('luadevkit', 'OnSlashCommand')
   self:SendMessage(ns:msg('OnInitialize'))
   tr(libName, 'OnInitialize', 'called')
 end
