@@ -7,6 +7,8 @@
 
 An in-game Lua development toolkit for World of Warcraft addon authors. LuaDevKit gives you a line-numbered code editor, an output panel, and a one-line command prompt, so you can write, run, and debug Lua without leaving the game.
 
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/8ce7d458-3e7b-4742-93e0-bb04f061dbd9" />
+
 ## Who it's for
 
 Addon developers who want a faster in-game workflow for writing, running, and debugging Lua snippets, without tabbing out to an external editor for quick iteration.
