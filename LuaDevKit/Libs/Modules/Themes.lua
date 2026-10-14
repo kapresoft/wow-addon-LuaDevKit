@@ -236,14 +236,14 @@ local THEME_ORDER = {
   THEME.Abyss,
   THEME.DarkKnight,
   THEME.Gilded,
-  THEME.Horde,
+  THEME.Alliance,
   THEME.Oakframe,
   THEME.Parchment,
   THEME.Slate,
   THEME.Stonecut,
   THEME.Warband,
   THEME.Whisper,
-  THEME.Alliance,
+  THEME.Horde,
 }
 
 --[[-----------------------------------------------------------------------------
