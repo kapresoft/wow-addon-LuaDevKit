@@ -104,6 +104,7 @@ Type Definitions
 
 --- @class LDK_CommandLineTheme
 --- @field textColor? RGBA @Typed text; defaults to output.textColor
+--- @field bgColor? RGBA   @Command line fill; defaults to output.bgColor
 --- @field prompt? LDK_PromptTheme
 
 --- @class LDK_ConsoleTheme
@@ -323,13 +324,17 @@ local function _ResolveCode(t)
   code.syntax = tbl_Merge(DEFAULT_SYNTAX, code.syntax or {})
 end
 
---- Fills the output colors a theme leaves out.
+--- Fills the output and command line colors a theme leaves out.
 --- @param t LDK_ThemeSet @A copy; filled in place
 local function _ResolveOutput(t)
-  local output = t.console.output
+  local console = t.console
+  local output = console.output
   output.printColor = output.printColor or DEFAULT_PRINT_COLOR
   output.errorColor = output.errorColor or DEFAULT_ERROR_COLOR
   output.bgColor = output.bgColor or t.panel.backdrop.bgColor
+  console.commandLine = console.commandLine or {}
+  local commandLine = console.commandLine
+  commandLine.bgColor = commandLine.bgColor or output.bgColor
 end
 
 --- @package
@@ -537,16 +542,16 @@ local function _RegisterBuiltInThemes()
     console = {
       iconColor = { 0.85, 0.85, 0.85, 1 },
       output = {
-        textColor = { 0.694, 0.710, 0.059, 1 },
+        textColor = { 0.85, 0.88, 0.92, 1 },
         bgColor = { 0.212, 0.255, 0.325, 0.85 },
         printColor = { 0.72, 0.88, 0.98, 1 },
-        errorColor = { 1, 0.45, 0.45, 1 },
+        errorColor = { 1, 0.65, 0.65, 1 },
         toolIcons = { inset = { x = 8, y = 4 } },
         inset = { left = 8, right = 4, top = 4, bottom = 4 },
       },
       commandLine = {
         prompt = {
-          color = { 0.2, 0.4, 0.6, 1 },
+          color = { 0.55, 0.75, 0.95, 1 },
           offset = { x = 8, y = 0 },
         },
       },
@@ -788,7 +793,7 @@ function o:GetDefaultThemeName()
 end
 
 ---@param name Name? @Returns the default theme if nil
----@return LDK_ThemeSet @A copy with palette tints, code and output colors filled in
+---@return LDK_ThemeSet @A copy with palette tints, code, output and command line colors filled in
 function o:GetTheme(name)
   local t = tbl_deepCopy(themes[name] or self:GetDefaultTheme()) --[[@as LDK_ThemeSet]]
   _ResolvePalette(t)

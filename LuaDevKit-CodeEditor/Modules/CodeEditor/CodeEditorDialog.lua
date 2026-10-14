@@ -1680,12 +1680,11 @@ function o:ApplyTheme(name, save)
   -- SetBackdrop rebuilds every edge piece.
   self:HideSharedEdges()
 
-  if bgColor then
-    self.CodeBackdrop:SetBackdropColor(upk(bgColor))
-    self.CommandBar:SetBackdropColor(upk(bgColor))
-  end
+  if bgColor then self.CodeBackdrop:SetBackdropColor(upk(bgColor)) end
   local outputBgColor = bs.console.output.bgColor
   if outputBgColor then self.StatusBar:SetBackdropColor(upk(outputBgColor)) end
+  local commandBgColor = (bs.console.commandLine or {}).bgColor
+  if commandBgColor then self.CommandBar:SetBackdropColor(upk(commandBgColor)) end
   if borderColor then
     self.CodeBackdrop:SetBackdropBorderColor(upk(borderColor))
     self.StatusBar:SetBackdropBorderColor(upk(borderColor))
