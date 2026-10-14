@@ -51,6 +51,7 @@ Type Definitions
 --- @field backdrop LDK_Backdrop
 --- @field header? LDK_MainHeaderOverride
 --- @field labelColor? RGBA @Text on the main background, e.g. Wrap Text; defaults to gold
+--- @field sizerColor? RGBA @Tint for the resize grip; defaults to none
 
 --- @class LDK_GutterTheme
 --- @field textColor? RGBA @Defaults to palette.base
@@ -600,6 +601,7 @@ local function _RegisterBuiltInThemes()
         iconColor = { 1, 0.82, 0, 1 },
       },
       labelColor = { 0.08, 0.16, 0.32, 1 },
+      sizerColor = { 0.70, 0.55, 0.20, 1 },
     },
     panel = {
       backdrop = _panel({
@@ -660,6 +662,7 @@ local function _RegisterBuiltInThemes()
         iconColor = { 1, 0.82, 0, 1 },
       },
       labelColor = { 0.30, 0.07, 0.06, 1 },
+      sizerColor = { 0.70, 0.55, 0.20, 1 },
     },
     panel = {
       backdrop = _panel({
