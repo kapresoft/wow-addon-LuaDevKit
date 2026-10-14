@@ -47,11 +47,16 @@ Type Definitions
 --- @field height? number         @Defaults to the dialog's HEADER_HEIGHT
 --- @field iconColor? RGBA        @Tint for the header's white glyph icons; defaults to palette.base
 
+--- @class LDK_SizerInsets
+--- @field right? number
+--- @field bottom? number
+
 --- @class LDK_MainTheme
 --- @field backdrop LDK_Backdrop
 --- @field header? LDK_MainHeaderOverride
---- @field labelColor? RGBA @Text on the main background, e.g. Wrap Text; defaults to gold
---- @field sizerColor? RGBA @Tint for the resize grip; defaults to none
+--- @field labelColor? RGBA             @Text on the main background, e.g. Wrap Text; defaults to gold
+--- @field sizerAlpha? number           @Resize grip opacity; defaults to opaque
+--- @field sizerInsets? LDK_SizerInsets @Resize grip in from the bottom-right corner; defaults to 0
 
 --- @class LDK_GutterTheme
 --- @field textColor? RGBA @Defaults to palette.base
@@ -580,7 +585,7 @@ local function _RegisterBuiltInThemes()
   })
   _RegisterTheme({
     id = THEME.Alliance,
-    palette = { base = { 0.70, 0.55, 0.20 } },
+    palette = { base = { 1.0, 0.85, 0.23 } },
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
@@ -589,7 +594,8 @@ local function _RegisterBuiltInThemes()
         tileEdge = false,
         edgeSize = 12,
         insets = { left = 2, right = 2, top = 2, bottom = 2 },
-        bgColor = { 0.74, 0.79, 0.85, 1 },
+        -- 646F7E
+        bgColor = { 0.392, 0.435, 0.494, 0.5 },
         borderColor = { 1, 1, 1, 1.0 },
       },
       header = {
@@ -601,17 +607,18 @@ local function _RegisterBuiltInThemes()
         iconColor = { 1, 0.82, 0, 1 },
       },
       labelColor = { 0.08, 0.16, 0.32, 1 },
-      sizerColor = { 0.70, 0.55, 0.20, 1 },
+      sizerAlpha = 0.85,
+      sizerInsets = { right = -3, bottom = -3 },
     },
     panel = {
       backdrop = _panel({
         insets = INSETS_NONE,
-        bgColor = { 1, 1, 1, 0.35 },
+        bgColor = { 0.92, 0.92, 0.92, 1.0 },
       }),
     },
     code = {
       -- The bronze palette tint is too faint on the light code area.
-      gutter = { textColor = { 0.30, 0.36, 0.48, 1 } },
+      gutter = { textColor = { 0.66, 0.80, 1.000, 1 } },
       fontSteppers = { color = { 0.70, 0.55, 0.20, 1 }, alpha = 0.9 },
       textColor = { 0.10, 0.14, 0.22, 1 },
       syntax = {
@@ -641,7 +648,7 @@ local function _RegisterBuiltInThemes()
   })
   _RegisterTheme({
     id = THEME.Horde,
-    palette = { base = { 0.70, 0.55, 0.20 } },
+    palette = { base = { 1.0, 0.85, 0.23 } },
     main = {
       backdrop = {
         edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
@@ -650,7 +657,7 @@ local function _RegisterBuiltInThemes()
         tileEdge = false,
         edgeSize = 12,
         insets = { left = 2, right = 2, top = 2, bottom = 2 },
-        bgColor = { 0.80, 0.76, 0.70, 1 },
+        bgColor = { 0.80, 0.76, 0.70, 0.5 },
         borderColor = { 1, 1, 1, 1.0 },
       },
       header = {
@@ -662,17 +669,19 @@ local function _RegisterBuiltInThemes()
         iconColor = { 1, 0.82, 0, 1 },
       },
       labelColor = { 0.30, 0.07, 0.06, 1 },
-      sizerColor = { 0.70, 0.55, 0.20, 1 },
+      sizerAlpha = 0.99,
+      sizerInsets = { right = -3, bottom = -3 },
     },
     panel = {
       backdrop = _panel({
         insets = INSETS_NONE,
-        bgColor = { 1, 1, 1, 0.35 },
+        bgColor = { 0.92, 0.92, 0.92, 1.0 },
       }),
     },
     code = {
       -- The bronze palette tint is too faint on the light code area.
-      gutter = { textColor = { 0.45, 0.32, 0.28, 1 } },
+      -- B99581 513528
+      gutter = { textColor = { 0.32, 0.21, 0.167, 1 } },
       fontSteppers = { color = { 0.70, 0.55, 0.20, 1 }, alpha = 0.9 },
       textColor = { 0.20, 0.10, 0.08, 1 },
       syntax = {
