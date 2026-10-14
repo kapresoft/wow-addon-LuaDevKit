@@ -130,12 +130,14 @@ Type Definitions
 --- @field ['Abyss'] LDK_ThemeSet
 --- @field ['Dark Knight'] LDK_ThemeSet
 --- @field ['Gilded'] LDK_ThemeSet
+--- @field ["Job's Done (Alliance)"] LDK_ThemeSet
 --- @field ['Oakframe'] LDK_ThemeSet
 --- @field ['Parchment'] LDK_ThemeSet
+--- @field ['Slate'] LDK_ThemeSet
 --- @field ['Stonecut'] LDK_ThemeSet
---- @field ['Stonecut Light'] LDK_ThemeSet
 --- @field ['Warband'] LDK_ThemeSet
 --- @field ['Whisper'] LDK_ThemeSet
+--- @field ['Zug Zug (Horde)'] LDK_ThemeSet
 local themes = {}
 
 --- @see LibSharedMedia-3.0
@@ -193,22 +195,26 @@ local DEFAULT_ERROR_COLOR = { 1, 0, 0, 1 }
 --- @class LDK_ThemeNames
 --- @field DarkKnight Name
 --- @field Abyss Name
+--- @field Alliance Name
 --- @field Oakframe Name
 --- @field Parchment Name
 --- @field Whisper Name
 --- @field Stonecut Name
---- @field StonecutLight Name
+--- @field Slate Name
 --- @field Gilded Name
+--- @field Horde Name
 --- @field Warband Name
 local THEME = {
   DarkKnight = 'Dark Knight',
   Abyss = 'Abyss',
+  Alliance = "Job's Done (Alliance)",
   Oakframe = 'Oakframe',
   Parchment = 'Parchment',
   Whisper = 'Whisper',
   Stonecut = 'Stonecut',
-  StonecutLight = 'Stonecut Light',
+  Slate = 'Slate',
   Gilded = 'Gilded',
+  Horde = 'Zug Zug (Horde)',
   Warband = 'Warband',
 }
 o.theme = THEME
@@ -218,12 +224,20 @@ local THEME_ORDER = {
   THEME.Abyss,
   THEME.DarkKnight,
   THEME.Gilded,
+  THEME.Alliance,
   THEME.Oakframe,
   THEME.Parchment,
+  THEME.Slate,
   THEME.Stonecut,
-  THEME.StonecutLight,
   THEME.Warband,
   THEME.Whisper,
+  THEME.Horde,
+}
+
+-- Old names still saved in profiles.
+--- @type table<string, Name>
+local RENAMED = {
+  ['Stonecut Light'] = THEME.Slate,
 }
 
 --[[-----------------------------------------------------------------------------
@@ -498,7 +512,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.StonecutLight,
+    name = THEME.Slate,
     palette = { base = { 0.29, 0.42, 0.55 } },
     main = {
       backdrop = {
@@ -553,6 +567,127 @@ local function _RegisterBuiltInThemes()
         prompt = {
           color = { 0.55, 0.75, 0.95, 1 },
           offset = { x = 8, y = 0 },
+        },
+      },
+    },
+  })
+  _RegisterTheme({
+    name = THEME.Alliance,
+    palette = { base = { 0.70, 0.55, 0.20 } },
+    main = {
+      backdrop = {
+        edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
+        bgFile = BG_WHITE,
+        tile = false,
+        tileEdge = false,
+        edgeSize = 12,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        bgColor = { 0.74, 0.79, 0.85, 1 },
+        borderColor = { 1, 1, 1, 1.0 },
+      },
+      header = {
+        backdrop = {
+          bgFile = BG_WHITE,
+          bgColor = { 0.08, 0.16, 0.32, 1 },
+        },
+        height = 35,
+        iconColor = { 1, 0.82, 0, 1 },
+      },
+      labelColor = { 0.08, 0.16, 0.32, 1 },
+    },
+    panel = {
+      backdrop = _panel({
+        insets = INSETS_NONE,
+        bgColor = { 1, 1, 1, 0.35 },
+      }),
+    },
+    code = {
+      -- The bronze palette tint is too faint on the light code area.
+      gutter = { textColor = { 0.30, 0.36, 0.48, 1 } },
+      fontSteppers = { color = { 0.70, 0.55, 0.20, 1 }, alpha = 0.9 },
+      textColor = { 0.10, 0.14, 0.22, 1 },
+      syntax = {
+        keyword = '2B3FA8',
+        string = '2E7D32',
+        number = '7A3FB8',
+        comment = '6F7F8F',
+        identifier = '00788A',
+        logical = 'A0306E',
+      },
+    },
+    console = {
+      iconColor = { 0.90, 0.90, 0.86, 1 },
+      output = {
+        textColor = { 0.90, 0.90, 0.86, 1 },
+        bgColor = { 0.07, 0.12, 0.22, 0.92 },
+        printColor = { 0.98, 0.85, 0.45, 1 },
+        errorColor = { 1, 0.45, 0.45, 1 },
+      },
+      commandLine = {
+        prompt = {
+          color = { 1, 0.82, 0, 1 },
+          offset = { x = 5, y = 0 },
+        },
+      },
+    },
+  })
+  _RegisterTheme({
+    name = THEME.Horde,
+    palette = { base = { 0.70, 0.55, 0.20 } },
+    main = {
+      backdrop = {
+        edgeFile = _border(lbn.BLIZZARD_TOOLTIP),
+        bgFile = BG_WHITE,
+        tile = false,
+        tileEdge = false,
+        edgeSize = 12,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        bgColor = { 0.80, 0.76, 0.70, 1 },
+        borderColor = { 1, 1, 1, 1.0 },
+      },
+      header = {
+        backdrop = {
+          bgFile = BG_WHITE,
+          bgColor = { 0.30, 0.07, 0.06, 1 },
+        },
+        height = 35,
+        iconColor = { 1, 0.82, 0, 1 },
+      },
+      labelColor = { 0.30, 0.07, 0.06, 1 },
+    },
+    panel = {
+      backdrop = _panel({
+        insets = INSETS_NONE,
+        bgColor = { 1, 1, 1, 0.35 },
+      }),
+    },
+    code = {
+      -- The bronze palette tint is too faint on the light code area.
+      gutter = { textColor = { 0.45, 0.32, 0.28, 1 } },
+      fontSteppers = { color = { 0.70, 0.55, 0.20, 1 }, alpha = 0.9 },
+      textColor = { 0.20, 0.10, 0.08, 1 },
+      syntax = {
+        keyword = '2B3FA8',
+        string = '2E7D32',
+        number = '7A3FB8',
+        comment = '6F7F8F',
+        identifier = '00788A',
+        logical = 'A0306E',
+      },
+    },
+    console = {
+      iconColor = { 0.92, 0.88, 0.82, 1 },
+      output = {
+        textColor = { 0.92, 0.88, 0.82, 1 },
+        bgColor = { 0.18, 0.05, 0.05, 0.92 },
+        printColor = { 0.98, 0.85, 0.45, 1 },
+        -- Coral, not red: plain red disappears on the crimson console.
+        errorColor = { 1, 0.55, 0.45, 1 },
+      },
+      commandLine = {
+        prompt = {
+          color = { 1, 0.82, 0, 1 },
+          offset = { x = 5, y = 0 },
         },
       },
     },
@@ -795,7 +930,8 @@ end
 ---@param name Name? @Returns the default theme if nil
 ---@return LDK_ThemeSet @A copy with palette tints, code, output and command line colors filled in
 function o:GetTheme(name)
-  local t = tbl_deepCopy(themes[name] or self:GetDefaultTheme()) --[[@as LDK_ThemeSet]]
+  local key = RENAMED[name] or name
+  local t = tbl_deepCopy(themes[key] or self:GetDefaultTheme()) --[[@as LDK_ThemeSet]]
   _ResolvePalette(t)
   _ResolveCode(t)
   _ResolveOutput(t)
