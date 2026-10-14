@@ -9,7 +9,7 @@ Types
 --- @alias LDK_OutputLocation 'bottom'|'right'
 
 --- @class LDK_DB_EditorConfig
---- @field theme? Name                       @Unknown names fall back to the default = true theme
+--- @field theme? LDK_ThemeId                @Unknown ids fall back to the default = true theme
 --- @field fontFamily? string                @Key into FontUtil:GetFontChoices()
 --- @field fontSize? number
 --- @field wrapText? boolean

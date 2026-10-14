@@ -285,7 +285,7 @@ Types
 --- @field FontSteppers LDK_CodeEditorFontSteppers           @Floating +/- over the code area's top right
 --- @field Border Frame|BackdropTemplate                     @Main edge art; draws over StatusBar and CommandBar
 --- @field HeaderTitle FontString
---- @field borderStyle Name
+--- @field borderStyle LDK_ThemeId
 --- @field theme LDK_ThemeSet                                @Active theme, resolved by Themes:GetTheme()
 --- @field outputColors table<LDK_OutputKind, ColorMixin>    @From the active theme
 --- @field statusGripColor RGBA                              @Resting divider grip color, from the active theme
@@ -1228,16 +1228,16 @@ end
 function o:OnLoad_ThemeButton()
   --- @param rootDescription RootMenuDescriptionProxy
   self.ThemeButton:SetupMenu(function(_, rootDescription)
-    local function addRadio(name)
+    local function addRadio(id)
       rootDescription:CreateRadio(
-        name,
-        function() return name and str_eq(self.borderStyle, name) end,
-        function() self:ApplyTheme(name, true) end
+        Themes:GetThemeName(id),
+        function() return id and str_eq(self.borderStyle, id) end,
+        function() self:ApplyTheme(id, true) end
       )
     end
-    Themes:EachTheme(addRadio, function(name) return name and name:lower() ~= 'none' end)
+    Themes:EachTheme(addRadio, function(id) return id and id:lower() ~= 'none' end)
   end)
-  -- Theme names are registry keys, so menu entries stay untranslated.
+  -- Theme names are never localized.
   AddTooltip(self.ThemeButton, 'Theme')
 end
 
@@ -1652,15 +1652,15 @@ end
 --- @param checked boolean
 function o:OnWrapToggled(checked) self:SetWrapText(checked, true) end
 
---- @param name Name?    @Unknown names fall back to the default theme
---- @param save boolean? @Save to the DB (user-driven change); omit for internal/initial sets
-function o:ApplyTheme(name, save)
-  local bs = Themes:GetTheme(name)
+--- @param id LDK_ThemeId? @Unknown ids fall back to the default theme
+--- @param save boolean?    @Save to the DB (user-driven change); omit for internal/initial sets
+function o:ApplyTheme(id, save)
+  local bs = Themes:GetTheme(id)
   if not bs then return end
 
   local main = bs.main
   self.theme = bs
-  self.borderStyle = bs.name
+  self.borderStyle = bs.id
   local bd = main.backdrop
   if bd then
     self:SetBackdrop(Omit(bd, 'edgeFile'))

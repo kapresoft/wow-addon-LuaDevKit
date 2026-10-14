@@ -15,7 +15,7 @@ local nameReqMsg = '%s: %s should be a string.'
 Themes
 -------------------------------------------------------------------------------]]
 --- @class LDK_Themes
---- @field theme LDK_ThemeNames
+--- @field theme LDK_ThemeIds
 local o, libName = {}, 'Themes'
 O.Themes = o
 
@@ -116,8 +116,12 @@ Type Definitions
 --- @class LDK_PaletteTheme
 --- @field base? RGB @Accent hue; colors a theme leaves out are tinted from it
 
+--- A THEME key; profiles save it, so it never changes.
+--- @alias LDK_ThemeId string
+
 --- @class LDK_ThemeSet
---- @field name Name
+--- @field id LDK_ThemeId
+--- @field name? Name       @Display name; filled in from THEME_NAME
 --- @field palette? LDK_PaletteTheme
 --- @field main LDK_MainTheme
 --- @field panel LDK_PanelTheme
@@ -126,18 +130,18 @@ Type Definitions
 --- @field enabled? boolean @Defaults to true; set false to exclude from GetThemes()/EachTheme()
 --- @field default? boolean @The theme a new editor starts with; first enabled one wins
 
---- @class LDK_ThemeRegistry : table<string, LDK_ThemeSet>
---- @field ['Abyss'] LDK_ThemeSet
---- @field ['Dark Knight'] LDK_ThemeSet
---- @field ['Gilded'] LDK_ThemeSet
---- @field ["Job's Done (Alliance)"] LDK_ThemeSet
---- @field ['Oakframe'] LDK_ThemeSet
---- @field ['Parchment'] LDK_ThemeSet
---- @field ['Slate'] LDK_ThemeSet
---- @field ['Stonecut'] LDK_ThemeSet
---- @field ['Warband'] LDK_ThemeSet
---- @field ['Whisper'] LDK_ThemeSet
---- @field ['Zug Zug (Horde)'] LDK_ThemeSet
+--- @class LDK_ThemeRegistry : table<LDK_ThemeId, LDK_ThemeSet>
+--- @field Abyss LDK_ThemeSet
+--- @field Alliance LDK_ThemeSet
+--- @field DarkKnight LDK_ThemeSet
+--- @field Gilded LDK_ThemeSet
+--- @field Horde LDK_ThemeSet
+--- @field Oakframe LDK_ThemeSet
+--- @field Parchment LDK_ThemeSet
+--- @field Slate LDK_ThemeSet
+--- @field Stonecut LDK_ThemeSet
+--- @field Warband LDK_ThemeSet
+--- @field Whisper LDK_ThemeSet
 local themes = {}
 
 --- @see LibSharedMedia-3.0
@@ -192,52 +196,53 @@ local DEFAULT_CODE_TEXT_COLOR = { 1, 1, 1, 1 }
 local DEFAULT_PRINT_COLOR = { 0.6, 0.6, 0.6, 1 }
 local DEFAULT_ERROR_COLOR = { 1, 0, 0, 1 }
 
---- @class LDK_ThemeNames
---- @field DarkKnight Name
---- @field Abyss Name
---- @field Alliance Name
---- @field Oakframe Name
---- @field Parchment Name
---- @field Whisper Name
---- @field Stonecut Name
---- @field Slate Name
---- @field Gilded Name
---- @field Horde Name
---- @field Warband Name
-local THEME = {
-  DarkKnight = 'Dark Knight',
+-- Renaming a theme here leaves saved profiles valid.
+--- @type table<LDK_ThemeId, Name>
+local THEME_NAME = {
   Abyss = 'Abyss',
   Alliance = "Job's Done (Alliance)",
-  Oakframe = 'Oakframe',
-  Parchment = 'Parchment',
-  Whisper = 'Whisper',
-  Stonecut = 'Stonecut',
-  Slate = 'Slate',
+  DarkKnight = 'Dark Knight',
   Gilded = 'Gilded',
   Horde = 'Zug Zug (Horde)',
+  Oakframe = 'Oakframe',
+  Parchment = 'Parchment',
+  Slate = 'Slate',
+  Stonecut = 'Stonecut',
   Warband = 'Warband',
+  Whisper = 'Whisper',
 }
+
+--- @class LDK_ThemeIds
+--- @field Abyss LDK_ThemeId
+--- @field Alliance LDK_ThemeId
+--- @field DarkKnight LDK_ThemeId
+--- @field Gilded LDK_ThemeId
+--- @field Horde LDK_ThemeId
+--- @field Oakframe LDK_ThemeId
+--- @field Parchment LDK_ThemeId
+--- @field Slate LDK_ThemeId
+--- @field Stonecut LDK_ThemeId
+--- @field Warband LDK_ThemeId
+--- @field Whisper LDK_ThemeId
+local THEME = {}
+for id in pairs(THEME_NAME) do
+  THEME[id] = id
+end
 o.theme = THEME
 
--- Alphabetical.
+-- Alphabetical by display name; the faction pair stays together.
 local THEME_ORDER = {
   THEME.Abyss,
   THEME.DarkKnight,
   THEME.Gilded,
   THEME.Alliance,
+  THEME.Horde,
   THEME.Oakframe,
   THEME.Parchment,
   THEME.Slate,
   THEME.Stonecut,
   THEME.Warband,
   THEME.Whisper,
-  THEME.Horde,
-}
-
--- Old names still saved in profiles.
---- @type table<string, Name>
-local RENAMED = {
-  ['Stonecut Light'] = THEME.Slate,
 }
 
 --[[-----------------------------------------------------------------------------
@@ -356,8 +361,9 @@ end
 local function _RegisterTheme(theme)
   local m = '_RegisterTheme(theme)'
   assertsafe(theme, themeReqMsg, m, 'theme')
-  local name = theme.name
-  assertsafe(str_notBlank(name), themeReqMsg, m, 'theme.name')
+  local id = theme.id
+  theme.name = THEME_NAME[id]
+  assertsafe(str_notBlank(theme.name), themeReqMsg, m, 'THEME_NAME[theme.id]')
   assertsafe(theme.main.backdrop.bgFile, themeReqMsg, m, 'main.backdrop.bgFile')
   assertsafe(theme.main.backdrop.edgeFile, themeReqMsg, m, 'theme.main.backdrop.edgeFile')
   -- A missing value, or a color with no palette.base to tint it from,
@@ -383,7 +389,7 @@ local function _RegisterTheme(theme)
     m,
     'theme.main.header.iconColor or theme.palette.base'
   )
-  themes[name] = theme
+  themes[id] = theme
 end
 
 -- Registers every selectable border theme. Each one is a fully tuned
@@ -392,7 +398,7 @@ end
 -- insets/colors and would look broken in the editor.
 local function _RegisterBuiltInThemes()
   _RegisterTheme({
-    name = THEME.DarkKnight,
+    id = THEME.DarkKnight,
     default = true,
     palette = { base = { 0.255, 0.380, 0.204 } },
     main = {
@@ -433,7 +439,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Abyss,
+    id = THEME.Abyss,
     palette = { base = { 0.424, 0.573, 0.573 } },
     main = {
       backdrop = {
@@ -468,7 +474,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Oakframe,
+    id = THEME.Oakframe,
     palette = { base = { 0.85, 0.72, 0.30 } },
     main = {
       backdrop = {
@@ -512,7 +518,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Slate,
+    id = THEME.Slate,
     palette = { base = { 0.29, 0.42, 0.55 } },
     main = {
       backdrop = {
@@ -572,7 +578,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Alliance,
+    id = THEME.Alliance,
     palette = { base = { 0.70, 0.55, 0.20 } },
     main = {
       backdrop = {
@@ -632,7 +638,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Horde,
+    id = THEME.Horde,
     palette = { base = { 0.70, 0.55, 0.20 } },
     main = {
       backdrop = {
@@ -693,7 +699,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Whisper,
+    id = THEME.Whisper,
     palette = { base = { 1.000, 0.965, 0.494 } },
     main = {
       backdrop = {
@@ -737,7 +743,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Stonecut,
+    id = THEME.Stonecut,
     palette = { base = { 0.588, 0.561, 0.529 } },
     main = {
       backdrop = {
@@ -778,7 +784,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Gilded,
+    id = THEME.Gilded,
     palette = { base = { 1.000, 0.820, 0.000 } },
     main = {
       backdrop = {
@@ -820,7 +826,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Warband,
+    id = THEME.Warband,
     palette = { base = { 0.85, 0.72, 0.30 } },
     main = {
       backdrop = {
@@ -853,7 +859,7 @@ local function _RegisterBuiltInThemes()
     },
   })
   _RegisterTheme({
-    name = THEME.Parchment,
+    id = THEME.Parchment,
     palette = { base = { 0.36, 0.25, 0.13 } },
     main = {
       backdrop = {
@@ -916,27 +922,30 @@ Methods & Fields
 -------------------------------------------------------------------------------]]
 
 ---@return LDK_ThemeSet
-function o:GetDefaultTheme() return themes[self:GetDefaultThemeName()] end
+function o:GetDefaultTheme() return themes[self:GetDefaultThemeId()] end
 
---- @return Name? @First enabled theme if none sets default; nil if none are enabled
-function o:GetDefaultThemeName()
-  local names = self:GetThemes()
-  for _, name in ipairs(names) do
-    if themes[name].default then return name end
+--- @return LDK_ThemeId? @First enabled theme if none sets default; nil if none are enabled
+function o:GetDefaultThemeId()
+  local ids = self:GetThemes()
+  for _, id in ipairs(ids) do
+    if themes[id].default then return id end
   end
-  return names[1]
+  return ids[1]
 end
 
----@param name Name? @Returns the default theme if nil
----@return LDK_ThemeSet @A copy with palette tints, code, output and command line colors filled in
-function o:GetTheme(name)
-  local key = RENAMED[name] or name
-  local t = tbl_deepCopy(themes[key] or self:GetDefaultTheme()) --[[@as LDK_ThemeSet]]
+--- @param id LDK_ThemeId? @Unknown or nil ids give the default theme
+--- @return LDK_ThemeSet   @A copy with palette tints, code, output and command line colors filled in
+function o:GetTheme(id)
+  local t = tbl_deepCopy(themes[id] or self:GetDefaultTheme()) --[[@as LDK_ThemeSet]]
   _ResolvePalette(t)
   _ResolveCode(t)
   _ResolveOutput(t)
   return t
 end
+
+--- @param id LDK_ThemeId
+--- @return Name? @nil if no theme has this id
+function o:GetThemeName(id) return THEME_NAME[id] end
 
 --- For code shown on dark tooltips, whatever the theme.
 --- @return LDK_SyntaxColors
@@ -956,24 +965,24 @@ function o:GetHeaderBackdropOverride(theme)
   return hov
 end
 
---- This is a custom ordered theme name list, excluding themes with enabled = false
---- @return string[]
+--- This is a custom ordered theme id list, excluding themes with enabled = false
+--- @return LDK_ThemeId[]
 function o:GetThemes()
-  local names = {}
-  for _, name in ipairs(THEME_ORDER) do
-    local theme = themes[name]
-    if theme and theme.enabled ~= false then names[#names + 1] = name end
+  local ids = {}
+  for _, id in ipairs(THEME_ORDER) do
+    local theme = themes[id]
+    if theme and theme.enabled ~= false then ids[#ids + 1] = id end
   end
-  return names
+  return ids
 end
 
---- @param callbackFn fun(name:string)
---- @param acceptFilterFn? fun(name:string) : boolean @Return true to accept (include) a theme; defaults to accepting all
+--- @param callbackFn fun(id:LDK_ThemeId)
+--- @param acceptFilterFn? fun(id:LDK_ThemeId) : boolean @Return true to accept (include) a theme; defaults to accepting all
 function o:EachTheme(callbackFn, acceptFilterFn)
   if not callbackFn then return end
   local fn = acceptFilterFn or acceptAll
-  for _, name in ipairs(self:GetThemes()) do
-    if fn(name) then callbackFn(name) end
+  for _, id in ipairs(self:GetThemes()) do
+    if fn(id) then callbackFn(id) end
   end
 end
 
