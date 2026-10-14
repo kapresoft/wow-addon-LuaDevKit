@@ -1711,6 +1711,7 @@ function o:ApplyTheme(id, save)
   ns:EnableLuaFormatter(self.CodeEditBox, bs.code.syntax)
   self:_SetHeaderBorderStyle(bs)
   self:ApplyHeaderIconColor(main.header)
+  self:ApplySizerColor(main.sizerColor)
   if save then ns:editor().theme = self.borderStyle end
 end
 
@@ -1762,6 +1763,13 @@ function o:ApplyHeaderIconColor(header)
   local button = self.Header.OptionsButton
   button:GetNormalTexture():SetVertexColor(upk(header.iconColor))
   button:GetHighlightTexture():SetVertexColor(upk(header.iconColor))
+end
+
+--- @param color RGBA? @nil restores the untinted art
+function o:ApplySizerColor(color)
+  local r, g, b, a = upk(color or { 1, 1, 1, 1 })
+  self.SizerSE.Line1:SetVertexColor(r, g, b, a)
+  self.SizerSE.Line2:SetVertexColor(r, g, b, a)
 end
 
 --- NormalTexture only: the hover highlight stays full strength.
