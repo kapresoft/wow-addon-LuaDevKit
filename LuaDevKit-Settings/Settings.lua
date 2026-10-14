@@ -67,6 +67,9 @@ local function OutputLocationSelect(order)
     name = L['Output Panel'],
     desc = L['Output Panel::Desc'],
     order = order,
+    width = 'full',
+    dialogControl = 'LuaDevKit_StepperDropdown',
+    arg = { layout = { dropdown = { width = 180 } } },
     values = { bottom = L['Bottom'], right = L['Right'] },
     sorting = { 'bottom', 'right' },
     get = function() return editor.outputLocation end,
@@ -86,9 +89,9 @@ local function GeneralOptions()
     args = {
       openAtStartup = EditorCheckbox('openAtStartup', 'Open Editor at Startup', 1),
       showToolbar = EditorCheckbox('showToolbar', 'Show Toolbar', 2, ShowToolbar),
-      outputLocation = OutputLocationSelect(3),
-      saveOnRun = EditorCheckbox('saveOnRun', 'Save on Run', 4),
-      escCloses = EditorCheckbox('escCloses', 'Escape Key Closes Editor', 5),
+      saveOnRun = EditorCheckbox('saveOnRun', 'Save on Run', 3),
+      escCloses = EditorCheckbox('escCloses', 'Escape Key Closes Editor', 4),
+      outputLocation = OutputLocationSelect(5),
     },
   }
 end
@@ -101,6 +104,8 @@ local function RegisterOptions()
   options.args.profiles = cO.AceDBOptions:GetOptionsTable(ns:db())
   ConfirmOverwrites(options.args.profiles)
   cO.AceConfig:RegisterOptionsTable(cns.addon, options)
+  cO.AceConfigDialog:SetDefaultSize(cns.addon, 575, 390)
+  cO.AceConfigDialog:GetStatusTable(cns.addon).groups = { treewidth = 110 }
 end
 
 --- @param group 'general'|'profiles'

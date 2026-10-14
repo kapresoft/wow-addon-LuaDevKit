@@ -53,5 +53,8 @@ end
 --- @param shown boolean
 function o:SetToolbarShown(shown) dialog:SetToolbarShown(shown) end
 
+--- @param location LDK_OutputLocation
+function o:SetOutputLocation(location) dialog:SetOutputLocation(location) end
+
 --- @return LDK_CodeEditor_Namespace
 function o:ns() return ns end

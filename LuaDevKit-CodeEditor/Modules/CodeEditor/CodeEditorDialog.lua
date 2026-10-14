@@ -1182,22 +1182,9 @@ function o:BuildOptionsMenu(root)
   root:CreateCheckbox(L['Save on Run'], isSaveOnRun, function() self:ToggleSaveOnRun() end)
   local function isToolbarShown() return self.TopBar:IsShown() end
   root:CreateCheckbox(L['Show Toolbar'], isToolbarShown, function() self:ToggleToolbar() end)
-  self:AddOutputLocationMenu(root)
   local general = ('%s %s'):format(GENERAL, SETTINGS)
   AddSettingsButton(root, general, function(settings) settings:OpenGeneral() end)
   self:AddProfileMenu(root)
-end
-
---- @param root RootMenuDescriptionProxy
-function o:AddOutputLocationMenu(root)
-  local function isCurrent(location) return self.outputLocation == location end
-  local function move(location)
-    self:SetOutputLocation(location, true)
-    RefreshSettings()
-  end
-  local menu = root:CreateButton(L['Output Panel'])
-  menu:CreateRadio(L['Bottom'], isCurrent, move, 'bottom')
-  menu:CreateRadio(L['Right'], isCurrent, move, 'right')
 end
 
 --- One radio per profile; Manage Profiles greyed out without LuaDevKit-Settings.

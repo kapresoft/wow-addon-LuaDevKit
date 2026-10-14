@@ -11,4 +11,5 @@
 
 Namespace.lua
 SettingsCheckboxWidget.lua
+StepperDropdownWidget.xml
 Settings.lua
