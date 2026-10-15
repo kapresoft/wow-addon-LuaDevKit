@@ -51,10 +51,11 @@ ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\Table.lua
 ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\ConsoleHelperMixin.lua
 ThirdParty\Libs\Kapresoft-LibUtil\Lib-2-0\Modules\AddonInfoUtil.lua
 ThirdParty\Libs\LibPrettyPrint\Libs\Namespace.lua
+ThirdParty\Libs\LibPrettyPrint\Libs\LibPrettyPrint.lua
 ThirdParty\Libs\LibPrettyPrint\Libs\pprint.lua
+ThirdParty\Libs\LibPrettyPrint\Libs\ValueFormatter.lua
 ThirdParty\Libs\LibPrettyPrint\Libs\Formatter.lua
 ThirdParty\Libs\LibPrettyPrint\Libs\Printer.lua
-ThirdParty\Libs\LibPrettyPrint\Libs\LibPrettyPrint.lua
 ThirdParty\Libs\LibTraceKit\LibTraceKit.lua
 
 Libs\External\FAIAP.lua
