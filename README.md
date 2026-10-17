@@ -34,6 +34,7 @@ Addon developers who want a faster in-game workflow for writing, running, and de
 | `fm(value)` | Format a value across indented lines |
 | `fs(value)` | Format a value on one line           |
 | `fv(value)` | Show a table's keys and values as key=value pairs |
+| `inspect(val)` or `ti(val)` | Evaluate `<val>` in Blizzard's Table Inspector |
 | `help()`    | Print this list                      |
 
 ```lua
@@ -48,6 +49,8 @@ p('tbl=', fm(tbl))
 
 ### Settings
 - Open the editor at startup, show or hide the toolbar, choose the output panel position, and make Escape close the editor. Without that option, the first Escape only leaves the text box.
+- Remember where you last moved Blizzard's Table Inspector, so `inspect()` and `ti()` reopen it there instead of centered.
+- The Options menu in the editor also toggles Open Editor at Startup, Save on Run, and Show Toolbar.
 - Settings are saved per profile. Managing profiles needs the LuaDevKit-Settings addon, which ships in the same package.
 
 ## Slash Commands

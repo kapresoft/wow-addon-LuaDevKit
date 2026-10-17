@@ -91,7 +91,12 @@ local function GeneralOptions()
       showToolbar = EditorCheckbox('showToolbar', 'Show Toolbar', 2, ShowToolbar),
       saveOnRun = EditorCheckbox('saveOnRun', 'Save on Run', 3),
       escCloses = EditorCheckbox('escCloses', 'Escape Key Closes Editor', 4),
-      outputLocation = OutputLocationSelect(5),
+      rememberInspector = EditorCheckbox(
+        'rememberInspector',
+        "Remember Blizzard's Table Inspector Location",
+        5
+      ),
+      outputLocation = OutputLocationSelect(6),
     },
   }
 end

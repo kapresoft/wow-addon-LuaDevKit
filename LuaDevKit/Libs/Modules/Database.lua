@@ -18,6 +18,7 @@ Types
 --- @field escCloses? boolean                @Esc closes the settings window first, then the editor
 --- @field openAtStartup? boolean            @Open the editor on login or reload
 --- @field outputLocation? LDK_OutputLocation @Output panel below or right of the code area
+--- @field rememberInspector? boolean        @inspect() reopens where last dragged, not centered
 
 --- @class LDK_DB_ConsoleConfig
 --- @field fontFamily string                 @Font key, or SAME_AS_EDITOR_FONT
@@ -31,10 +32,15 @@ Types
 --- @field height number?
 --- @field maximized boolean? @Header double-click; the rect above stays the restore size
 
+--- @class LDK_DB_InspectorConfig
+--- @field left number?   @BOTTOMLEFT offset from UIParent; nil until the first drag
+--- @field bottom number?
+
 --- @class LDK_DB_GlobalConfig
 --- @field editor LDK_DB_EditorConfig
 --- @field console LDK_DB_ConsoleConfig
 --- @field window LDK_DB_WindowConfig                @Editor position and size, saved on drag and resize
+--- @field inspector LDK_DB_InspectorConfig          @Table Inspector position, saved on drag
 --- @field helpTipsDismissed table<string, boolean> @Keyed by tour step key; true once closed or its action is done
 --- @field tourBaseline number?                     @Highest tour `since` at the first editor open; nil until then
 
@@ -87,6 +93,7 @@ local DEFAULT_DB = {
       showToolbar = true,
       escCloses = false,
       outputLocation = 'bottom',
+      rememberInspector = true,
     },
     console = {
       fontFamily = 'Inconsolata',
@@ -94,6 +101,7 @@ local DEFAULT_DB = {
       history = {},
     },
     window = {},
+    inspector = {},
     helpTipsDismissed = {},
   },
   profile = { docs = {}, docIndex = 1, outputHeight = 100, outputWidth = 300 },
