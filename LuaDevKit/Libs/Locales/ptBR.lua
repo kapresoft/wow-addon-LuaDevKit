@@ -54,7 +54,9 @@ L['Editor Helpers::t'] = 'Rastrear para /etrace'
 L['Editor Helpers::fm'] = 'Formatar um valor em várias linhas indentadas'
 L['Editor Helpers::fs'] = 'Formatar um valor em uma linha'
 L['Editor Helpers::fv'] = 'Mostrar as chaves e valores de uma tabela como pares key=value'
+L['Editor Helpers::inspect'] = 'Avaliar <val> no Table Inspector da Blizzard'
 L['Editor Helpers::help'] = 'Imprimir esta lista'
+L['inspect: expected a table, got %s'] = 'inspect: esperava uma tabela, recebeu %s'
 L['Editor Helpers::Hint'] = 'Clique para imprimir esta lista no painel de saída'
 L['Run'] = 'Executar'
 L['Run::Desc'] = 'Executa o código do editor e mostra a saída no painel de saída.'
@@ -107,6 +109,10 @@ L['Open Editor at Startup::Desc'] =
 L['Escape Key Closes Editor'] = 'Tecla Esc fecha o editor'
 L['Escape Key Closes Editor::Desc'] =
   'Pressione Esc para fechar o editor de código. Se a janela de configurações estiver aberta, Esc a fecha primeiro.'
+L["Remember Blizzard's Table Inspector Location"] =
+  'Lembrar a posição do Table Inspector da Blizzard'
+L["Remember Blizzard's Table Inspector Location::Desc"] =
+  'Abre o Table Inspector de inspect() ou ti() onde você o moveu por último, em vez de centralizado.'
 L['Available commands:'] = 'Comandos disponíveis:'
 L['displays the addon info'] = 'exibe as informações do addon'
 L['toggles the Code Editor'] = 'mostra ou oculta o editor de código'

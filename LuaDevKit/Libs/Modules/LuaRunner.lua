@@ -26,6 +26,7 @@ local HELPERS = {
   { 'fm(value)', 'Editor Helpers::fm' },
   { 'fs(value)', 'Editor Helpers::fs' },
   { 'fv(value)', 'Editor Helpers::fv' },
+  { 'inspect(val) or ti(val)', 'Editor Helpers::inspect' },
   { 'help()', 'Editor Helpers::help' },
 }
 
@@ -47,8 +48,52 @@ local HELPERS_EXAMPLE = {
 --- @type LibPrettyPrint_Formatter
 local formatter = PrettyPrint:Formatter({ show_all = true, depth_limit = 3 })
 
+-- Pooled inspector frames already hooked; they're reused.
+local dragHooked = {}
+
+--- @param inspector Frame
+local function SaveInspectorPoint(inspector)
+  local saved = ns:g().inspector
+  saved.left, saved.bottom = inspector:GetLeft(), inspector:GetBottom()
+end
+
+--- Hooked after Blizzard's handler, so the drag has ended.
+--- @param inspector Frame
+local function TrackInspectorDrag(inspector)
+  if dragHooked[inspector] then return end
+  dragHooked[inspector] = true
+  inspector.TitleButton:HookScript('OnDragStop', function()
+    if ns:g().editor.rememberInspector then SaveInspectorPoint(inspector) end
+  end)
+end
+
+--- At the saved point when remembered, else centered.
+--- @param inspector Frame
+local function PlaceInspector(inspector)
+  local saved = ns:g().inspector
+  local left, bottom = saved.left, saved.bottom
+  inspector:ClearAllPoints()
+  if ns:g().editor.rememberInspector and left and bottom then
+    return PixelUtil.SetPoint(inspector, 'BOTTOMLEFT', UIParent, 'BOTTOMLEFT', left, bottom)
+  end
+  inspector:SetPoint('CENTER', UIParent)
+end
+
+--- Opens Blizzard's Table Inspector; a non-table prints a note.
+--- @param value any
+local function Inspect(value)
+  if type(value) ~= 'table' then
+    return print(L['inspect: expected a table, got %s']:format(type(value)))
+  end
+  C_AddOns.LoadAddOn('Blizzard_DebugTools')
+  local inspector = DisplayTableInspectorWindow(value)
+  TrackInspectorDrag(inspector)
+  PlaceInspector(inspector)
+end
+
 --- Editor code sees these helpers, then _G; its global writes go to _G.
 --- fs/fm/fv format single-line, multi-line, key=value; t logs to /etrace.
+--- inspect (alias ti) opens the Table Inspector.
 --- help prints the helpers list.
 local env = setmetatable({
   -- Looked up per call: Exec swaps print while code runs.
@@ -57,6 +102,8 @@ local env = setmetatable({
   fm = formatter:MultiLine(),
   fs = formatter,
   fv = formatter:KeyValues(),
+  inspect = Inspect,
+  ti = Inspect,
   help = function() print(o:GetHelpText()) end,
 }, { __index = _G, __newindex = _G })
 

@@ -52,7 +52,10 @@ L['Editor Helpers::t'] = '/etrace로 추적'
 L['Editor Helpers::fm'] = '값을 들여쓴 여러 줄로 서식화'
 L['Editor Helpers::fs'] = '값을 한 줄로 서식화'
 L['Editor Helpers::fv'] = '테이블의 키와 값을 key=value 쌍으로 표시'
+L['Editor Helpers::inspect'] = '<val>을(를) Blizzard Table Inspector에서 평가'
 L['Editor Helpers::help'] = '이 목록 출력'
+L['inspect: expected a table, got %s'] =
+  'inspect: 테이블이 필요하지만 %s을(를) 받았습니다'
 L['Editor Helpers::Hint'] = '클릭하면 이 목록을 출력 패널에 출력합니다'
 L['Run'] = '실행'
 L['Run::Desc'] = '편집기의 코드를 실행하고 출력을 출력 패널에 표시합니다.'
@@ -105,6 +108,9 @@ L['Open Editor at Startup::Desc'] =
 L['Escape Key Closes Editor'] = 'Esc 키로 편집기 닫기'
 L['Escape Key Closes Editor::Desc'] =
   'Esc 키를 누르면 코드 편집기가 닫힙니다. 설정 창이 열려 있으면 Esc가 설정 창을 먼저 닫습니다.'
+L["Remember Blizzard's Table Inspector Location"] = 'Blizzard Table Inspector 위치 기억'
+L["Remember Blizzard's Table Inspector Location::Desc"] =
+  'inspect() 또는 ti()의 Table Inspector를 가운데가 아닌 마지막으로 옮긴 위치에 엽니다.'
 L['Available commands:'] = '사용 가능한 명령:'
 L['displays the addon info'] = '애드온 정보를 표시합니다'
 L['toggles the Code Editor'] = '코드 편집기를 열거나 닫습니다'

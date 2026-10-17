@@ -1178,6 +1178,12 @@ end
 
 --- @param root RootMenuDescriptionProxy
 function o:BuildOptionsMenu(root)
+  local function isOpenAtStartup() return ns:editor().openAtStartup end
+  root:CreateCheckbox(
+    L['Open Editor at Startup'],
+    isOpenAtStartup,
+    function() self:ToggleOpenAtStartup() end
+  )
   local function isSaveOnRun() return ns:editor().saveOnRun end
   root:CreateCheckbox(L['Save on Run'], isSaveOnRun, function() self:ToggleSaveOnRun() end)
   local function isToolbarShown() return self.TopBar:IsShown() end
@@ -1371,6 +1377,12 @@ end
 
 function o:ToggleToolbar()
   self:SetToolbarShown(not self.TopBar:IsShown(), true)
+  RefreshSettings()
+end
+
+function o:ToggleOpenAtStartup()
+  local editor = ns:editor()
+  editor.openAtStartup = not editor.openAtStartup
   RefreshSettings()
 end
 

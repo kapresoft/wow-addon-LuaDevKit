@@ -61,7 +61,10 @@ L['Editor Helpers::fm'] =
 L['Editor Helpers::fs'] = 'Форматировать значение в одну строку'
 L['Editor Helpers::fv'] =
   'Показать ключи и значения таблицы парами key=value'
+L['Editor Helpers::inspect'] = 'Вычислить <val> в Table Inspector от Blizzard'
 L['Editor Helpers::help'] = 'Вывести этот список'
+L['inspect: expected a table, got %s'] =
+  'inspect: ожидалась таблица, получено %s'
 L['Editor Helpers::Hint'] =
   'Щелкните, чтобы вывести этот список на панель вывода'
 L['Run'] = 'Выполнить'
@@ -122,6 +125,10 @@ L['Open Editor at Startup::Desc'] =
 L['Escape Key Closes Editor'] = 'Esc закрывает редактор'
 L['Escape Key Closes Editor::Desc'] =
   'Клавиша Esc закрывает редактор кода. Если открыто окно настроек, Esc сначала закрывает его.'
+L["Remember Blizzard's Table Inspector Location"] =
+  'Запоминать положение Table Inspector от Blizzard'
+L["Remember Blizzard's Table Inspector Location::Desc"] =
+  'Открывать Table Inspector из inspect() или ti() там, куда его переместили в последний раз, а не по центру.'
 L['Available commands:'] = 'Доступные команды:'
 L['displays the addon info'] = 'показывает информацию об аддоне'
 L['toggles the Code Editor'] =

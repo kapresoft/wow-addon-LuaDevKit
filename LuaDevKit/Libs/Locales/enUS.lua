@@ -53,7 +53,9 @@ L['Editor Helpers::t'] = 'Trace to /etrace'
 L['Editor Helpers::fm'] = 'Format a value across indented lines'
 L['Editor Helpers::fs'] = 'Format a value on one line'
 L['Editor Helpers::fv'] = "Show a table's keys and values as key=value pairs"
+L['Editor Helpers::inspect'] = "Evaluate <val> in Blizzard's Table Inspector"
 L['Editor Helpers::help'] = 'Print this list'
+L['inspect: expected a table, got %s'] = true
 L['Editor Helpers::Hint'] = 'Click to print this list to the output panel'
 L['Run'] = true
 L['Run::Desc'] = 'Run the code in the editor and print its output to the output panel.'
@@ -105,6 +107,9 @@ L['Open Editor at Startup::Desc'] = 'Open the Code Editor when you log in or rel
 L['Escape Key Closes Editor'] = true
 L['Escape Key Closes Editor::Desc'] =
   'Press Escape to close the Code Editor. If the settings window is open, Escape closes it first.'
+L["Remember Blizzard's Table Inspector Location"] = true
+L["Remember Blizzard's Table Inspector Location::Desc"] =
+  'Open the Table Inspector from inspect() or ti() where you last moved it, instead of centered.'
 L['Available commands:'] = true
 L['displays the addon info'] = true
 L['toggles the Code Editor'] = true
