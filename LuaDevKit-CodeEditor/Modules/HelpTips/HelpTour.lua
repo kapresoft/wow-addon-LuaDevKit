@@ -89,6 +89,8 @@ local o = {}; ns.O.HelpTour = o
 --- @return LDK_HelpTourDef? @nil if another host's tour owns the session, or none is left
 function o:SessionTour(hostName)
   if not sessionTour then
+    -- Save now; IsEligible skips it for tours without since
+    Baseline()
     for _, tour in ipairs(ns.O.TourList) do
       if tour.host == hostName and IsEligible(tour) and HasUnseenStep(tour) then
         sessionTour = tour
