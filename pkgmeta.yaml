@@ -24,7 +24,7 @@ tools-used:
 
 # Ace3 keeps LibStub, CallbackHandler, AceAddon, AceEvent, AceConsole,
 # AceLocale, AceDB, AceDBOptions, AceConfig and AceGUI (AceConfigDialog
-# needs it); plus LSM, LibUtil, LibPrettyPrint and LibTraceKit.
+# needs it); plus LSM, LibUtil, LibPrettyPrint, LibTraceKit and LibHelpTour.
 externals:
   LuaDevKit/ThirdParty/Libs/Ace3:
     url: https://github.com/WoWUIDev/Ace3
@@ -40,6 +40,9 @@ externals:
     tag: latest
   LuaDevKit/ThirdParty/Libs/LibTraceKit:
     url: https://github.com/kapresoft/wow-addon-LibTraceKit
+    tag: latest
+  LuaDevKit/ThirdParty/Libs/LibHelpTour:
+    url: https://github.com/kapresoft/wow-addon-LibHelpTour
     tag: latest
 
 ignore:
@@ -91,6 +94,9 @@ ignore:
   - LuaDevKit/ThirdParty/Libs/LibTraceKit/Libs/Assets
   - LuaDevKit/ThirdParty/Libs/LibTraceKit/Libs/Developer.lua
   - LuaDevKit/ThirdParty/Libs/LibTraceKit/ThirdParty
+  - LuaDevKit/ThirdParty/Libs/LibHelpTour/dev
+  - LuaDevKit/ThirdParty/Libs/LibHelpTour/*.toc
+  - LuaDevKit/ThirdParty/Libs/LibHelpTour/ThirdParty
 
 # REQUIRED for CurseForge packager (non-obvious):
 # The LEFT side MUST be <repo-folder>/<addon-folder>

@@ -11,8 +11,8 @@ ns.addon = addon
 --- @class LDK_CodeEditor_Objects
 --- @field MinimalScrollBarStyle LDK_MinimalScrollBarStyle
 --- @field DialogSupport LDK_DialogSupport
---- @field HelpTour LDK_HelpTour
---- @field TourList LDK_HelpTourDef[]
+--- @field HelpTour LibHelpTour_Controller
+--- @field TourList LibHelpTour_Tour[]
 local O = {}; ns.O = O
 
 --- @return LDK_Core_Namespace, LDK_Core_Objects

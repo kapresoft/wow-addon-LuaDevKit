@@ -9,7 +9,7 @@
 ## DefaultState: enabled
 ## SavedVariables: LUADEVKIT_DB
 ## Dependencies: SharedMediaFontsMono
-## OptionalDeps: Ace3, DevSuite, LibPrettyPrint, LibTraceKit, LibUtil
+## OptionalDeps: Ace3, DevSuite, LibHelpTour, LibPrettyPrint, LibTraceKit, LibUtil
 
 ## Category-enUS: Development Tools
 ## Category-deDE: Entwicklungstools
@@ -57,6 +57,7 @@ ThirdParty\Libs\LibPrettyPrint\Libs\ValueFormatter.lua
 ThirdParty\Libs\LibPrettyPrint\Libs\Formatter.lua
 ThirdParty\Libs\LibPrettyPrint\Libs\Printer.lua
 ThirdParty\Libs\LibTraceKit\LibTraceKit.lua
+ThirdParty\Libs\LibHelpTour\LibHelpTour.xml
 
 Libs\External\FAIAP.lua
 Libs\Namespace.lua
