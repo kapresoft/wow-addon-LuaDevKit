@@ -237,7 +237,6 @@ Types
 --- @field Header LDK_CodeEditorHeader                       @Title bar; carries drag-to-move
 --- @field TopBar Frame                                      @Toolbar: document controls left, dropdowns right
 --- @field OptionsButton DropdownButton                      @Alias of Header.OptionsButton
---- @field HelpTip LDK_HelpTip                               @Shows this dialog's help tour steps
 --- @field ThemeButton DropdownButton                        @Alias of TopBar.ThemeButton
 --- @field FontButton DropdownButton                         @Alias of TopBar.FontButton
 --- @field FontSizeButton DropdownButton                     @Alias of TopBar.FontSizeButton
@@ -1460,7 +1459,7 @@ function o:OnShow()
   -- Scale may change while hidden; re-clamp visibly on the way in.
   self:ClampToScreen(true)
   self:SetStatusSize(self:GetStatusSize())
-  HelpTour:OnHostShown('CodeEditor', self, self.HelpTip)
+  HelpTour:OnTargetShown('CodeEditor', self)
   -- SetFocus() needs the frame visible; OnLoad ran while still hidden.
   if not self.initialFocusApplied then
     self.initialFocusApplied = true

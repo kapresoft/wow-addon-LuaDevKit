@@ -15,9 +15,8 @@ LuaDevKit's AceDB.
 | [`CommandBarMixin.lua`](Modules/CodeEditor/CommandBarMixin.lua) | `LDK_CodeEditorCommandBarMixin` -- command line, Up/Down history, history menu, helpers button |
 | [`DialogSupport.lua`](Modules/CodeEditor/DialogSupport.lua) | `ns.O.DialogSupport` -- helpers shared by the dialog and its frame mixins (`AddTooltip`) |
 | [`MinimalScrollBarStyle.lua`](Modules/CodeEditor/MinimalScrollBarStyle.lua) | `ns.O.MinimalScrollBarStyle` -- restyles the code area scrollbar after MinimalScrollBar |
-| [`HelpTips.xml`](Modules/HelpTips/HelpTips.xml) | `LDK_HelpTipTemplate` (a `GlowBoxTemplate` tip); loads the files below |
-| [`HelpTip.lua`](Modules/HelpTips/HelpTip.lua) | `LDK_HelpTipMixin` -- the tip view: places it and its arrow at a target |
-| [`HelpTour.lua`](Modules/HelpTips/HelpTour.lua) | Picks which tour step the dialog's help tip shows; one tour per session |
+| [`HelpTips.xml`](Modules/HelpTips/HelpTips.xml) | Loads the files below |
+| [`HelpTour.lua`](Modules/HelpTips/HelpTour.lua) | `ns.O.HelpTour` -- the editor's [LibHelpTour](https://github.com/kapresoft/wow-addon-LibHelpTour) controller, on the existing saved fields |
 | [`TourList.lua`](Modules/HelpTips/TourList.lua) | Every help tour, in priority order |
 
 Fonts are not declared in this addon.

@@ -9,11 +9,11 @@ it see them. Step keys must be unique across all tours.
 --- @type LDK_CodeEditor_Namespace
 local ns = select(2, ...)
 
---- @type LDK_HelpTourDef[]
+--- @type LibHelpTour_Tour[]
 ns.O.TourList = {
   {
     id = 'welcome',
-    host = 'CodeEditor',
+    targetId = 'CodeEditor',
     steps = {
       {
         key = 'OptionsMenu',
