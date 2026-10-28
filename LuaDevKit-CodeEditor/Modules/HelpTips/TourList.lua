@@ -14,6 +14,7 @@ ns.O.TourList = {
   {
     id = 'welcome',
     targetId = 'CodeEditor',
+    skippable = true,
     steps = {
       {
         key = 'OptionsMenu',

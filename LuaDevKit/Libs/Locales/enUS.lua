@@ -81,6 +81,7 @@ L['Untitled'] = true
 L['Show Toolbar'] = true
 L['Show Toolbar::Desc'] = 'Show the toolbar above the code area.'
 L['Options::HelpTip'] = 'More options here'
+L['Skip Tour'] = true
 L['Save on Run'] = true
 L['Save on Run::Desc'] = 'Save the document each time you run it.'
 L['Output Panel'] = true
