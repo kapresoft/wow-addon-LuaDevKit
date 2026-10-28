@@ -81,6 +81,7 @@ L['Untitled'] = 'Senza titolo'
 L['Show Toolbar'] = 'Mostra barra degli strumenti'
 L['Show Toolbar::Desc'] = "Mostra la barra degli strumenti sopra l'area del codice."
 L['Options::HelpTip'] = 'Altre opzioni qui'
+L['Skip Tour'] = 'Salta il tour'
 L['Save on Run'] = "Salva all'esecuzione"
 L['Save on Run::Desc'] = 'Salva il documento ogni volta che lo esegui.'
 L['Output Panel'] = 'Pannello di output'
