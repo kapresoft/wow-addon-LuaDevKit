@@ -1,4 +1,4 @@
 local addon, ns = ...
-
-local d = true
-print(addon, 'DeveloperSetup.lua loaded')
+local function n() return ('{{%s}}'):format(BLUE_FONT_COLOR:WrapTextInColorCode(addon)) end
+print(n(), 'DeveloperSetup loaded [dev]')
+-- todo: implement: local p, t = ns:log('DeveloperSetup')
