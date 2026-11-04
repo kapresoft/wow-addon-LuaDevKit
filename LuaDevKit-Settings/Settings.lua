@@ -2,6 +2,7 @@
 local ns = select(2, ...)
 local cns, cO = ns:cns()
 local L = ns:GetLocale()
+local AOK = cO.LibAceOptionsKit
 
 --[[-----------------------------------------------------------------------------
 Support Functions
@@ -36,7 +37,7 @@ local function EditorCheckbox(field, key, order, onSet)
     desc = L[key .. '::Desc'],
     order = order,
     width = 'full',
-    dialogControl = 'LuaDevKit_SettingsCheckbox',
+    dialogControl = AOK.SettingsCheckbox.Type,
     get = function() return editor[field] end,
     set = function(_, value)
       editor[field] = value
@@ -68,7 +69,7 @@ local function OutputLocationSelect(order)
     desc = L['Output Panel::Desc'],
     order = order,
     width = 'full',
-    dialogControl = 'LuaDevKit_StepperDropdown',
+    dialogControl = AOK.StepperDropdown.Type,
     arg = { layout = { dropdown = { width = 180 } } },
     values = { bottom = L['Bottom'], right = L['Right'] },
     sorting = { 'bottom', 'right' },
@@ -108,8 +109,9 @@ local function RegisterOptions()
   options.args.general = GeneralOptions()
   options.args.profiles = cO.AceDBOptions:GetOptionsTable(ns:db())
   ConfirmOverwrites(options.args.profiles)
+  AOK:SetDefaults(cns.addon, { label = { width = 300 } })
   cO.AceConfig:RegisterOptionsTable(cns.addon, options)
-  cO.AceConfigDialog:SetDefaultSize(cns.addon, 575, 390)
+  cO.AceConfigDialog:SetDefaultSize(cns.addon, 658, 390)
   cO.AceConfigDialog:GetStatusTable(cns.addon).groups = { treewidth = 110 }
 end
 

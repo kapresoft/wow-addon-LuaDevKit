@@ -47,6 +47,7 @@ ns.DB_NAME = 'LUADEVKIT_DB'
 --- @field AddonInfoUtil Kapresoft-AddonInfoUtil-2-0
 --- @field LibPrettyPrint LibPrettyPrint-1.0
 --- @field LibTraceKit LibTraceKit-1.0
+--- @field LibAceOptionsKit LibAceOptionsKit-1.0
 --- @field CodeEditor LDK_CodeEditor? @Set when LuaDevKit-CodeEditor loads; use ns:CodeEditor()
 --- @field Settings LDK_Settings?     @Set when LuaDevKit-Settings loads; use ns:Settings()
 local O = {}; ns.O = O
@@ -60,6 +61,7 @@ local function RegisterObjects(self)
   self.AddonInfoUtil = LibStub('Kapresoft-AddonInfoUtil-2-0')
   self.LibPrettyPrint = LibStub('LibPrettyPrint-1.0')
   self.LibTraceKit = LibStub('LibTraceKit-1.0')
+  self.LibAceOptionsKit = LibStub('LibAceOptionsKit-1.0')
   self.AceAddon = LibStub('AceAddon-3.0')
   self.AceConfig = LibStub('AceConfig-3.0')
   self.AceConfigDialog = LibStub('AceConfigDialog-3.0')
