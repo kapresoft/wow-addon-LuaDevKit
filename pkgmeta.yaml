@@ -12,6 +12,7 @@ embedded-libraries:
   - LibSharedMedia-3-0
   - LibPrettyPrint
   - LibTraceKit
+  - LibAceOptionsKit
 
 required-dependencies:
   - sharedmediafontsmono
@@ -24,7 +25,8 @@ tools-used:
 
 # Ace3 keeps LibStub, CallbackHandler, AceAddon, AceEvent, AceConsole,
 # AceLocale, AceDB, AceDBOptions, AceConfig and AceGUI (AceConfigDialog
-# needs it); plus LSM, LibUtil, LibPrettyPrint, LibTraceKit and LibHelpTour.
+# needs it); plus LSM, LibUtil, LibPrettyPrint, LibTraceKit, LibHelpTour
+# and LibAceOptionsKit.
 externals:
   LuaDevKit/ThirdParty/Libs/Ace3:
     url: https://github.com/WoWUIDev/Ace3
@@ -43,6 +45,9 @@ externals:
     tag: latest
   LuaDevKit/ThirdParty/Libs/LibHelpTour:
     url: https://github.com/kapresoft/wow-addon-LibHelpTour
+    tag: latest
+  LuaDevKit/ThirdParty/Libs/LibAceOptionsKit:
+    url: https://github.com/kapresoft/wow-addon-LibAceOptionsKit
     tag: latest
 
 ignore:
@@ -97,6 +102,14 @@ ignore:
   - LuaDevKit/ThirdParty/Libs/LibHelpTour/dev
   - LuaDevKit/ThirdParty/Libs/LibHelpTour/*.toc
   - LuaDevKit/ThirdParty/Libs/LibHelpTour/ThirdParty
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/dev
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/doc
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/*.toc
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/Assets
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/LibAceOptionsKit.xml
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/ThirdParty
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/Libs/Annotations
+  - LuaDevKit/ThirdParty/Libs/LibAceOptionsKit/Libs/Developer
 
 # REQUIRED for CurseForge packager (non-obvious):
 # The LEFT side MUST be <repo-folder>/<addon-folder>
