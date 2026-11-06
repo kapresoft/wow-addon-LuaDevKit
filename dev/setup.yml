@@ -19,9 +19,10 @@ manual-changelog:
 #  - But this is the official: https://repos.wowace.com/wow/ace3/trunk
 # LibIconPicker: We just need the interface files
 externals:
+  # r1424-alpha (Release-r1403 + 21), needed for WoW Forever
   ThirdParty-Libs/Ace3:
     url: https://github.com/WoWUIDev/Ace3
-    tag: latest
+    commit: ac3d1225037e0dc74e025a72342c0f7824aae147
   ThirdParty-Libs/LibSharedMedia-3.0:
     url: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk
     tag: latest

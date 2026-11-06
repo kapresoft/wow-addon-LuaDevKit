@@ -28,9 +28,10 @@ tools-used:
 # needs it); plus LSM, LibUtil, LibPrettyPrint, LibTraceKit, LibHelpTour
 # and LibAceOptionsKit.
 externals:
+  # r1424-alpha (Release-r1403 + 21), needed for WoW Forever
   LuaDevKit/ThirdParty/Libs/Ace3:
     url: https://github.com/WoWUIDev/Ace3
-    tag: latest
+    commit: ac3d1225037e0dc74e025a72342c0f7824aae147
   LuaDevKit/ThirdParty/Libs/LibSharedMedia-3.0:
     url: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk
     tag: latest
